@@ -1180,33 +1180,63 @@ async fn execute_node(
         .get_script_config()
         .ok_or_else(|| "Invalid script node config".to_string())?;
 
-    // Parse command
-    let parts: Vec<&str> = config.command.split_whitespace().collect();
-    if parts.is_empty() {
-        return Err("Empty command".to_string());
-    }
-
-    let cmd_name = parts[0];
-    let args: Vec<&str> = parts[1..].to_vec();
-
     // Determine working directory: node config > default (project path)
     let cwd = config.cwd.as_deref().or(default_cwd);
 
-    // 🗑️ Intercept rm command - use trash instead of permanent delete
-    if cmd_name == "rm" {
-        return execute_trash_command(app, execution_id, workflow_id, node, &args, cwd).await;
-    }
+    // Check if command contains shell special characters (pipes, redirects, etc.)
+    let needs_shell = config.command.contains('|')
+        || config.command.contains("&&")
+        || config.command.contains("||")
+        || config.command.contains(';')
+        || config.command.contains('>')
+        || config.command.contains('<')
+        || config.command.contains('$')
+        || config.command.contains('`')
+        || config.command.contains('*')
+        || config.command.contains('?');
 
-    // Check if we should use Volta for version management
-    let (final_cmd, final_args) = if let Some(cwd_path) = cwd {
-        let project_path = std::path::Path::new(cwd_path);
-        let args_vec: Vec<String> = args.iter().map(|s| s.to_string()).collect();
-        get_volta_wrapped_command(project_path, cmd_name, args_vec)
+    let (final_cmd, final_args) = if needs_shell {
+        // Execute through shell for complex commands
+        #[cfg(unix)]
+        {
+            (
+                "/bin/sh".to_string(),
+                vec!["-c".to_string(), config.command.clone()],
+            )
+        }
+        #[cfg(windows)]
+        {
+            (
+                "cmd".to_string(),
+                vec!["/C".to_string(), config.command.clone()],
+            )
+        }
     } else {
-        (
-            path_resolver::get_tool_path(cmd_name),
-            args.iter().map(|s| s.to_string()).collect(),
-        )
+        // Parse simple command
+        let parts: Vec<&str> = config.command.split_whitespace().collect();
+        if parts.is_empty() {
+            return Err("Empty command".to_string());
+        }
+
+        let cmd_name = parts[0];
+        let args: Vec<&str> = parts[1..].to_vec();
+
+        // 🗑️ Intercept rm command - use trash instead of permanent delete
+        if cmd_name == "rm" {
+            return execute_trash_command(app, execution_id, workflow_id, node, &args, cwd).await;
+        }
+
+        // Check if we should use Volta for version management
+        if let Some(cwd_path) = cwd {
+            let project_path = std::path::Path::new(cwd_path);
+            let args_vec: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+            get_volta_wrapped_command(project_path, cmd_name, args_vec)
+        } else {
+            (
+                path_resolver::get_tool_path(cmd_name),
+                args.iter().map(|s| s.to_string()).collect(),
+            )
+        }
     };
 
     // Spawn and handle output
@@ -1219,8 +1249,20 @@ async fn execute_node(
     let mut command = path_resolver::create_command(&final_cmd);
     command.args(&final_args);
 
+    // Expand ~ in cwd path
     if let Some(cwd_path) = cwd {
-        command.current_dir(cwd_path);
+        let expanded_cwd = if cwd_path.starts_with("~/") {
+            if let Some(home) = path_resolver::get_home_dir() {
+                cwd_path.replacen("~", &home, 1)
+            } else {
+                cwd_path.to_string()
+            }
+        } else if cwd_path == "~" {
+            path_resolver::get_home_dir().unwrap_or_else(|| cwd_path.to_string())
+        } else {
+            cwd_path.to_string()
+        };
+        command.current_dir(&expanded_cwd);
     }
 
     // Set up stdio for streaming output

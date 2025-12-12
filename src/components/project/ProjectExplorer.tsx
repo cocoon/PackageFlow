@@ -418,9 +418,19 @@ export function ProjectExplorer({
                       </button>
                     ))}
                     {availableEditors.length === 0 && (
-                      <div className="px-3 py-1.5 text-sm text-muted-foreground">
-                        No editors available
-                      </div>
+                      onOpenInVSCode ? (
+                        <button
+                          onClick={onOpenInVSCode}
+                          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                        >
+                          <Code2 className="w-4 h-4" />
+                          Open in VS Code
+                        </button>
+                      ) : (
+                        <div className="px-3 py-1.5 text-sm text-muted-foreground">
+                          No editors available
+                        </div>
+                      )
                     )}
                   </div>
                 </>
