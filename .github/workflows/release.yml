@@ -18,7 +18,77 @@ permissions:
   contents: write
 
 jobs:
+  generate-release-notes:
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.notes.outputs.body }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          # Get the latest release tag (excluding current tag)
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          LAST_TAG=$(git tag --sort=-version:refname | grep -v "^${CURRENT_TAG}$" | head -1)
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "body=Initial release" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Generate release notes
+          BODY=$(cat << 'HEREDOC'
+          ## What's Changed
+
+          HEREDOC
+          )
+
+          # Get commits and categorize
+          FEATURES=""
+          FIXES=""
+          DOCS=""
+          CHORES=""
+
+          while IFS= read -r commit; do
+            [ -z "$commit" ] && continue
+            if [[ "$commit" =~ ^feat ]]; then
+              msg=$(echo "$commit" | sed -E 's/^feat(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
+              FEATURES="${FEATURES}- ${msg}\n"
+            elif [[ "$commit" =~ ^fix ]]; then
+              msg=$(echo "$commit" | sed -E 's/^fix(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
+              FIXES="${FIXES}- ${msg}\n"
+            elif [[ "$commit" =~ ^docs ]]; then
+              msg=$(echo "$commit" | sed -E 's/^docs(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
+              DOCS="${DOCS}- ${msg}\n"
+            elif [[ "$commit" =~ ^(chore|ci|build|refactor|perf|test|style) ]]; then
+              msg=$(echo "$commit" | sed -E 's/^(chore|ci|build|refactor|perf|test|style)(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
+              CHORES="${CHORES}- ${msg}\n"
+            fi
+          done <<< "$(git log "$LAST_TAG"..HEAD --pretty=format:"%s" --no-merges | grep -v "^release")"
+
+          BODY=""
+          [ -n "$FEATURES" ] && BODY="${BODY}### ✨ New Features\n\n${FEATURES}\n"
+          [ -n "$FIXES" ] && BODY="${BODY}### 🐛 Bug Fixes\n\n${FIXES}\n"
+          [ -n "$DOCS" ] && BODY="${BODY}### 📚 Documentation\n\n${DOCS}\n"
+          [ -n "$CHORES" ] && BODY="${BODY}### 🔧 Maintenance\n\n${CHORES}\n"
+
+          BODY="${BODY}---\n**Full Changelog**: https://github.com/${{ github.repository }}/compare/${LAST_TAG}...${CURRENT_TAG}"
+
+          # Use delimiter for multiline output
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
   build-macos:
+    needs: generate-release-notes
     runs-on: macos-latest
     strategy:
       matrix:
@@ -79,7 +149,7 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: 'PackageFlow v__VERSION__'
-          releaseBody: 'See the assets to download and install this version.'
+          releaseBody: ${{ needs.generate-release-notes.outputs.release_body }}
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
