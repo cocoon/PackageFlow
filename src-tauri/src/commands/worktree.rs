@@ -1116,6 +1116,8 @@ fn get_editor_info(editor_id: &str) -> Option<(&'static str, Option<&'static str
         "textmate" => Some(("mate", Some("TextMate"))),
         "windsurf" => Some(("windsurf", Some("Windsurf"))),
         "positron" => Some(("positron", Some("Positron"))),
+        "kiro" => Some(("kiro", Some("Kiro"))),
+        "antigravity" => Some(("antigravity", Some("Antigravity"))),
         _ => None,
     }
 }
@@ -1161,10 +1163,12 @@ pub async fn open_in_editor(
         });
     }
 
-    // Try CLI command first
-    if path_resolver::find_tool(command).is_some() {
-        match path_resolver::create_command(command)
-            .arg(&worktree_path)
+    // On macOS, prefer using `open -a` to ensure correct app opens
+    // (CLI commands like `code` may be symlinked to different apps)
+    #[cfg(target_os = "macos")]
+    if let Some(name) = app_name {
+        match std::process::Command::new("open")
+            .args(["-a", name, &worktree_path])
             .spawn()
         {
             Ok(_) => {
@@ -1175,16 +1179,15 @@ pub async fn open_in_editor(
                 });
             }
             Err(_) => {
-                // Fall through to try macOS open command
+                // Fall through to try CLI command
             }
         }
     }
 
-    // On macOS, try using `open -a` for apps without CLI
-    #[cfg(target_os = "macos")]
-    if let Some(name) = app_name {
-        match std::process::Command::new("open")
-            .args(["-a", name, &worktree_path])
+    // Fall back to CLI command
+    if path_resolver::find_tool(command).is_some() {
+        match path_resolver::create_command(command)
+            .arg(&worktree_path)
             .spawn()
         {
             Ok(_) => {
