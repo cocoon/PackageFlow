@@ -5,11 +5,12 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Bookmark, Search } from 'lucide-react';
+import { Bookmark, Download, Search, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useSettings } from '../../contexts/SettingsContext';
+import { open, save, writeTextFile, readTextFile } from '../../lib/tauri-api';
 import type { WorktreeSession, WorktreeSessionStatus } from '../../types/worktree-sessions';
 import { cn } from '../../lib/utils';
 
@@ -20,6 +21,7 @@ interface WorktreeSessionListDialogProps {
   onClose: () => void;
   sessions: WorktreeSession[];
   onOpenSession: (worktreePath: string) => void;
+  onImportSession?: (session: WorktreeSession) => Promise<void>;
 }
 
 function statusBadge(status: WorktreeSessionStatus): { label: string; className: string } {
@@ -33,16 +35,73 @@ export function WorktreeSessionListDialog({
   onClose,
   sessions,
   onOpenSession,
+  onImportSession,
 }: WorktreeSessionListDialogProps) {
   const { formatPath } = useSettings();
   const [filter, setFilter] = useState<StatusFilter>('active');
   const [query, setQuery] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setFilter('active');
     setQuery('');
+    setImportError(null);
   }, [isOpen]);
+
+  const handleExportAll = async () => {
+    if (sessions.length === 0) return;
+
+    const filePath = await save({
+      defaultPath: `sessions-backup-${new Date().toISOString().split('T')[0]}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+
+    if (!filePath) return;
+
+    try {
+      const exportData = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        sessions,
+      };
+      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+    } catch (err) {
+      console.error('Failed to export sessions:', err);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!onImportSession) return;
+    setImportError(null);
+
+    const filePath = await open({
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      multiple: false,
+    });
+
+    if (!filePath || Array.isArray(filePath)) return;
+
+    try {
+      const content = await readTextFile(filePath);
+      const data = JSON.parse(content);
+
+      if (data.session) {
+        // Single session export
+        await onImportSession(data.session);
+      } else if (data.sessions && Array.isArray(data.sessions)) {
+        // Multiple sessions export
+        for (const session of data.sessions) {
+          await onImportSession(session);
+        }
+      } else {
+        setImportError('Invalid session file format');
+      }
+    } catch (err) {
+      console.error('Failed to import sessions:', err);
+      setImportError('Failed to import: invalid file');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,15 +131,46 @@ export function WorktreeSessionListDialog({
 
         <div className="p-6">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bookmark className="w-5 h-5 text-blue-400" />
-              Sessions
-              {sessions.length > 0 && (
-                <span className="ml-2 text-xs text-muted-foreground">
-                  {sessions.length}
-                </span>
-              )}
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Bookmark className="w-5 h-5 text-blue-400" />
+                Sessions
+                {sessions.length > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {sessions.length}
+                  </span>
+                )}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                {onImportSession && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleImport}
+                    className="text-muted-foreground"
+                    title="Import sessions from JSON"
+                  >
+                    <Upload className="w-4 h-4 mr-1.5" />
+                    Import
+                  </Button>
+                )}
+                {sessions.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleExportAll}
+                    className="text-muted-foreground"
+                    title="Export all sessions as JSON"
+                  >
+                    <Download className="w-4 h-4 mr-1.5" />
+                    Export All
+                  </Button>
+                )}
+              </div>
+            </div>
+            {importError && (
+              <p className="text-xs text-red-400 mt-2">{importError}</p>
+            )}
           </DialogHeader>
 
           <div className="mt-4 space-y-4 max-h-[70vh] overflow-auto pr-1">

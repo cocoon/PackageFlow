@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Folder, Package, GitBranch, RefreshCw, ExternalLink, Workflow as WorkflowIcon, FileBox, Code2, Shield, Terminal, Zap, Box, Layers, GitCommit, Hexagon, ChevronDown, Rocket } from 'lucide-react';
+import { Folder, Package, GitBranch, RefreshCw, ExternalLink, Workflow as WorkflowIcon, FileBox, Code2, Shield, Terminal, Zap, Box, Layers, GitCommit, Hexagon, ChevronDown, Rocket, Search } from 'lucide-react';
 import type { Project, WorkspacePackage, PackageManager, MonorepoTool } from '../../types/project';
 import type { Workflow } from '../../types/workflow';
 import { ipaAPI, apkAPI, worktreeAPI, type Worktree, type EditorDefinition } from '../../lib/tauri-api';
@@ -165,7 +165,7 @@ export function ProjectExplorer({
 
   // Worktree sessions hook (for Quick Switcher integration)
   const { sessions: worktreeSessions } = useWorktreeSessions({
-    project: project as Project,
+    project,
     onUpdateProject: onUpdateProject || (async () => {}),
   });
 
@@ -451,10 +451,10 @@ export function ProjectExplorer({
             {/* Quick Switcher Button */}
             <button
               onClick={() => setIsQuickSwitcherOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted/50 hover:bg-muted border border-border transition-colors group"
+              className="p-2 rounded hover:bg-accent transition-colors"
               title="Quick Switcher (⌘K)"
             >
-              <span className="text-xs text-muted-foreground group-hover:text-foreground">⌘K</span>
+              <Search className="w-4 h-4 text-muted-foreground" />
             </button>
 
             {/* Open in Editor Dropdown */}

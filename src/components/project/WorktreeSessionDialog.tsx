@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, Bookmark, CheckCircle2, ChevronDown, ChevronUp, FileText, Info, Link2, ListChecks, Loader2, MinusCircle, Play, Plus, Trash2, XCircle, Zap } from 'lucide-react';
+import { Archive, Bookmark, CheckCircle2, ChevronDown, ChevronUp, Download, FileText, Info, Link2, ListChecks, Loader2, MinusCircle, Play, Plus, Trash2, XCircle, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -15,7 +15,7 @@ import { Select, type SelectOption } from '../ui/Select';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useWorktreeSessions } from '../../hooks/useWorktreeSessions';
 import type { Project } from '../../types/project';
-import { worktreeAPI, workflowAPI, type EditorDefinition, type Worktree } from '../../lib/tauri-api';
+import { worktreeAPI, workflowAPI, save, writeTextFile, type EditorDefinition, type Worktree } from '../../lib/tauri-api';
 import type { ResumeAction, ResumeActionResult, ResumeSessionResult, SessionChecklistItem, WorktreeSession } from '../../types/worktree-sessions';
 import type { Workflow } from '../../types/workflow';
 import { cn } from '../../lib/utils';
@@ -353,6 +353,31 @@ export function WorktreeSessionDialog({
     await deleteSession(session.id);
     setShowDeleteConfirm(false);
     onClose();
+  };
+
+  const handleExport = async () => {
+    const dataToExport = draft || session;
+    if (!dataToExport) return;
+
+    const filename = `session-${dataToExport.title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() || 'untitled'}.json`;
+    const filePath = await save({
+      defaultPath: filename,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+
+    if (!filePath) return;
+
+    try {
+      const exportData = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        session: dataToExport,
+      };
+      await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
+    } catch (err) {
+      console.error('Failed to export session:', err);
+      setError('Failed to export session');
+    }
   };
 
   const handleClose = () => {
@@ -1166,6 +1191,17 @@ export function WorktreeSessionDialog({
 
           <DialogFooter className="px-6 pb-6 pt-4">
             <div className="flex items-center gap-2 mr-auto">
+              {(session || draft) && (
+                <Button
+                  variant="ghost"
+                  onClick={handleExport}
+                  className="text-muted-foreground"
+                  title="Export session as JSON"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
+              )}
               {session && (
                 <>
                   <Button

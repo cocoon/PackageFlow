@@ -250,6 +250,27 @@ export function useWorktreeSessions({ project, onUpdateProject }: UseWorktreeSes
     [onUpdateProject, sessions]
   );
 
+  const importSession = useCallback(
+    async (importedSession: WorktreeSession) => {
+      if (!project) return;
+
+      const now = new Date().toISOString();
+      // Generate new ID to avoid conflicts
+      const newSession = normalizeWorktreeSession({
+        ...importedSession,
+        id: createId('ws'),
+        projectId: project.id,
+        updatedAt: now,
+        // Mark as broken if importing to a different project (worktree path may not exist)
+        status: 'broken',
+        brokenReason: 'IMPORTED',
+      });
+
+      await saveSession(newSession);
+    },
+    [project, saveSession]
+  );
+
   return {
     sessions,
     getSessionById,
@@ -262,5 +283,6 @@ export function useWorktreeSessions({ project, onUpdateProject }: UseWorktreeSes
     deleteSession,
     relinkSession,
     syncBrokenSessions,
+    importSession,
   };
 }
