@@ -3,6 +3,7 @@
  * @see specs/002-export-import-save/contracts/export-import-api.md
  */
 
+import { getVersion } from '@tauri-apps/api/app';
 import { save, open, readTextFile, writeTextFile, settingsAPI, worktreeTemplateAPI, stepTemplateAPI, incomingWebhookAPI, shortcutsAPI } from './tauri-api';
 import type {
   ExportData,
@@ -36,8 +37,8 @@ import type { Workflow, WorkflowNode } from '../types/workflow';
  * Get application version
  * Retrieves version from package.json or tauri.conf.json
  */
-export function getAppVersion(): string {
-  return '0.1.0';
+export async function getAppVersion(): Promise<string> {
+  return await getVersion();
 }
 
 /**
@@ -174,13 +175,14 @@ export async function exportAllData(): Promise<ExportResult> {
       return { success: false, error: 'USER_CANCELLED' };
     }
 
-    const [projects, workflows, templatesRes, stepTemplatesRes, settings, keyboardShortcuts] = await Promise.all([
+    const [projects, workflows, templatesRes, stepTemplatesRes, settings, keyboardShortcuts, appVersion] = await Promise.all([
       settingsAPI.loadProjects(),
       settingsAPI.loadWorkflows(),
       worktreeTemplateAPI.listTemplates(),
       stepTemplateAPI.loadCustomTemplates(),
       settingsAPI.loadSettings(),
       shortcutsAPI.loadSettings(),
+      getAppVersion(),
     ]);
 
     const templates = templatesRes.templates ?? [];
@@ -193,7 +195,7 @@ export async function exportAllData(): Promise<ExportResult> {
 
     const metadata: ExportMetadata = {
       version: EXPORT_FORMAT_VERSION,
-      appVersion: getAppVersion(),
+      appVersion,
       exportedAt: new Date().toISOString(),
       exportType: 'full',
     };

@@ -28,6 +28,7 @@ const DEFAULT_SHORTCUT_KEYS: Record<string, string> = {
   'tab-projects': 'cmd+1',
   'tab-workflows': 'cmd+2',
   'stop-all': 'cmd+shift+k',
+  'deploy': 'cmd+shift+d',
   'help': 'cmd+/',
 };
 
@@ -381,6 +382,19 @@ function App() {
       },
     },
     {
+      id: 'deploy',
+      key: getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']),
+      description: 'Quick deploy current project',
+      category: 'Execution',
+      enabled: isShortcutEnabled('deploy'),
+      action: () => {
+        if (activeTab === 'project-manager') {
+          window.dispatchEvent(new CustomEvent('shortcut-deploy'));
+          showShortcutToast('Deploy', getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']));
+        }
+      },
+    },
+    {
       id: 'help',
       key: getEffectiveKey('help', DEFAULT_SHORTCUT_KEYS['help']),
       description: 'Show keyboard shortcuts',
@@ -402,6 +416,7 @@ function App() {
     { id: 'tab-projects', key: DEFAULT_SHORTCUT_KEYS['tab-projects'], description: 'Switch to Projects tab', category: 'Navigation', action: () => {} },
     { id: 'tab-workflows', key: DEFAULT_SHORTCUT_KEYS['tab-workflows'], description: 'Switch to Workflows tab', category: 'Navigation', action: () => {} },
     { id: 'stop-all', key: DEFAULT_SHORTCUT_KEYS['stop-all'], description: 'Stop all running processes', category: 'Execution', action: () => {} },
+    { id: 'deploy', key: DEFAULT_SHORTCUT_KEYS['deploy'], description: 'Quick deploy current project', category: 'Execution', action: () => {} },
     { id: 'help', key: DEFAULT_SHORTCUT_KEYS['help'], description: 'Show keyboard shortcuts', category: 'Help', action: () => {} },
   ], []);
 

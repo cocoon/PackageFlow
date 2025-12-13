@@ -1759,6 +1759,10 @@ import type {
   EncryptedData,
   BackupExportResult,
   BackupImportResult,
+  // 018-deploy-ui-enhancement
+  DeploymentStats,
+  PlatformSiteInfo,
+  DeploymentProgressEvent,
 } from '../types/deploy';
 
 export type {
@@ -1783,6 +1787,10 @@ export type {
   EncryptedData,
   BackupExportResult,
   BackupImportResult,
+  // 018-deploy-ui-enhancement
+  DeploymentStats,
+  PlatformSiteInfo,
+  DeploymentProgressEvent,
 };
 
 export const deployAPI = {
@@ -1903,6 +1911,18 @@ export const deployAPI = {
   /** Import encrypted backup of deploy accounts */
   importDeployBackup: (encryptedData: EncryptedData, password: string): Promise<BackupImportResult> =>
     invoke<BackupImportResult>('import_deploy_backup', { encryptedData, password }),
+
+  // ============================================================================
+  // Deploy UI Enhancement (018-deploy-ui-enhancement)
+  // ============================================================================
+
+  /** Get deployment statistics for a project */
+  getDeploymentStats: (projectId: string): Promise<DeploymentStats> =>
+    invoke<DeploymentStats>('get_deployment_stats', { projectId }),
+
+  /** Get platform-specific site information */
+  getPlatformSiteInfo: (projectId: string): Promise<PlatformSiteInfo | null> =>
+    invoke<PlatformSiteInfo | null>('get_platform_site_info', { projectId }),
 };
 
 export const deployEvents = {
@@ -1910,6 +1930,14 @@ export const deployEvents = {
     callback: (event: DeploymentStatusEvent) => void
   ): Promise<UnlistenFn> =>
     listen<DeploymentStatusEvent>('deployment:status', (e) =>
+      callback(e.payload)
+    ),
+
+  /** Listen for deployment progress events with extended info */
+  onDeploymentProgress: (
+    callback: (event: DeploymentProgressEvent) => void
+  ): Promise<UnlistenFn> =>
+    listen<DeploymentProgressEvent>('deployment:progress', (e) =>
       callback(e.payload)
     ),
 };

@@ -45,7 +45,7 @@ Beginner-friendly by design: fewer terminals, more shipping.
 - **Local-first + portable**: everything stays local (Tauri store) and you can export/import app data (plus extras like IPA/APK inspection).
 
 <p align="center">
-  <img src="docs/screenshots/deploy-demo.gif" width="320" alt="Deploy demo" />
+  <img src="docs/screenshots/deploy-demo.gif" width="620" alt="Deploy demo" />
 </p>
 
 ## Installation

@@ -254,6 +254,9 @@ pub fn run() {
             // Secure backup commands
             deploy::export_deploy_backup,
             deploy::import_deploy_backup,
+            // Deploy UI Enhancement (018-deploy-ui-enhancement)
+            deploy::get_deployment_stats,
+            deploy::get_platform_site_info,
             // File watcher commands (package.json monitoring)
             file_watcher::watch_project,
             file_watcher::unwatch_project,

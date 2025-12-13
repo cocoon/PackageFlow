@@ -2,10 +2,12 @@
 // One-Click Deploy feature (015-one-click-deploy)
 // Main panel integrating deployment and history
 // Extended: GitHub Pages workflow generation (016-multi-deploy-accounts)
+// Enhanced: Deploy UI Enhancement (018-deploy-ui-enhancement)
+// Refactored: Left-right layout matching Git Panel style
 // Note: Deploy Accounts management moved to app Settings
 
 import { useState, useEffect } from 'react';
-import { Rocket, Settings, History, AlertCircle } from 'lucide-react';
+import { Rocket, LayoutDashboard, History, Settings, AlertCircle } from 'lucide-react';
 import { useDeploy } from '../../../hooks/useDeploy';
 import { useDeployAccounts } from '../../../hooks/useDeployAccounts';
 import { deployAPI } from '../../../lib/tauri-api';
@@ -13,6 +15,10 @@ import { DeployButton } from './DeployButton';
 import { DeploymentSettingsDialog } from './DeploymentSettingsDialog';
 import { DeploymentHistory } from './DeploymentHistory';
 import { GitHubPagesSetupDialog } from './GitHubPagesSetupDialog';
+import { DeploymentStatsCard } from './DeploymentStatsCard';
+import { DeploymentProgress } from './DeploymentProgress';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { cn } from '../../../lib/utils';
 import type { DeploymentConfig, PlatformType, GitHubWorkflowResult } from '../../../types/deploy';
 
 // Format platform name for display
@@ -29,6 +35,8 @@ const formatPlatformName = (platform: PlatformType): string => {
   }
 };
 
+type DeployTab = 'overview' | 'history' | 'settings';
+
 interface DeployPanelProps {
   projectId: string;
   projectName: string;
@@ -36,13 +44,15 @@ interface DeployPanelProps {
 }
 
 export function DeployPanel({ projectId, projectName, projectPath }: DeployPanelProps) {
-  const [activeTab, setActiveTab] = useState<'deploy' | 'history'>('deploy');
-  const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<DeployTab>('overview');
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   // GitHub Pages workflow generation state
   const [showSetupDialog, setShowSetupDialog] = useState(false);
   const [isGeneratingWorkflow, setIsGeneratingWorkflow] = useState(false);
   const [workflowResult, setWorkflowResult] = useState<GitHubWorkflowResult | null>(null);
   const [workflowError, setWorkflowError] = useState<string | undefined>(undefined);
+  // Quick deploy confirmation dialog
+  const [showDeployConfirm, setShowDeployConfirm] = useState(false);
 
   const {
     // State
@@ -73,6 +83,31 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
     loadHistory(projectId);
   }, [projectId, loadConfig, loadHistory]);
 
+  // Listen for keyboard shortcut deploy event
+  useEffect(() => {
+    const handleShortcutDeploy = () => {
+      if (deploymentConfig && !isDeploying && !isGeneratingWorkflow) {
+        // Show confirmation dialog before deploying
+        setShowDeployConfirm(true);
+      }
+    };
+
+    window.addEventListener('shortcut-deploy', handleShortcutDeploy);
+    return () => window.removeEventListener('shortcut-deploy', handleShortcutDeploy);
+  }, [deploymentConfig, isDeploying, isGeneratingWorkflow]);
+
+  // Handle confirmed quick deploy
+  const handleConfirmDeploy = () => {
+    setShowDeployConfirm(false);
+    if (deploymentConfig) {
+      if (deploymentConfig.platform === 'github_pages') {
+        handleGenerateWorkflow(projectPath, deploymentConfig);
+      } else {
+        handleDeploy(projectId, projectPath, deploymentConfig);
+      }
+    }
+  };
+
   const handleDeploy = async (_projectId: string, _projectPath: string, config: DeploymentConfig) => {
     await deploy(_projectId, _projectPath, config);
   };
@@ -97,82 +132,89 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
   // GitHub Pages is always available, Netlify requires an account
   const hasConnectedPlatform = accounts.length > 0 || true; // GitHub Pages is always available
 
+  // Tab configuration - sidebar navigation items
+  const tabs: { id: DeployTab; label: string; description: string; icon: typeof LayoutDashboard; badge?: number }[] = [
+    { id: 'overview', label: 'Overview', description: 'Stats & status', icon: LayoutDashboard },
+    { id: 'history', label: 'History', description: 'Past deployments', icon: History, badge: deploymentHistory.length || undefined },
+    { id: 'settings', label: 'Settings', description: 'Configuration', icon: Settings },
+  ];
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <Rocket className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold">One-Click Deploy</h2>
+    <div className="flex h-full -m-4 -mb-4">
+      {/* Left Sidebar Navigation */}
+      <div className="w-56 flex-shrink-0 bg-card rounded-lg overflow-hidden m-4 mr-0 self-start">
+        <div className="p-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-muted-foreground">Deploy</h3>
         </div>
+        <ul>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
 
-        <div className="flex items-center gap-2">
-          {hasConnectedPlatform && (
-            <DeployButton
-              projectId={projectId}
-              projectPath={projectPath}
-              projectName={projectName}
-              deploymentConfig={deploymentConfig}
-              isDeploying={isDeploying}
-              isGeneratingWorkflow={isGeneratingWorkflow}
-              isPlatformConnected={isPlatformConnected}
-              onDeploy={handleDeploy}
-              onGenerateWorkflow={handleGenerateWorkflow}
-              onOpenSettings={() => setShowSettings(true)}
-            />
-          )}
-        </div>
+            return (
+              <li key={tab.id}>
+                <button
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors border-l-2',
+                    isActive
+                      ? 'bg-blue-600/20 text-blue-400 border-blue-400'
+                      : 'hover:bg-accent text-muted-foreground border-transparent'
+                  )}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{tab.label}</div>
+                    <div className="text-xs text-muted-foreground">{tab.description}</div>
+                  </div>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      {/* Error Alert */}
-      {error && (
-        <div className="mx-4 mt-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button
-            onClick={clearError}
-            className="text-xs underline hover:no-underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+      {/* Right Content Area */}
+      <div className="flex-1 min-w-0 overflow-auto p-4">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button
+              onClick={clearError}
+              className="text-xs underline hover:no-underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-      {/* Tabs */}
-      <div className="flex border-b border-border px-4">
-        <button
-          onClick={() => setActiveTab('deploy')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-sm transition-colors ${
-            activeTab === 'deploy'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Settings className="h-4 w-4" />
-          <span>Settings</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`flex items-center gap-2 border-b-2 px-4 py-2 text-sm transition-colors ${
-            activeTab === 'history'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <History className="h-4 w-4" />
-          <span>History</span>
-          {deploymentHistory.length > 0 && (
-            <span className="rounded-full bg-muted px-1.5 text-xs">
-              {deploymentHistory.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'deploy' && (
-          <div className="space-y-6">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="space-y-4">
+            {/* Deploy Button */}
+            {hasConnectedPlatform && (
+              <div className="flex justify-end">
+                <DeployButton
+                  projectId={projectId}
+                  projectPath={projectPath}
+                  projectName={projectName}
+                  deploymentConfig={deploymentConfig}
+                  isDeploying={isDeploying}
+                  isGeneratingWorkflow={isGeneratingWorkflow}
+                  isPlatformConnected={isPlatformConnected}
+                  onDeploy={handleDeploy}
+                  onGenerateWorkflow={handleGenerateWorkflow}
+                  onOpenSettings={() => setShowSettingsDialog(true)}
+                />
+              </div>
+            )}
             {!hasConnectedPlatform ? (
               <div className="rounded-lg border border-dashed border-border p-8 text-center">
                 <Rocket className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -186,99 +228,27 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
               </div>
             ) : (
               <>
-                {/* Quick Deploy Section */}
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Quick Deploy</h3>
-                  {deploymentConfig ? (
-                    <div className="rounded-md border border-border p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">
-                              {formatPlatformName(deploymentConfig.platform)}
-                            </span>
-                            <span className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                              {deploymentConfig.environment === 'production'
-                                ? 'Production'
-                                : 'Preview'}
-                            </span>
-                          </div>
-                          {deploymentConfig.frameworkPreset && (
-                            <p className="mt-1 text-sm text-muted-foreground">
-                              Framework: {deploymentConfig.frameworkPreset}
-                            </p>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => setShowSettings(true)}
-                          className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-accent"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-md border border-dashed border-border p-4 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        No deployment configuration yet
-                      </p>
-                      <button
-                        onClick={() => setShowSettings(true)}
-                        className="mt-2 text-sm text-primary hover:underline"
-                      >
-                        Configure Deploy
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {/* Deployment Progress - show current or last deployment */}
+                {currentDeployment ? (
+                  <DeploymentProgress
+                    deployment={currentDeployment}
+                    onComplete={() => loadHistory(projectId)}
+                  />
+                ) : deploymentHistory.length > 0 ? (
+                  <DeploymentProgress
+                    deployment={deploymentHistory[0]}
+                    key={deploymentHistory[0].id}
+                  />
+                ) : null}
 
-                {/* Current Deployment Status */}
-                {currentDeployment && (
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium">Current Deployment</h3>
-                    <div className="rounded-md border border-border bg-accent/30 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {currentDeployment.status === 'ready' ? (
-                            <span className="flex h-2 w-2 rounded-full bg-green-500" />
-                          ) : currentDeployment.status === 'failed' ? (
-                            <span className="flex h-2 w-2 rounded-full bg-red-500" />
-                          ) : (
-                            <span className="flex h-2 w-2 animate-pulse rounded-full bg-blue-500" />
-                          )}
-                          <span className="font-medium">
-                            {currentDeployment.status === 'queued' && 'Queued'}
-                            {currentDeployment.status === 'building' && 'Building'}
-                            {currentDeployment.status === 'deploying' && 'Deploying'}
-                            {currentDeployment.status === 'ready' && 'Ready'}
-                            {currentDeployment.status === 'failed' && 'Failed'}
-                            {currentDeployment.status === 'cancelled' && 'Cancelled'}
-                          </span>
-                        </div>
-                        {currentDeployment.url && (
-                          <a
-                            href={currentDeployment.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline"
-                          >
-                            Open Site →
-                          </a>
-                        )}
-                      </div>
-                      {currentDeployment.errorMessage && (
-                        <p className="mt-2 text-sm text-destructive">
-                          {currentDeployment.errorMessage}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Deployment Statistics Overview */}
+                <DeploymentStatsCard projectId={projectId} refreshTrigger={deploymentHistory.length} />
               </>
             )}
           </div>
         )}
 
+        {/* History Tab */}
         {activeTab === 'history' && (
           <DeploymentHistory
             deployments={deploymentHistory}
@@ -287,12 +257,115 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
             onRefresh={() => loadHistory(projectId)}
           />
         )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground text-white">Current Configuration</h3>
+              {deploymentConfig ? (
+                <div className="rounded-lg border border-border bg-card p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-3">
+                      {/* Platform & Environment */}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-lg">
+                            {formatPlatformName(deploymentConfig.platform)}
+                          </span>
+                          <span className={cn(
+                            "rounded px-2 py-0.5 text-xs font-medium",
+                            deploymentConfig.environment === 'production'
+                              ? 'bg-green-500/20 text-green-400'
+                              : 'bg-blue-500/20 text-blue-400'
+                          )}>
+                            {deploymentConfig.environment === 'production' ? 'Production' : 'Preview'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Framework */}
+                      {deploymentConfig.frameworkPreset && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Framework:</span>
+                          <span className="font-medium">{deploymentConfig.frameworkPreset}</span>
+                        </div>
+                      )}
+
+                      {/* Build Command */}
+                      {deploymentConfig.buildCommand && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Build:</span>
+                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
+                            {deploymentConfig.buildCommand}
+                          </code>
+                        </div>
+                      )}
+
+                      {/* Output Directory */}
+                      {deploymentConfig.outputDirectory && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Output:</span>
+                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
+                            {deploymentConfig.outputDirectory}
+                          </code>
+                        </div>
+                      )}
+
+                      {/* Install Command */}
+                      {deploymentConfig.installCommand && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Install:</span>
+                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
+                            {deploymentConfig.installCommand}
+                          </code>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setShowSettingsDialog(true)}
+                      className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                  <Settings className="mx-auto h-10 w-10 text-muted-foreground/50" />
+                  <h3 className="mt-4 font-medium">No Configuration</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Set up your deployment configuration to get started.
+                  </p>
+                  <button
+                    onClick={() => setShowSettingsDialog(true)}
+                    className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Configure Deploy
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Settings Info */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <h4 className="text-sm font-medium mb-2">Deploy Accounts</h4>
+              <p className="text-sm text-muted-foreground">
+                Manage your connected deployment accounts in the app settings.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Go to <span className="font-medium">Settings → Deploy Accounts</span>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Settings Dialog */}
       <DeploymentSettingsDialog
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
+        isOpen={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
         projectId={projectId}
         projectPath={projectPath}
         initialConfig={deploymentConfig}
@@ -313,6 +386,18 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
         result={workflowResult}
         error={workflowError}
         isGenerating={isGeneratingWorkflow}
+      />
+
+      {/* Quick Deploy Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeployConfirm}
+        onOpenChange={setShowDeployConfirm}
+        variant="info"
+        title="Quick Deploy"
+        description={deploymentConfig ? `Deploy to ${formatPlatformName(deploymentConfig.platform)}?` : 'Deploy this project?'}
+        confirmText="Deploy"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDeploy}
       />
     </div>
   );

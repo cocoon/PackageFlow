@@ -202,3 +202,185 @@ export const FRAMEWORK_PRESETS = [
 ] as const;
 
 export type FrameworkPresetKey = typeof FRAMEWORK_PRESETS[number]['key'];
+
+// ============================================================================
+// Deploy UI Enhancement Types (018-deploy-ui-enhancement)
+// ============================================================================
+
+/**
+ * Deployment statistics for a project
+ * Calculated from deployment history
+ */
+export interface DeploymentStats {
+  /** Total number of deployments */
+  totalDeployments: number;
+  /** Number of successful deployments */
+  successfulDeployments: number;
+  /** Number of failed deployments */
+  failedDeployments: number;
+  /** Success rate as percentage (0-100) */
+  successRate: number;
+  /** Average deploy time in seconds (for successful deployments) */
+  averageDeployTime: number | null;
+  /** Fastest deploy time in seconds */
+  fastestDeployTime: number | null;
+  /** Slowest deploy time in seconds */
+  slowestDeployTime: number | null;
+  /** Last successful deployment info */
+  lastSuccessfulDeployment: {
+    id: string;
+    url: string;
+    deployedAt: string;
+    commitHash?: string;
+    platform: PlatformType;
+  } | null;
+  /** Deployments in the last 7 days */
+  recentDeploymentsCount: number;
+}
+
+/**
+ * Extended site information from Netlify API
+ */
+export interface NetlifySiteInfo {
+  /** Site ID */
+  siteId: string;
+  /** Site name (subdomain) */
+  name: string;
+  /** Primary URL */
+  url: string;
+  /** SSL URL */
+  sslUrl: string;
+  /** Screenshot URL (if available) */
+  screenshotUrl?: string;
+  /** Custom domain (if configured) */
+  customDomain?: string;
+  /** SSL status */
+  ssl: boolean;
+  /** Last published timestamp (ISO 8601) */
+  publishedAt?: string;
+  /** Repo URL (if connected) */
+  repoUrl?: string;
+  /** Branch being deployed */
+  repoBranch?: string;
+  /** Build minutes used this month */
+  buildMinutesUsed?: number;
+  /** Build minutes limit */
+  buildMinutesIncluded?: number;
+  /** Number of forms */
+  formCount?: number;
+  /** Account slug */
+  accountSlug?: string;
+  /** Account name */
+  accountName?: string;
+}
+
+/**
+ * Extended project information from Cloudflare Pages API
+ */
+export interface CloudflareProjectInfo {
+  /** Project name */
+  name: string;
+  /** Project subdomain */
+  subdomain: string;
+  /** Primary domain */
+  domains: string[];
+  /** Production branch */
+  productionBranch: string;
+  /** Latest deployment URL */
+  latestDeploymentUrl?: string;
+  /** Latest deployment status */
+  latestDeploymentStatus?: string;
+  /** Created at timestamp (ISO 8601) */
+  createdAt: string;
+  /** Total deployments count */
+  deploymentsCount?: number;
+}
+
+/**
+ * GitHub Pages site information
+ */
+export interface GitHubPagesInfo {
+  /** GitHub Pages URL */
+  url: string;
+  /** Build status */
+  status: 'built' | 'building' | 'errored' | 'queued' | null;
+  /** Source branch */
+  branch: string;
+  /** Source path */
+  path: string;
+  /** Whether HTTPS is enforced */
+  httpsEnforced: boolean;
+  /** Custom domain (if configured) */
+  customDomain?: string;
+  /** Latest workflow run status */
+  latestWorkflowStatus?: 'queued' | 'in_progress' | 'completed' | 'failure' | 'success';
+  /** Latest workflow run conclusion */
+  latestWorkflowConclusion?: 'success' | 'failure' | 'cancelled' | 'skipped';
+  /** Latest workflow run URL */
+  latestWorkflowUrl?: string;
+}
+
+/**
+ * Union type for platform-specific info
+ */
+export type PlatformSiteInfo =
+  | { platform: 'netlify'; info: NetlifySiteInfo }
+  | { platform: 'cloudflare_pages'; info: CloudflareProjectInfo }
+  | { platform: 'github_pages'; info: GitHubPagesInfo };
+
+/**
+ * Response from get_deployment_stats command
+ */
+export interface GetDeploymentStatsResponse {
+  success: boolean;
+  stats?: DeploymentStats;
+  error?: string;
+}
+
+/**
+ * Response from get_platform_site_info command
+ */
+export interface GetPlatformSiteInfoResponse {
+  success: boolean;
+  info?: PlatformSiteInfo;
+  error?: string;
+}
+
+/**
+ * Extended deployment status event with progress info
+ */
+export interface DeploymentProgressEvent {
+  deploymentId: string;
+  status: DeploymentStatus;
+  /** Progress percentage (0-100), if available */
+  progress?: number;
+  /** Current step name */
+  currentStep?: string;
+  /** Total steps */
+  totalSteps?: number;
+  /** Current step index (1-based) */
+  currentStepIndex?: number;
+  /** Elapsed time in seconds */
+  elapsedSeconds?: number;
+  url?: string;
+  errorMessage?: string;
+}
+
+/**
+ * Deployment filter options for history
+ */
+export interface DeploymentFilter {
+  /** Filter by status */
+  status?: DeploymentStatus | 'all';
+  /** Filter by platform */
+  platform?: PlatformType | 'all';
+  /** Filter by date range (ISO 8601) */
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+/**
+ * Deployment sort options
+ */
+export type DeploymentSortBy = 'date' | 'status' | 'deployTime';
+export type DeploymentSortOrder = 'asc' | 'desc';

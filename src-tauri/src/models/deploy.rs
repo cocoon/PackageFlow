@@ -361,3 +361,124 @@ pub struct CloudflareValidationResult {
     pub account_name: Option<String>,
     pub error: Option<String>,
 }
+
+// ============================================================================
+// Deploy UI Enhancement Models (018-deploy-ui-enhancement)
+// ============================================================================
+
+/// Deployment statistics for a project
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentStats {
+    /// Total number of deployments
+    pub total_deployments: usize,
+    /// Number of successful deployments
+    pub successful_deployments: usize,
+    /// Number of failed deployments
+    pub failed_deployments: usize,
+    /// Success rate as percentage (0-100)
+    pub success_rate: f64,
+    /// Average deploy time in seconds (for successful deployments)
+    pub average_deploy_time: Option<f64>,
+    /// Fastest deploy time in seconds
+    pub fastest_deploy_time: Option<u64>,
+    /// Slowest deploy time in seconds
+    pub slowest_deploy_time: Option<u64>,
+    /// Last successful deployment info
+    pub last_successful_deployment: Option<LastSuccessfulDeployment>,
+    /// Deployments in the last 7 days
+    pub recent_deployments_count: usize,
+}
+
+/// Info about the last successful deployment
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LastSuccessfulDeployment {
+    pub id: String,
+    pub url: String,
+    pub deployed_at: DateTime<Utc>,
+    pub commit_hash: Option<String>,
+    pub platform: PlatformType,
+}
+
+/// Extended site information from Netlify API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetlifySiteInfo {
+    pub site_id: String,
+    pub name: String,
+    pub url: String,
+    pub ssl_url: String,
+    pub screenshot_url: Option<String>,
+    pub custom_domain: Option<String>,
+    pub ssl: bool,
+    pub published_at: Option<DateTime<Utc>>,
+    pub repo_url: Option<String>,
+    pub repo_branch: Option<String>,
+    pub build_minutes_used: Option<u64>,
+    pub build_minutes_included: Option<u64>,
+    pub form_count: Option<usize>,
+    pub account_slug: Option<String>,
+    pub account_name: Option<String>,
+}
+
+/// Extended project information from Cloudflare Pages API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CloudflareProjectInfo {
+    pub name: String,
+    pub subdomain: String,
+    pub domains: Vec<String>,
+    pub production_branch: String,
+    pub latest_deployment_url: Option<String>,
+    pub latest_deployment_status: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub deployments_count: Option<usize>,
+}
+
+/// GitHub Pages site information
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHubPagesInfo {
+    pub url: String,
+    pub status: Option<String>,
+    pub branch: String,
+    pub path: String,
+    pub https_enforced: bool,
+    pub custom_domain: Option<String>,
+    pub latest_workflow_status: Option<String>,
+    pub latest_workflow_conclusion: Option<String>,
+    pub latest_workflow_url: Option<String>,
+}
+
+/// Union type for platform-specific info
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "platform")]
+pub enum PlatformSiteInfo {
+    #[serde(rename = "netlify")]
+    Netlify { info: NetlifySiteInfo },
+    #[serde(rename = "cloudflare_pages")]
+    CloudflarePages { info: CloudflareProjectInfo },
+    #[serde(rename = "github_pages")]
+    GithubPages { info: GitHubPagesInfo },
+}
+
+/// Extended deployment status event with progress info
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentProgressEvent {
+    pub deployment_id: String,
+    pub status: DeploymentStatus,
+    /// Progress percentage (0-100), if available
+    pub progress: Option<u8>,
+    /// Current step name
+    pub current_step: Option<String>,
+    /// Total steps
+    pub total_steps: Option<u8>,
+    /// Current step index (1-based)
+    pub current_step_index: Option<u8>,
+    /// Elapsed time in seconds
+    pub elapsed_seconds: Option<u64>,
+    pub url: Option<String>,
+    pub error_message: Option<String>,
+}

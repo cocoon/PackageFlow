@@ -44,7 +44,7 @@ PackageFlow 是一個以 `package.json` 為核心的輕量桌面應用程式。�
 - **資料在你手上**：所有資料本機保存（Tauri store），支援匯出/匯入（也包含 IPA/APK 檢視等工具）。
 
 <p align="center">
-  <img src="docs/screenshots/deploy-demo.gif" width="320" alt="部署 Demo" />
+  <img src="docs/screenshots/deploy-demo.gif" width="620" alt="部署 Demo" />
 </p>
 
 ## 安裝方式

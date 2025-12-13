@@ -1,8 +1,10 @@
 // DeployButton Component
 // One-Click Deploy feature (015-one-click-deploy)
 // Extended: GitHub Pages uses workflow generation instead of direct deploy
+// Enhanced: Rocket animation on hover and during deployment
 
-import { Rocket, Loader2, FileCode } from 'lucide-react';
+import { Rocket, FileCode } from 'lucide-react';
+import { cn } from '../../../lib/utils';
 import type { PlatformType, DeploymentConfig } from '../../../types/deploy';
 
 interface DeployButtonProps {
@@ -50,46 +52,52 @@ export function DeployButton({
     }
   };
 
-  // Determine button text and icon
-  const getButtonContent = () => {
-    if (isGeneratingWorkflow) {
-      return {
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        text: 'Generating...',
-      };
-    }
-    if (isDeploying) {
-      return {
-        icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        text: 'Deploying...',
-      };
-    }
-    if (isGitHubPages) {
-      return {
-        icon: <FileCode className="h-4 w-4" />,
-        text: 'Generate Workflow',
-      };
-    }
-    return {
-      icon: <Rocket className="h-4 w-4" />,
-      text: 'Deploy',
-    };
+  // Determine button text
+  const getButtonText = () => {
+    if (isGeneratingWorkflow) return 'Generating...';
+    if (isDeploying) return 'Deploying...';
+    if (isGitHubPages) return 'Generate Workflow';
+    return 'Deploy';
   };
-
-  const { icon, text } = getButtonContent();
 
   return (
     <button
       onClick={handleClick}
       disabled={isLoading}
-      className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+      className={cn(
+        'group relative flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 overflow-visible',
         canDeploy
           ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-          : 'bg-muted text-muted-foreground hover:bg-muted/80'
-      } disabled:opacity-50`}
+          : 'bg-muted text-muted-foreground hover:bg-muted/80',
+        'disabled:opacity-50'
+      )}
     >
-      {icon}
-      <span>{text}</span>
+      {/* Rocket Icon with animations */}
+      <span className="relative">
+        {isGitHubPages ? (
+          <FileCode className="h-4 w-4" />
+        ) : (
+          <>
+            <Rocket
+              className={cn(
+                'h-4 w-4 transition-transform duration-200',
+                // Hover: gentle lift
+                !isLoading && 'group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:scale-110',
+                // Deploying: vibrate + fly animation
+                isLoading && 'animate-rocket-vibrate'
+              )}
+            />
+            {/* Flame effect when deploying */}
+            {isLoading && (
+              <span className="absolute -bottom-1 -left-0.5 flex flex-col items-center">
+                <span className="w-2 h-2 bg-gradient-to-t from-orange-500 to-yellow-400 rounded-full animate-flame-flicker blur-[1px]" />
+                <span className="w-1.5 h-1.5 bg-gradient-to-t from-red-500 to-orange-400 rounded-full animate-flame-flicker blur-[0.5px] -mt-1" style={{ animationDelay: '75ms' }} />
+              </span>
+            )}
+          </>
+        )}
+      </span>
+      <span>{getButtonText()}</span>
     </button>
   );
 }

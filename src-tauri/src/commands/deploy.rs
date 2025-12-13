@@ -3115,3 +3115,291 @@ fn derive_password_key(password: &str) -> [u8; 32] {
     key.copy_from_slice(&result);
     key
 }
+
+// ============================================================================
+// Deploy UI Enhancement Commands (018-deploy-ui-enhancement)
+// ============================================================================
+
+use crate::models::deploy::{
+    DeploymentStats, LastSuccessfulDeployment, NetlifySiteInfo,
+    CloudflareProjectInfo, PlatformSiteInfo, DeploymentProgressEvent,
+};
+
+/// Get deployment statistics for a project
+/// Calculates stats from deployment history
+#[tauri::command]
+pub async fn get_deployment_stats(
+    app: AppHandle,
+    project_id: String,
+) -> Result<DeploymentStats, String> {
+    let history = get_history_from_store(&app)?;
+    let deployments = history.get(&project_id).cloned().unwrap_or_default();
+
+    let total = deployments.len();
+    let successful: Vec<_> = deployments
+        .iter()
+        .filter(|d| d.status == DeploymentStatus::Ready)
+        .collect();
+    let failed = deployments
+        .iter()
+        .filter(|d| d.status == DeploymentStatus::Failed)
+        .count();
+
+    let success_rate = if total > 0 {
+        (successful.len() as f64 / total as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    // Calculate deploy times from successful deployments
+    let deploy_times: Vec<u64> = successful
+        .iter()
+        .filter_map(|d| d.deploy_time)
+        .collect();
+
+    let average_deploy_time = if !deploy_times.is_empty() {
+        Some(deploy_times.iter().sum::<u64>() as f64 / deploy_times.len() as f64)
+    } else {
+        None
+    };
+
+    let fastest_deploy_time = deploy_times.iter().min().copied();
+    let slowest_deploy_time = deploy_times.iter().max().copied();
+
+    // Get last successful deployment
+    let last_successful_deployment = successful
+        .iter()
+        .max_by_key(|d| d.completed_at)
+        .and_then(|d| {
+            d.url.as_ref().map(|url| LastSuccessfulDeployment {
+                id: d.id.clone(),
+                url: url.clone(),
+                deployed_at: d.completed_at.unwrap_or(d.created_at),
+                commit_hash: d.commit_hash.clone(),
+                platform: d.platform.clone(),
+            })
+        });
+
+    // Count recent deployments (last 7 days)
+    let seven_days_ago = chrono::Utc::now() - chrono::Duration::days(7);
+    let recent_count = deployments
+        .iter()
+        .filter(|d| d.created_at > seven_days_ago)
+        .count();
+
+    Ok(DeploymentStats {
+        total_deployments: total,
+        successful_deployments: successful.len(),
+        failed_deployments: failed,
+        success_rate,
+        average_deploy_time,
+        fastest_deploy_time,
+        slowest_deploy_time,
+        last_successful_deployment,
+        recent_deployments_count: recent_count,
+    })
+}
+
+/// Get platform-specific site information
+/// Fetches extended info from platform APIs
+#[tauri::command]
+pub async fn get_platform_site_info(
+    app: AppHandle,
+    project_id: String,
+) -> Result<Option<PlatformSiteInfo>, String> {
+    // Get deployment config for the project
+    let configs = get_configs_from_store(&app)?;
+    let config = match configs.get(&project_id) {
+        Some(c) => c,
+        None => return Ok(None),
+    };
+
+    // Get access token from bound account
+    let access_token = match get_deployment_access_token(&app, config) {
+        Ok(token) => token,
+        Err(_) => return Ok(None),
+    };
+
+    match config.platform {
+        PlatformType::Netlify => {
+            let site_id = match &config.netlify_site_id {
+                Some(id) => id,
+                None => return Ok(None),
+            };
+
+            match fetch_netlify_site_info(&access_token, site_id).await {
+                Ok(info) => Ok(Some(PlatformSiteInfo::Netlify { info })),
+                Err(e) => {
+                    log::warn!("Failed to fetch Netlify site info: {}", e);
+                    Ok(None)
+                }
+            }
+        }
+        PlatformType::CloudflarePages => {
+            let project_name = match &config.cloudflare_project_name {
+                Some(name) => name.clone(),
+                None => return Ok(None),
+            };
+
+            // Get account from bound account
+            let accounts = get_accounts_from_store(&app)?;
+            let account = config.account_id.as_ref()
+                .and_then(|id| find_account_by_id(&accounts, id));
+
+            let cf_account_id = match account {
+                Some(acc) => acc.platform_user_id.clone(),
+                None => return Ok(None),
+            };
+
+            match fetch_cloudflare_project_info(&access_token, &cf_account_id, &project_name).await {
+                Ok(info) => Ok(Some(PlatformSiteInfo::CloudflarePages { info })),
+                Err(e) => {
+                    log::warn!("Failed to fetch Cloudflare project info: {}", e);
+                    Ok(None)
+                }
+            }
+        }
+        PlatformType::GithubPages => {
+            // For GitHub Pages, we need the project path to get repo info
+            // This is a simplified version - ideally we'd get the project path from somewhere
+            Ok(None)
+        }
+    }
+}
+
+/// Fetch extended site info from Netlify API
+async fn fetch_netlify_site_info(
+    access_token: &str,
+    site_id: &str,
+) -> Result<NetlifySiteInfo, String> {
+    let client = reqwest::Client::new();
+    let url = format!("{}/{}", NETLIFY_SITES_URL, site_id);
+
+    let response = client
+        .get(&url)
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch Netlify site: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Netlify API error: {}", response.status()));
+    }
+
+    let data: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Netlify response: {}", e))?;
+
+    // Parse published_at
+    let published_at = data["published_deploy"]["published_at"]
+        .as_str()
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc));
+
+    Ok(NetlifySiteInfo {
+        site_id: data["id"].as_str().unwrap_or("").to_string(),
+        name: data["name"].as_str().unwrap_or("").to_string(),
+        url: data["url"].as_str().unwrap_or("").to_string(),
+        ssl_url: data["ssl_url"].as_str().unwrap_or("").to_string(),
+        screenshot_url: data["screenshot_url"].as_str().map(|s| s.to_string()),
+        custom_domain: data["custom_domain"].as_str().map(|s| s.to_string()),
+        ssl: data["ssl"].as_bool().unwrap_or(false),
+        published_at,
+        repo_url: data["build_settings"]["repo_url"].as_str().map(|s| s.to_string()),
+        repo_branch: data["build_settings"]["repo_branch"].as_str().map(|s| s.to_string()),
+        build_minutes_used: None, // Would need separate API call to /accounts/{account_id}/builds/status
+        build_minutes_included: None,
+        form_count: data["published_deploy"]["form_count"].as_u64().map(|n| n as usize),
+        account_slug: data["account_slug"].as_str().map(|s| s.to_string()),
+        account_name: data["account_name"].as_str().map(|s| s.to_string()),
+    })
+}
+
+/// Fetch extended project info from Cloudflare Pages API
+async fn fetch_cloudflare_project_info(
+    access_token: &str,
+    account_id: &str,
+    project_name: &str,
+) -> Result<CloudflareProjectInfo, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "{}/accounts/{}/pages/projects/{}",
+        CLOUDFLARE_API_BASE, account_id, project_name
+    );
+
+    let response = client
+        .get(&url)
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to fetch Cloudflare project: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Cloudflare API error: {}", response.status()));
+    }
+
+    let data: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse Cloudflare response: {}", e))?;
+
+    let result = &data["result"];
+
+    // Parse created_on
+    let created_at = result["created_on"]
+        .as_str()
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .unwrap_or_else(chrono::Utc::now);
+
+    // Get domains
+    let domains: Vec<String> = result["domains"]
+        .as_array()
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    // Get latest deployment info
+    let latest_deployment = &result["latest_deployment"];
+    let latest_deployment_url = latest_deployment["url"].as_str().map(|s| s.to_string());
+    let latest_deployment_status = latest_deployment["latest_stage"]["status"]
+        .as_str()
+        .map(|s| s.to_string());
+
+    Ok(CloudflareProjectInfo {
+        name: result["name"].as_str().unwrap_or("").to_string(),
+        subdomain: result["subdomain"].as_str().unwrap_or("").to_string(),
+        domains,
+        production_branch: result["production_branch"].as_str().unwrap_or("main").to_string(),
+        latest_deployment_url,
+        latest_deployment_status,
+        created_at,
+        deployments_count: None, // Would need to count from deployments list
+    })
+}
+
+/// Emit deployment progress event with extended info
+pub fn emit_deployment_progress(
+    app: &AppHandle,
+    deployment_id: &str,
+    status: DeploymentStatus,
+    progress: Option<u8>,
+    current_step: Option<&str>,
+    current_step_index: Option<u8>,
+    total_steps: Option<u8>,
+    elapsed_seconds: Option<u64>,
+) {
+    let event = DeploymentProgressEvent {
+        deployment_id: deployment_id.to_string(),
+        status,
+        progress,
+        current_step: current_step.map(|s| s.to_string()),
+        total_steps,
+        current_step_index,
+        elapsed_seconds,
+        url: None,
+        error_message: None,
+    };
+
+    let _ = app.emit("deployment:progress", event);
+}
