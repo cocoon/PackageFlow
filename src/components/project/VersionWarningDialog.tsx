@@ -218,7 +218,7 @@ export function VersionWarningDialog({
                 <div>
                   <span className="text-foreground">Option 2:</span> Add <code className="px-1 py-0.5 bg-background rounded text-cyan-400">packageManager</code> field to package.json, then use Corepack
                   <code className="block mt-1 px-2 py-1 bg-background rounded text-foreground font-mono text-[11px]">
-                    "packageManager": "{packageManager.name || 'pnpm'}@{packageManager.required?.replace(/[\^~>=<]/g, '') || '9'}.0.0"
+                    "packageManager": "{packageManager.name || 'pnpm'}@{packageManager.required?.replace(/[\^~>=<]/g, '') || '10.0.0'}"
                   </code>
                 </div>
               </div>
