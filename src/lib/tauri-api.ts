@@ -1653,6 +1653,11 @@ export type StepTemplateCategory =
   | 'shell'
   | 'testing'
   | 'code-quality'
+  | 'kubernetes'
+  | 'database'
+  | 'cloud'
+  | 'security'
+  | 'nodejs'
   | 'custom';
 
 /** Custom step template saved by user */

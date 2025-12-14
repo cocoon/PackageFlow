@@ -13,6 +13,11 @@ pub enum TemplateCategory {
     Shell,
     Testing,
     CodeQuality,
+    Kubernetes,
+    Database,
+    Cloud,
+    Security,
+    Nodejs,
     Custom,
 }
 

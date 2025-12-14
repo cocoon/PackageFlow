@@ -11,6 +11,11 @@ export type TemplateCategory =
   | 'shell'
   | 'testing'
   | 'code-quality'
+  | 'kubernetes'
+  | 'database'
+  | 'cloud'
+  | 'security'
+  | 'nodejs'
   | 'custom';
 
 /** Category metadata for display */

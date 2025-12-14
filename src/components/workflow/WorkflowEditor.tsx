@@ -94,7 +94,7 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="bg-card border-border max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-foreground flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
