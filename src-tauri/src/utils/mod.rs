@@ -5,4 +5,5 @@ pub mod ipa_extractor;
 pub mod migration;
 pub mod path_resolver;
 pub mod plist_parser;
+pub mod shared_store;
 pub mod store;

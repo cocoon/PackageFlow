@@ -229,7 +229,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogClose onClick={handleClose} />
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5">

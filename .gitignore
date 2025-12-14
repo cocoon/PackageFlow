@@ -42,5 +42,7 @@ AGENTS.md
 GEMINI.md
 .mcp.json
 _docs/
+.gemini/
+.gemini-clipboard/
 
 homebrew/

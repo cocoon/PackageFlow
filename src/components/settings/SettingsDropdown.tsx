@@ -30,6 +30,7 @@ import {
   HardDrive,
   Palette,
   Wrench,
+  Server,
 } from 'lucide-react';
 import { settingsAPI, open } from '../../lib/tauri-api';
 import type { StorePathInfo } from '../../types/tauri';
@@ -37,6 +38,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { DeployAccountsDialog } from './DeployAccountsDialog';
 import { AIServiceSettingsDialog } from './AIServiceSettingsDialog';
 import { PromptTemplateEditor } from './PromptTemplateEditor';
+import { McpSettingsPanel } from './McpSettingsPanel';
 import { Toggle } from '../ui/Toggle';
 import { cn } from '../../lib/utils';
 
@@ -61,6 +63,7 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
   const [showDeployAccounts, setShowDeployAccounts] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
   const [showPromptTemplates, setShowPromptTemplates] = useState(false);
+  const [showMcpSettings, setShowMcpSettings] = useState(false);
 
   // Path display format from settings context
   const { pathDisplayFormat, setPathDisplayFormat } = useSettings();
@@ -285,6 +288,11 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
                 icon={<FileText className="w-4 h-4" />}
                 onClick={() => handleOpenDialog(setShowPromptTemplates)}
               />
+              <SettingsLinkItem
+                label="MCP Integration"
+                icon={<Server className="w-4 h-4" />}
+                onClick={() => handleOpenDialog(setShowMcpSettings)}
+              />
             </SettingsSection>
 
             <SettingsDivider />
@@ -399,6 +407,10 @@ export const SettingsDropdown: React.FC<SettingsDropdownProps> = ({
       <PromptTemplateEditor
         isOpen={showPromptTemplates}
         onClose={() => setShowPromptTemplates(false)}
+      />
+      <McpSettingsPanel
+        isOpen={showMcpSettings}
+        onClose={() => setShowMcpSettings(false)}
       />
     </>
   );

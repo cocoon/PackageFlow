@@ -2176,6 +2176,115 @@ export const aiAPI = {
     invoke<AIApiResponse<GenerateResult>>('ai_generate_commit_message', { request }),
 };
 
+// ============================================================================
+// MCP Server Integration
+// ============================================================================
+
+export interface McpServerInfo {
+  /** Path to the MCP server binary */
+  binary_path: string;
+  /** Server name */
+  name: string;
+  /** Server version */
+  version: string;
+  /** Whether the binary exists */
+  is_available: boolean;
+  /** JSON config for Claude Code / VS Code MCP settings */
+  config_json: string;
+  /** TOML config for Codex CLI */
+  config_toml: string;
+  /** Environment type: "production", "development (release)", "development (debug)", "not found" */
+  env_type: string;
+}
+
+export interface McpToolInfo {
+  name: string;
+  description: string;
+  category: string;
+}
+
+/** MCP permission mode */
+export type McpPermissionMode = 'read_only' | 'execute_with_confirm' | 'full_access';
+
+/** MCP Server configuration */
+export interface McpServerConfig {
+  /** Whether MCP Server is enabled */
+  isEnabled: boolean;
+  /** Default permission mode */
+  permissionMode: McpPermissionMode;
+  /** List of explicitly allowed tools (empty = use permissionMode defaults) */
+  allowedTools: string[];
+  /** Whether to log all requests */
+  logRequests: boolean;
+}
+
+/** Tool category for permission grouping */
+export type McpToolCategory = 'read' | 'write' | 'execute';
+
+/** MCP tool with permission status */
+export interface McpToolWithPermission {
+  name: string;
+  description: string;
+  category: McpToolCategory;
+  isAllowed: boolean;
+}
+
+/** MCP request log entry */
+export interface McpLogEntry {
+  timestamp: string;
+  tool: string;
+  arguments: Record<string, unknown>;
+  result: string;
+  durationMs: number;
+  error: string | null;
+}
+
+/** MCP logs response */
+export interface McpLogsResponse {
+  entries: McpLogEntry[];
+  totalCount: number;
+  logPath: string;
+}
+
+export const mcpAPI = {
+  /** Get MCP server information including binary path and config */
+  getServerInfo: (): Promise<McpServerInfo> =>
+    invoke<McpServerInfo>('get_mcp_server_info'),
+
+  /** Get available MCP tools */
+  getTools: (): Promise<McpToolInfo[]> =>
+    invoke<McpToolInfo[]>('get_mcp_tools'),
+
+  /** Get MCP server configuration */
+  getConfig: (): Promise<McpServerConfig> =>
+    invoke<McpServerConfig>('get_mcp_config'),
+
+  /** Save MCP server configuration */
+  saveConfig: (config: McpServerConfig): Promise<void> =>
+    invoke('save_mcp_config', { config }),
+
+  /** Update specific MCP configuration fields */
+  updateConfig: (options: {
+    isEnabled?: boolean;
+    permissionMode?: McpPermissionMode;
+    allowedTools?: string[];
+    logRequests?: boolean;
+  }): Promise<McpServerConfig> =>
+    invoke<McpServerConfig>('update_mcp_config', options),
+
+  /** Get all MCP tools with their permission status based on current config */
+  getToolsWithPermissions: (): Promise<McpToolWithPermission[]> =>
+    invoke<McpToolWithPermission[]>('get_mcp_tools_with_permissions'),
+
+  /** Get MCP request logs */
+  getLogs: (limit?: number): Promise<McpLogsResponse> =>
+    invoke<McpLogsResponse>('get_mcp_logs', { limit }),
+
+  /** Clear MCP request logs */
+  clearLogs: (): Promise<void> =>
+    invoke('clear_mcp_logs'),
+};
+
 export const tauriAPI = {
   ...projectAPI,
   ...scriptAPI,
@@ -2192,4 +2301,5 @@ export const tauriAPI = {
   ...deployAPI,
   ...toolchainAPI,
   ...aiAPI,
+  ...mcpAPI,
 };

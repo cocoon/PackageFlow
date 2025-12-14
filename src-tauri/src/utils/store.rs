@@ -150,13 +150,19 @@ impl Default for AppSettings {
 }
 
 /// Complete store schema
+/// Note: Uses `#[serde(default)]` on all fields to gracefully handle unknown fields (e.g., mcp_server_config)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StoreData {
+    #[serde(default)]
     pub version: String,
+    #[serde(default)]
     pub projects: Vec<Project>,
+    #[serde(default)]
     pub workflows: Vec<Workflow>,
+    #[serde(default)]
     pub running_executions: HashMap<String, Execution>,
+    #[serde(default)]
     pub settings: AppSettings,
     /// Security scan data per project (keyed by project ID)
     #[serde(default)]

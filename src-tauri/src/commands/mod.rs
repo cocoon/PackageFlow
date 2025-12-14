@@ -3,6 +3,7 @@
 
 pub mod ai;
 pub mod apk;
+pub mod mcp;
 pub mod deploy;
 pub mod file_watcher;
 pub mod git;

@@ -2,9 +2,9 @@
 // Migrated from Electron version
 
 mod commands;
-mod models;
+pub mod models;
 mod services;
-mod utils;
+pub mod utils;
 
 // Re-export models for use in commands
 pub use models::*;
@@ -12,7 +12,7 @@ pub use models::*;
 use commands::script::ScriptExecutionState;
 use commands::workflow::WorkflowExecutionState;
 use commands::{
-    ai, apk, deploy, file_watcher, git, incoming_webhook, ipa, monorepo, project, script, security,
+    ai, apk, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, project, script, security,
     settings, shortcuts, step_template, toolchain, version, webhook, workflow, worktree,
 };
 use services::{FileWatcherManager, IncomingWebhookManager};
@@ -285,6 +285,15 @@ pub fn run() {
             ai::ai_get_project_settings,
             ai::ai_update_project_settings,
             ai::ai_generate_commit_message,
+            // MCP Server Integration
+            mcp::get_mcp_server_info,
+            mcp::get_mcp_tools,
+            mcp::get_mcp_config,
+            mcp::save_mcp_config,
+            mcp::update_mcp_config,
+            mcp::get_mcp_tools_with_permissions,
+            mcp::get_mcp_logs,
+            mcp::clear_mcp_logs,
         ])
         // Setup hook - sync incoming webhook server on app start
         .setup(|app| {

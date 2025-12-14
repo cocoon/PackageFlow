@@ -6,15 +6,20 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// MCP Server permission modes
+///
+/// Permission levels control what AI assistants can do:
+/// - `ReadOnly`: Can only query data (list projects, get status, view workflows)
+/// - `ExecuteWithConfirm`: Can read + execute workflows, but cannot create/modify
+/// - `FullAccess`: Full access including creating and modifying workflows (dangerous)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum MCPPermissionMode {
     /// Only allow read operations (default)
     #[default]
     ReadOnly,
-    /// Execute operations require UI confirmation
+    /// Allow read + execute, but not write operations
     ExecuteWithConfirm,
-    /// Full access without confirmation (dangerous)
+    /// Full access including create/modify (dangerous)
     FullAccess,
 }
 
@@ -25,6 +30,26 @@ impl std::fmt::Display for MCPPermissionMode {
             MCPPermissionMode::ExecuteWithConfirm => write!(f, "execute_with_confirm"),
             MCPPermissionMode::FullAccess => write!(f, "full_access"),
         }
+    }
+}
+
+/// Encrypted secrets storage for MCP configuration
+/// Uses AES-256-GCM encryption with machine-derived key
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct MCPEncryptedSecrets {
+    /// Encrypted nonce (base64)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nonce: Option<String>,
+    /// Encrypted ciphertext (base64)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ciphertext: Option<String>,
+}
+
+impl MCPEncryptedSecrets {
+    /// Check if secrets are stored
+    pub fn is_empty(&self) -> bool {
+        self.nonce.is_none() || self.ciphertext.is_none()
     }
 }
 
@@ -44,6 +69,10 @@ pub struct MCPServerConfig {
     /// Whether to log all requests
     #[serde(default = "default_true")]
     pub log_requests: bool,
+    /// Encrypted secrets (API keys, tokens, etc.)
+    /// Use set_secret/get_secret methods to access
+    #[serde(default, skip_serializing_if = "MCPEncryptedSecrets::is_empty")]
+    pub encrypted_secrets: MCPEncryptedSecrets,
 }
 
 fn default_true() -> bool {
@@ -66,7 +95,82 @@ impl Default for MCPServerConfig {
             permission_mode: MCPPermissionMode::ReadOnly,
             allowed_tools: default_allowed_tools(),
             log_requests: true,
+            encrypted_secrets: MCPEncryptedSecrets::default(),
         }
+    }
+}
+
+impl MCPServerConfig {
+    /// Store encrypted secrets using AES-256-GCM
+    ///
+    /// The secrets are stored as a JSON object that can contain multiple key-value pairs.
+    /// Example: {"webhook_token": "abc123", "api_key": "xyz789"}
+    ///
+    /// Uses machine-derived key for encryption - data can only be decrypted on the same machine.
+    pub fn set_secrets(&mut self, secrets: &std::collections::HashMap<String, String>) -> Result<(), String> {
+        use crate::services::crypto::{encrypt, CryptoError};
+
+        if secrets.is_empty() {
+            self.encrypted_secrets = MCPEncryptedSecrets::default();
+            return Ok(());
+        }
+
+        let json = serde_json::to_string(secrets)
+            .map_err(|e| format!("Failed to serialize secrets: {}", e))?;
+
+        let encrypted = encrypt(&json).map_err(|e: CryptoError| e.to_string())?;
+
+        self.encrypted_secrets = MCPEncryptedSecrets {
+            nonce: Some(encrypted.nonce),
+            ciphertext: Some(encrypted.ciphertext),
+        };
+
+        Ok(())
+    }
+
+    /// Retrieve decrypted secrets
+    ///
+    /// Returns None if no secrets are stored or decryption fails.
+    pub fn get_secrets(&self) -> Option<std::collections::HashMap<String, String>> {
+        use crate::services::crypto::{decrypt, EncryptedData};
+
+        if self.encrypted_secrets.is_empty() {
+            return None;
+        }
+
+        let encrypted = EncryptedData {
+            nonce: self.encrypted_secrets.nonce.clone()?,
+            ciphertext: self.encrypted_secrets.ciphertext.clone()?,
+        };
+
+        let json = decrypt(&encrypted).ok()?;
+        serde_json::from_str(&json).ok()
+    }
+
+    /// Get a single secret by key
+    pub fn get_secret(&self, key: &str) -> Option<String> {
+        self.get_secrets()?.get(key).cloned()
+    }
+
+    /// Set a single secret (preserving existing secrets)
+    pub fn set_secret(&mut self, key: &str, value: &str) -> Result<(), String> {
+        let mut secrets = self.get_secrets().unwrap_or_default();
+        secrets.insert(key.to_string(), value.to_string());
+        self.set_secrets(&secrets)
+    }
+
+    /// Remove a single secret
+    pub fn remove_secret(&mut self, key: &str) -> Result<(), String> {
+        let mut secrets = self.get_secrets().unwrap_or_default();
+        secrets.remove(key);
+        self.set_secrets(&secrets)
+    }
+
+    /// Check if a secret exists
+    pub fn has_secret(&self, key: &str) -> bool {
+        self.get_secrets()
+            .map(|s| s.contains_key(key))
+            .unwrap_or(false)
     }
 }
 

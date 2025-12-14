@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm build && cargo build --release --bin packageflow-mcp",
     "frontendDist": "../dist"
   },
   "app": {
@@ -40,6 +40,9 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
+    "resources": {
+      "target/release/packageflow-mcp": "bin/"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
