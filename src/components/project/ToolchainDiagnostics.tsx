@@ -94,13 +94,13 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogClose onClick={onClose} />
 
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="w-5 h-5 text-primary" />
-            環境診斷報告
+            Environment Diagnostics
           </DialogTitle>
         </DialogHeader>
 
@@ -108,22 +108,22 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
             <span className="ml-2 text-sm text-muted-foreground">
-              正在分析環境...
+              Analyzing environment...
             </span>
           </div>
         ) : diagnostics ? (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto flex-1 min-h-0 py-2 pr-4">
             {/* Volta Section */}
             <Section
               title="Volta"
               icon={<StatusIcon available={diagnostics.volta.available} />}
             >
-              <InfoRow label="狀態" value={diagnostics.volta.available ? '已安裝' : '未安裝'} />
+              <InfoRow label="Status" value={diagnostics.volta.available ? 'Installed' : 'Not Installed'} />
               {diagnostics.volta.available && (
                 <>
-                  <InfoRow label="版本" value={diagnostics.volta.version} />
-                  <InfoRow label="路徑" value={diagnostics.volta.path} mono />
-                  <InfoRow label="Shim 路徑" value={diagnostics.volta.shim_path} mono />
+                  <InfoRow label="Version" value={diagnostics.volta.version} />
+                  <InfoRow label="Path" value={diagnostics.volta.path} mono />
+                  <InfoRow label="Shim Path" value={diagnostics.volta.shim_path} mono />
                 </>
               )}
             </Section>
@@ -138,25 +138,25 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                 />
               }
             >
-              <InfoRow label="狀態" value={diagnostics.corepack.available ? '已安裝' : '未安裝'} />
+              <InfoRow label="Status" value={diagnostics.corepack.available ? 'Installed' : 'Not Installed'} />
               {diagnostics.corepack.available && (
                 <>
-                  <InfoRow label="已啟用" value={diagnostics.corepack.enabled ? '是' : '否'} />
-                  <InfoRow label="版本" value={diagnostics.corepack.version} />
-                  <InfoRow label="路徑" value={diagnostics.corepack.path} mono />
+                  <InfoRow label="Enabled" value={diagnostics.corepack.enabled ? 'Yes' : 'No'} />
+                  <InfoRow label="Version" value={diagnostics.corepack.version} />
+                  <InfoRow label="Path" value={diagnostics.corepack.path} mono />
                 </>
               )}
             </Section>
 
             {/* System Node Section */}
             <Section
-              title="系統 Node.js"
+              title="System Node.js"
               icon={
                 <StatusIcon available={!!diagnostics.system_node.version} />
               }
             >
-              <InfoRow label="版本" value={diagnostics.system_node.version} />
-              <InfoRow label="路徑" value={diagnostics.system_node.path} mono />
+              <InfoRow label="Version" value={diagnostics.system_node.version} />
+              <InfoRow label="Path" value={diagnostics.system_node.path} mono />
             </Section>
 
             {/* Package Managers Section */}
@@ -170,7 +170,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                   value={`${diagnostics.package_managers.npm.version} (${diagnostics.package_managers.npm.path})`}
                 />
               ) : (
-                <InfoRow label="npm" value="未安裝" />
+                <InfoRow label="npm" value="Not Installed" />
               )}
               {diagnostics.package_managers.pnpm ? (
                 <InfoRow
@@ -178,7 +178,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                   value={`${diagnostics.package_managers.pnpm.version} (${diagnostics.package_managers.pnpm.path})`}
                 />
               ) : (
-                <InfoRow label="pnpm" value="未安裝" />
+                <InfoRow label="pnpm" value="Not Installed" />
               )}
               {diagnostics.package_managers.yarn ? (
                 <InfoRow
@@ -186,13 +186,13 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                   value={`${diagnostics.package_managers.yarn.version} (${diagnostics.package_managers.yarn.path})`}
                 />
               ) : (
-                <InfoRow label="yarn" value="未安裝" />
+                <InfoRow label="yarn" value="Not Installed" />
               )}
             </Section>
 
             {/* PATH Analysis Section */}
             <Section
-              title="PATH 順序分析"
+              title="PATH Order Analysis"
               icon={<Info className="w-4 h-4 text-muted-foreground" />}
             >
               {diagnostics.path_analysis.volta_first && diagnostics.path_analysis.corepack_first && (
@@ -200,30 +200,30 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-yellow-200">
-                      Volta 和 Corepack 的 shim 在 PATH 中的順序可能導致行為不一致
+                      Volta and Corepack shim order in PATH may cause inconsistent behavior
                     </p>
                   </div>
                 </div>
               )}
               <div className="space-y-1">
                 <InfoRow
-                  label="Volta 優先"
-                  value={diagnostics.path_analysis.volta_first ? '是' : '否'}
+                  label="Volta First"
+                  value={diagnostics.path_analysis.volta_first ? 'Yes' : 'No'}
                 />
                 <InfoRow
-                  label="Corepack 優先"
-                  value={diagnostics.path_analysis.corepack_first ? '是' : '否'}
+                  label="Corepack First"
+                  value={diagnostics.path_analysis.corepack_first ? 'Yes' : 'No'}
                 />
               </div>
               <div className="mt-2">
-                <p className="text-xs text-muted-foreground mb-1">PATH 順序 (前 10 項)：</p>
-                <div className="p-2 rounded bg-muted/50 max-h-32 overflow-y-auto">
-                  <ol className="text-xs font-mono text-muted-foreground space-y-0.5">
+                <p className="text-xs text-muted-foreground mb-1">PATH Order (first 10):</p>
+                <div className="p-3 rounded bg-muted/50 max-h-32 overflow-auto">
+                  <ol className="text-xs font-mono text-muted-foreground space-y-0.5 min-w-max">
                     {diagnostics.path_analysis.order.map((entry, idx) => (
                       <li
                         key={idx}
                         className={cn(
-                          'truncate',
+                          'whitespace-nowrap',
                           entry.includes('.volta') && 'text-blue-400',
                           (entry.includes('corepack') || entry.includes('.nvm')) && 'text-green-400'
                         )}

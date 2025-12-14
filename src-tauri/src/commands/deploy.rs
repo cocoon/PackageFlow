@@ -1156,8 +1156,8 @@ async fn deploy_to_github_pages(
     config: &DeploymentConfig,
     build_path: &std::path::Path,
 ) -> Result<(String, String), String> {
+    use crate::utils::path_resolver;
     use std::process::Stdio;
-    use tokio::process::Command;
 
     // Emit deploying status
     let _ = app.emit(
@@ -1171,7 +1171,8 @@ async fn deploy_to_github_pages(
     );
 
     // Get git remote URL to determine GitHub Pages URL
-    let remote_output = Command::new("git")
+    // Use path_resolver for proper PATH handling in macOS GUI apps
+    let remote_output = path_resolver::create_async_command("git")
         .args(["remote", "get-url", "origin"])
         .current_dir(project_path)
         .stdout(Stdio::piped())
@@ -1198,7 +1199,7 @@ async fn deploy_to_github_pages(
         .map_err(|e| format!("Failed to create temp directory: {}", e))?;
 
     // Clone the gh-pages branch (or create it)
-    let clone_result = Command::new("git")
+    let clone_result = path_resolver::create_async_command("git")
         .args([
             "clone",
             "--branch",
@@ -1219,7 +1220,7 @@ async fn deploy_to_github_pages(
         Ok(output) if output.status.success() => false,
         _ => {
             // gh-pages branch doesn't exist, initialize a new orphan branch
-            Command::new("git")
+            path_resolver::create_async_command("git")
                 .args(["init"])
                 .current_dir(&temp_dir)
                 .stdout(Stdio::piped())
@@ -1228,7 +1229,7 @@ async fn deploy_to_github_pages(
                 .await
                 .map_err(|e| format!("Failed to init git: {}", e))?;
 
-            Command::new("git")
+            path_resolver::create_async_command("git")
                 .args(["checkout", "--orphan", "gh-pages"])
                 .current_dir(&temp_dir)
                 .stdout(Stdio::piped())
@@ -1237,7 +1238,7 @@ async fn deploy_to_github_pages(
                 .await
                 .map_err(|e| format!("Failed to create orphan branch: {}", e))?;
 
-            Command::new("git")
+            path_resolver::create_async_command("git")
                 .args(["remote", "add", "origin", &remote_url])
                 .current_dir(&temp_dir)
                 .stdout(Stdio::piped())
@@ -1273,7 +1274,7 @@ async fn deploy_to_github_pages(
         .map_err(|e| format!("Failed to create .nojekyll: {}", e))?;
 
     // Git add all files
-    Command::new("git")
+    path_resolver::create_async_command("git")
         .args(["add", "-A"])
         .current_dir(&temp_dir)
         .stdout(Stdio::piped())
@@ -1287,7 +1288,7 @@ async fn deploy_to_github_pages(
         "Deploy from PackageFlow - {}",
         chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
     );
-    let commit_output = Command::new("git")
+    let commit_output = path_resolver::create_async_command("git")
         .args(["commit", "-m", &commit_msg])
         .current_dir(&temp_dir)
         .stdout(Stdio::piped())
@@ -1313,7 +1314,8 @@ async fn deploy_to_github_pages(
 
     println!("[Deploy] Starting git push to gh-pages branch...");
 
-    let push_future = Command::new("git")
+    let mut push_cmd = path_resolver::create_async_command("git");
+    push_cmd
         .args(&push_args)
         .current_dir(&temp_dir)
         .stdout(Stdio::piped())
@@ -1323,8 +1325,8 @@ async fn deploy_to_github_pages(
         .env(
             "GIT_SSH_COMMAND",
             "ssh -o BatchMode=yes -o StrictHostKeyChecking=no",
-        )
-        .output();
+        );
+    let push_future = push_cmd.output();
 
     // Add timeout of 60 seconds
     let push_output = tokio::time::timeout(
@@ -2292,11 +2294,11 @@ fn detect_package_manager(project_path: &str) -> (&'static str, &'static str) {
 
 /// Detect default branch from git
 async fn detect_default_branch(project_path: &str) -> String {
+    use crate::utils::path_resolver;
     use std::process::Stdio;
-    use tokio::process::Command;
 
     // Try to get the default branch from remote
-    let output = Command::new("git")
+    let output = path_resolver::create_async_command("git")
         .args(["symbolic-ref", "refs/remotes/origin/HEAD"])
         .current_dir(project_path)
         .stdout(Stdio::piped())
@@ -2316,7 +2318,7 @@ async fn detect_default_branch(project_path: &str) -> String {
     }
 
     // Fall back to checking current branch
-    let output = Command::new("git")
+    let output = path_resolver::create_async_command("git")
         .args(["branch", "--show-current"])
         .current_dir(project_path)
         .stdout(Stdio::piped())
@@ -2405,12 +2407,12 @@ pub async fn generate_github_actions_workflow(
     project_path: String,
     config: DeploymentConfig,
 ) -> Result<GitHubWorkflowResult, String> {
+    use crate::utils::path_resolver;
     use std::fs;
     use std::process::Stdio;
-    use tokio::process::Command;
 
     // --- Get GitHub repo info for URL generation ---
-    let (username_str, repo_str) = match Command::new("git")
+    let (username_str, repo_str) = match path_resolver::create_async_command("git")
         .args(["remote", "get-url", "origin"])
         .current_dir(&project_path)
         .stdout(Stdio::piped())

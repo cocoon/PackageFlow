@@ -191,23 +191,23 @@ export interface ToolchainDiagnosticsProps {
 // ============================================================================
 
 export const STRATEGY_LABELS: Record<ToolchainStrategy, string> = {
-  volta_priority: "Volta 優先",
-  corepack_priority: "Corepack 優先",
-  hybrid: "混合模式",
-  system_default: "系統預設",
+  volta_priority: "Volta Priority",
+  corepack_priority: "Corepack Priority",
+  hybrid: "Hybrid Mode",
+  system_default: "System Default",
 };
 
 export const STRATEGY_DESCRIPTIONS: Record<ToolchainStrategy, string> = {
-  volta_priority: "使用 Volta 管理 Node.js 和 Package Manager 版本",
-  corepack_priority: "使用 Corepack 管理 Package Manager 版本",
-  hybrid: "Volta 管理 Node.js，Corepack 管理 Package Manager",
-  system_default: "不做特殊處理，使用系統預設版本",
+  volta_priority: "Use Volta to manage Node.js and Package Manager versions",
+  corepack_priority: "Use Corepack to manage Package Manager versions",
+  hybrid: "Volta manages Node.js, Corepack manages Package Manager",
+  system_default: "No special handling, use system default versions",
 };
 
 export const CONFLICT_TYPE_LABELS: Record<ToolchainConflictType["type"], string> = {
-  none: "無衝突",
-  dual_config: "雙重配置衝突",
-  shim_overwrite: "Shim 覆蓋衝突",
-  volta_missing: "Volta 未安裝",
-  corepack_disabled: "Corepack 未啟用",
+  none: "No Conflict",
+  dual_config: "Dual Config Conflict",
+  shim_overwrite: "Shim Overwrite Conflict",
+  volta_missing: "Volta Not Installed",
+  corepack_disabled: "Corepack Disabled",
 };

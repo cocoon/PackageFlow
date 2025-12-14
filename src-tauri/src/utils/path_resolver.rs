@@ -252,6 +252,45 @@ pub fn clear_cache() {
     }
 }
 
+/// Create an async Command (tokio) with proper environment for macOS GUI apps
+/// Use this for async operations like in deploy.rs
+pub fn create_async_command(tool_name: &str) -> tokio::process::Command {
+    let tool_path = get_tool_path(tool_name);
+    let mut cmd = tokio::process::Command::new(&tool_path);
+
+    // Set essential environment variables
+    let home = get_home_dir();
+    if let Some(ref home) = home {
+        cmd.env("HOME", home);
+
+        // Volta support: set VOLTA_HOME for volta-managed projects
+        let volta_home = format!("{}/.volta", home);
+        if std::path::Path::new(&volta_home).exists() {
+            cmd.env("VOLTA_HOME", &volta_home);
+        }
+
+        // fnm support
+        let fnm_dir = format!("{}/.fnm", home);
+        if std::path::Path::new(&fnm_dir).exists() {
+            cmd.env("FNM_DIR", &fnm_dir);
+        }
+    }
+
+    // Set PATH so child processes can find tools
+    cmd.env("PATH", get_path());
+
+    // Set SSH_AUTH_SOCK for git operations
+    if let Some(sock) = get_ssh_auth_sock() {
+        cmd.env("SSH_AUTH_SOCK", &sock);
+    }
+
+    // Set LANG for proper encoding
+    cmd.env("LANG", "en_US.UTF-8");
+    cmd.env("LC_ALL", "en_US.UTF-8");
+
+    cmd
+}
+
 /// Build environment variables map for child processes
 /// This ensures child processes have access to necessary paths
 #[allow(dead_code)]

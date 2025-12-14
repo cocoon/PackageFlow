@@ -80,8 +80,15 @@ fn parse_package_manager_string(pm_string: &str) -> Result<ParsedPackageManager,
 
 /// Check if corepack is enabled
 pub fn detect_corepack_enabled() -> bool {
-    // Try to run corepack --version
-    let output = std::process::Command::new("corepack")
+    // Use detect_corepack from version module which handles PATH correctly
+    let corepack_status = crate::commands::version::detect_corepack();
+    if !corepack_status.available {
+        return false;
+    }
+
+    // Corepack is available, check if it's enabled by trying to run it
+    // Use path_resolver for proper PATH handling in macOS GUI apps
+    let output = crate::utils::path_resolver::create_command("corepack")
         .arg("--version")
         .output();
 
@@ -285,7 +292,7 @@ fn generate_conflict_description(conflict_type: &ToolchainConflictType) -> Optio
     match conflict_type {
         ToolchainConflictType::None => None,
         ToolchainConflictType::DualConfig { volta_node, volta_pm, package_manager } => {
-            let mut desc = String::from("專案同時配置了 Volta 和 packageManager 欄位。\n");
+            let mut desc = String::from("Project has both Volta and packageManager configured.\n");
             if let Some(node) = volta_node {
                 desc.push_str(&format!("Volta Node.js: {}\n", node));
             }
@@ -297,16 +304,16 @@ fn generate_conflict_description(conflict_type: &ToolchainConflictType) -> Optio
         }
         ToolchainConflictType::ShimOverwrite { affected_tools, fix_command } => {
             Some(format!(
-                "Corepack shim 覆蓋了 Volta shim，影響工具：{}。\n修復命令：{}",
+                "Corepack shim has overwritten Volta shim. Affected tools: {}.\nFix command: {}",
                 affected_tools.join(", "),
                 fix_command
             ))
         }
         ToolchainConflictType::VoltaMissing => {
-            Some("專案配置了 Volta，但系統未安裝 Volta。請安裝 Volta 或移除 volta 配置。".to_string())
+            Some("Project has Volta config but Volta is not installed. Please install Volta or remove the volta config.".to_string())
         }
         ToolchainConflictType::CorepackDisabled => {
-            Some("專案配置了 packageManager，但 Corepack 未啟用。請執行 `corepack enable` 或移除 packageManager 配置。".to_string())
+            Some("Project has packageManager field but Corepack is not enabled. Please run `corepack enable` or remove the packageManager field.".to_string())
         }
     }
 }
@@ -463,11 +470,11 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
         return Ok(ToolchainError {
             code: ToolchainErrorCode::VersionNotFound,
             message: if let Some(v) = &version {
-                format!("找不到指定的版本 {}。", v)
+                format!("Version {} not found.", v)
             } else {
-                "找不到指定的版本。".to_string()
+                "Specified version not found.".to_string()
             },
-            suggestion: Some("請確認版本號是否正確，或安裝所需的版本。".to_string()),
+            suggestion: Some("Please verify the version number or install the required version.".to_string()),
             command: version.map(|v| format!("volta install node@{}", v)),
         });
     }
@@ -479,8 +486,8 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
     {
         return Ok(ToolchainError {
             code: ToolchainErrorCode::NetworkError,
-            message: "網路連線錯誤，無法下載所需的工具。".to_string(),
-            suggestion: Some("請檢查網路連線狀態，或稍後再試。".to_string()),
+            message: "Network error, unable to download required tools.".to_string(),
+            suggestion: Some("Please check your network connection and try again.".to_string()),
             command: None,
         });
     }
@@ -491,8 +498,8 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
     {
         return Ok(ToolchainError {
             code: ToolchainErrorCode::CorepackDisabled,
-            message: "Corepack 未啟用。".to_string(),
-            suggestion: Some("請執行以下命令啟用 Corepack。".to_string()),
+            message: "Corepack is not enabled.".to_string(),
+            suggestion: Some("Run the following command to enable Corepack.".to_string()),
             command: Some("corepack enable".to_string()),
         });
     }
@@ -507,11 +514,11 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
         return Ok(ToolchainError {
             code: ToolchainErrorCode::PmNotInstalled,
             message: if let Some(ref p) = pm {
-                format!("{} 未安裝或不在 PATH 中。", p)
+                format!("{} is not installed or not in PATH.", p)
             } else {
-                "Package manager 未安裝或不在 PATH 中。".to_string()
+                "Package manager is not installed or not in PATH.".to_string()
             },
-            suggestion: Some("請安裝所需的 package manager。".to_string()),
+            suggestion: Some("Please install the required package manager.".to_string()),
             command: pm.map(|p| format!("npm install -g {}", p)),
         });
     }
@@ -519,8 +526,8 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
     // Unknown error
     Ok(ToolchainError {
         code: ToolchainErrorCode::Unknown,
-        message: "發生未知錯誤。".to_string(),
-        suggestion: Some("請查看完整錯誤訊息以了解詳情。".to_string()),
+        message: "An unknown error occurred.".to_string(),
+        suggestion: Some("Please check the full error message for details.".to_string()),
         command: None,
     })
 }
@@ -646,37 +653,33 @@ pub async fn get_environment_diagnostics(
         path: corepack_status.path,
     };
 
-    // Get system Node.js
-    let node_output = std::process::Command::new("node").arg("--version").output();
+    // Get system Node.js - use path_resolver for proper PATH handling in macOS GUI apps
+    let node_output = crate::utils::path_resolver::create_command("node")
+        .arg("--version")
+        .output();
 
-    let node_which = std::process::Command::new("which").arg("node").output();
+    let node_path = crate::utils::path_resolver::find_tool("node");
 
     let system_node = SystemNodeInfo {
         version: node_output
             .ok()
+            .filter(|o| o.status.success())
             .and_then(|o| String::from_utf8(o.stdout).ok())
             .map(|s| s.trim().to_string()),
-        path: node_which
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string()),
+        path: node_path,
     };
 
-    // Get package manager versions
+    // Get package manager versions - use path_resolver for proper PATH handling
     let get_tool_info = |tool: &str| -> Option<ToolVersionInfo> {
-        let version = std::process::Command::new(tool)
+        let version = crate::utils::path_resolver::create_command(tool)
             .arg("--version")
             .output()
             .ok()
+            .filter(|o| o.status.success())
             .and_then(|o| String::from_utf8(o.stdout).ok())
             .map(|s| s.trim().to_string())?;
 
-        let path = std::process::Command::new("which")
-            .arg(tool)
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string())?;
+        let path = crate::utils::path_resolver::find_tool(tool)?;
 
         Some(ToolVersionInfo { version, path })
     };

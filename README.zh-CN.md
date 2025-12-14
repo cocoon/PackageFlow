@@ -1,20 +1,37 @@
 <p align="center">
-  <img src="src-tauri/icons/128x128@2x.png" alt="PackageFlow Logo" width="128" height="128">
+  <img src="src-tauri/icons/128x128@2x.png" alt="PackageFlow Logo" width="100" height="100">
 </p>
 
 <h1 align="center">PackageFlow</h1>
 
 <p align="center">
-  <strong>给前端与 Node.js 开发者的桌面工具 — 管理脚本、Git、worktree，部署后立即获取预览链接。</strong>
+  <strong>🚀 告别终端地狱</strong><br/>
+  <sub>npm scripts、Git、Worktree、部署预览 — 全部整合在一个漂亮的 App</sub>
 </p>
 
 <p align="center">
-  <a href="https://github.com/runkids/PackageFlow/releases">下载</a> •
-  <a href="#为什么选择-packageflow">为什么选择</a> •
-  <a href="#功能">功能</a> •
-  <a href="#截图">截图</a> •
-  <a href="#安装">安装</a> •
-  <a href="#开发">开发</a>
+  <a href="https://github.com/runkids/PackageFlow/releases">
+    <img src="https://img.shields.io/github/v/release/runkids/PackageFlow?style=flat-square&color=blue" alt="Release">
+  </a>
+  <a href="https://github.com/runkids/PackageFlow/stargazers">
+    <img src="https://img.shields.io/github/stars/runkids/PackageFlow?style=flat-square&color=yellow" alt="Stars">
+  </a>
+  <a href="https://github.com/runkids/PackageFlow/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/runkids/PackageFlow?style=flat-square" alt="License">
+  </a>
+  <img src="https://img.shields.io/badge/platform-macOS-lightgrey?style=flat-square&logo=apple" alt="macOS">
+</p>
+
+<p align="center">
+  <img src="https://skillicons.dev/icons?i=rust,tauri,react,ts,tailwind" alt="Tech Stack" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/runkids/PackageFlow/releases">📥 下载</a> •
+  <a href="#-功能特色">✨ 功能</a> •
+  <a href="#-截图展示">📸 截图</a> •
+  <a href="#️-开发路线">🗺️ 路线图</a> •
+  <a href="#-常见问题">❓ FAQ</a>
 </p>
 
 <p align="center">
@@ -24,31 +41,112 @@
 
 ---
 
-## 为什么选择 PackageFlow？
+## 📍 为什么选择 PackageFlow？
 
-PackageFlow 让你的 `package.json` 动起来。运行脚本、管理 Git、切换 worktree、部署并获取可分享的链接——全在一个 App 内完成。
+厌倦了在终端、Git GUI、部署后台之间切来切去？
 
-适合 vibe coding：少打命令，专注开发。使用 **Tauri + Rust** 构建，文件小、启动快。
+PackageFlow 让你的 `package.json` 活起来 — 一个 App 搞定前端开发者每天都在做的事。使用 **Tauri + Rust** 打造，安装包超小、启动超快。
 
-## 功能
+专为 **vibe coding** 设计：少点终端混乱，多点时间写酷东西。
 
-- **脚本 + 终端**：以卡片执行 npm 脚本，内置 PTY 终端实时输出，支持端口检测停止进程。
-- **工具链检测**：检测 Volta/Corepack 版本不一致，以正确版本执行命令。
-- **Git 集成**：状态、暂存、Diff 查看、提交、分支、历史、Stash，支持 worktree 操作。
-- **Worktree + Session**：可视化管理 worktrees，<kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd> 快速切换，可保存每个 worktree 的工作记录（目标/笔记/清单/标签）。
-- **Monorepo 支持**：Nx/Turborepo 检测、Workspace 视图、依赖图。
-- **可视化工作流**：拖拽式工作流编辑器，支持步骤模板、Outgoing/Incoming Webhook。
-- **部署 + 预览**：通过 Netlify/Cloudflare Pages 部署，立即获取可分享的预览链接。支持历史记录与多账号。
-- **安全扫描**：执行扫描、严重程度统计、提醒机制、快速修复未安装的依赖。
-- **本地优先**：所有数据本地保存（Tauri store），支持导出/导入，含 IPA/APK 检视工具。
+## 🎬 快速开始
+
+1. **下载** → [下载 macOS 版本](https://github.com/runkids/PackageFlow/releases)
+2. **打开项目** → 拖拽任何 Node.js 项目文件夹到 App
+3. **开始使用** → 点击任何 script 卡片即可执行！
+
+> 💡 **小技巧**：按 <kbd>Cmd</kbd>+<kbd>K</kbd> 快速切换 worktrees
+
+## ✨ 功能特色
+
+| | 功能 | 说明 |
+|:---:|---------|-------------|
+| 🎯 | **一键执行 Scripts** | 卡片式执行 npm scripts，实时 PTY 终端输出 |
+| 🔀 | **完整 Git 操作** | commit、branch、stash、diff 查看器一应俱全 |
+| 🌳 | **Worktree 魔法** | 可视化管理、<kbd>Cmd</kbd>+<kbd>K</kbd> 快速切换、Session 记录 |
+| 🚀 | **即时部署** | 一键部署到 Netlify/Cloudflare，立即获取预览链接 |
+| 📦 | **Monorepo 支持** | 自动检测 Nx/Turborepo、workspace 视图、依赖图表 |
+| 🔧 | **工具链检测** | 自动检测 Volta/Corepack 版本冲突 |
+| 🛡️ | **安全扫描** | 可视化 npm audit，一键修复 |
+| ⚡ | **可视化工作流** | 拖拽式自动化构建器 + Webhook 触发 |
 
 <p align="center">
-  <img src="docs/screenshots/deploy-demo.gif" width="620" alt="部署 Demo" />
+  <img src="docs/screenshots/deploy-demo.gif" width="720" alt="Deploy demo" />
+  <br/>
+  <em>👆 一键部署，即时获取预览链接</em>
 </p>
 
-## 安装
+## 📸 截图展示
 
-### Homebrew（macOS）
+<details>
+<summary>🎯 项目 + Scripts</summary>
+<br/>
+<img src="docs/screenshots/screenshot001.png" width="800" alt="项目和 Scripts" />
+</details>
+
+<details>
+<summary>📦 Monorepo 操作</summary>
+<br/>
+<img src="docs/screenshots/screenshot002.png" width="800" alt="Monorepo 操作" />
+</details>
+
+<details>
+<summary>🔗 依赖图表</summary>
+<br/>
+<img src="docs/screenshots/screenshot003.png" width="800" alt="依赖图表" />
+</details>
+
+<details>
+<summary>💻 终端</summary>
+<br/>
+<img src="docs/screenshots/screenshot004.png" width="800" alt="终端" />
+</details>
+
+<details>
+<summary>🔀 Git 集成</summary>
+<br/>
+<img src="docs/screenshots/screenshot005.png" width="800" alt="Git 集成" />
+</details>
+
+<details>
+<summary>📋 步骤模板</summary>
+<br/>
+<img src="docs/screenshots/screenshot006.png" width="800" alt="步骤模板" />
+</details>
+
+<details>
+<summary>🛡️ 安全审计</summary>
+<br/>
+<img src="docs/screenshots/screenshot007.png" width="800" alt="安全审计" />
+</details>
+
+<details>
+<summary>🔌 Webhooks</summary>
+<br/>
+<img src="docs/screenshots/screenshot008.png" width="800" alt="Webhooks" />
+</details>
+
+<details>
+<summary>⚡ 可视化工作流</summary>
+<br/>
+<img src="docs/screenshots/screenshot009.png" width="800" alt="可视化工作流" />
+</details>
+
+<details>
+<summary>🚀 部署账号</summary>
+<br/>
+<img src="docs/screenshots/screenshot011.png" width="800" alt="部署账号" />
+</details>
+
+<details>
+<summary>⌨️ 键盘快捷键</summary>
+<br/>
+<img src="docs/screenshots/screenshot012.png" width="800" alt="键盘快捷键" />
+</details>
+
+## 📦 安装
+
+### Homebrew (macOS)
 
 ```bash
 brew tap runkids/tap
@@ -66,93 +164,60 @@ brew upgrade --cask packageflow
 
 从 [Releases](https://github.com/runkids/PackageFlow/releases) 页面下载最新版本。
 
-## 截图
+## 🗺️ 开发路线
 
-<table align="center">
-  <tr>
-    <td align="center">
-      <a href="docs/screenshots/screenshot001.png">
-        <img src="docs/screenshots/screenshot001.png" width="220" alt="截圖 1">
-        <div>Projects + Scripts</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot002.png">
-        <img src="docs/screenshots/screenshot002.png" width="220" alt="截圖 2">
-        <div>Monorepo Action</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot003.png">
-        <img src="docs/screenshots/screenshot003.png" width="220" alt="截圖 3">
-        <div>Dependency Graph</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot004.png">
-        <img src="docs/screenshots/screenshot004.png" width="220" alt="截圖 4">
-        <div>Terminals</div>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="docs/screenshots/screenshot005.png">
-        <img src="docs/screenshots/screenshot005.png" width="220" alt="截圖 5">
-        <div>Git</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot006.png">
-        <img src="docs/screenshots/screenshot006.png" width="220" alt="截圖 6">
-        <div>Step Template</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot007.png">
-        <img src="docs/screenshots/screenshot007.png" width="220" alt="截圖 7">
-        <div>Security</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot008.png">
-        <img src="docs/screenshots/screenshot008.png" width="220" alt="截圖 8">
-        <div>Webhook</div>
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="docs/screenshots/screenshot009.png">
-        <img src="docs/screenshots/screenshot009.png" width="220" alt="截圖 9">
-        <div>Flow Display</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot010.png">
-        <img src="docs/screenshots/screenshot010.png" width="220" alt="截圖 10">
-        <div>Workflow With Project</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot011.png">
-        <img src="docs/screenshots/screenshot011.png" width="220" alt="截圖 11">
-        <div>Deploy Accounts</div>
-      </a>
-    </td>
-    <td align="center">
-      <a href="docs/screenshots/screenshot012.png">
-        <img src="docs/screenshots/screenshot012.png" width="220" alt="eyboard Shortcuts">
-        <div>Keyboard Shortcuts</div>
-      </a>
-    </td>
-    <td></td>
-  </tr>
-</table>
+我们正在积极开发以下功能：
 
-<p align="center"><em>点击任意图片查看完整大小</em></p>
+- [ ] 🪟 **Windows 支持** — 跨平台扩展
+- [ ] 🐧 **Linux 支持** — 完整桌面支持
+- [ ] 🤖 **AI 集成** — Local LLM 与 AI CLI (Claude Code, Codex, Gemini)
+- [ ] 🔌 **MCP 服务器** — 让 AI 工具控制 PackageFlow
+- [ ] 📦 **插件系统** — 自定义扩展功能
 
-## 开发
+> 💡 有功能建议？[开 Issue 告诉我们！](https://github.com/runkids/PackageFlow/issues)
+
+## ❓ 常见问题
+
+<details>
+<summary><strong>Q: PackageFlow 和 VS Code 终端有什么不同？</strong></summary>
+<br/>
+
+PackageFlow 专注于可视化和效率：
+- 🎯 一键执行 scripts，不用记命令
+- 👁️ 所有 scripts 一目了然
+- 🚀 集成部署，直接获取预览链接
+- 🌳 Worktree 可视化管理
+
+</details>
+
+<details>
+<summary><strong>Q: 支持哪些操作系统？</strong></summary>
+<br/>
+
+目前支持 **macOS** (Apple Silicon 和 Intel)。
+Windows 和 Linux 支持正在开发中！
+
+</details>
+
+<details>
+<summary><strong>Q: 数据存在哪里？安全吗？</strong></summary>
+<br/>
+
+所有数据都储存在本地 (`~/Library/Application Support/PackageFlow`)。
+不会上传到任何服务器。100% 本地优先设计。
+
+</details>
+
+<details>
+<summary><strong>Q: 可以用在 Monorepo 项目吗？</strong></summary>
+<br/>
+
+可以！自动检测 **Nx** 和 **Turborepo**，
+显示 workspace 结构和依赖图表。
+
+</details>
+
+## 🛠 开发
 
 ### 前置条件
 
@@ -163,62 +228,78 @@ brew upgrade --cask packageflow
 ### 设置
 
 ```bash
-# 克隆仓库
+# Clone 项目
 git clone https://github.com/runkids/PackageFlow.git
 cd PackageFlow
 
 # 安装依赖
 pnpm install
 
-# 启动 Vite（Web UI）
+# 启动 Vite (web UI)
 pnpm dev
 
-# 启动桌面 App
+# 启动桌面应用
 pnpm dev:tauri
 ```
 
 ### 构建
 
 ```bash
-# 构建 Web assets
+# 构建 web 资源
 pnpm build
 
-# 构建桌面 App（dmg）
+# 构建桌面应用 (dmg)
 pnpm build:tauri
 ```
 
-## 贡献
+## 🤝 贡献
 
-我们欢迎贡献！请参阅我们的[贡献指南](CONTRIBUTING.md)了解详情。
+我们欢迎各种贡献！请参阅 [Contributing Guide](CONTRIBUTING.md) 了解详情。
 
 ### 贡献方式
 
-- 通过 [Issues](https://github.com/runkids/PackageFlow/issues) 报告 bug 和请求功能
-- 提交 bug 修复或新功能的 pull request
-- 改进文档
-- 分享您的工作流模板
+- 🐛 通过 [Issues](https://github.com/runkids/PackageFlow/issues) 报告 bug 或提出功能建议
+- 🔧 提交 Pull Request 修复 bug 或新增功能
+- 📝 改善文档
+- 🔄 分享你的工作流模板
 
 ### 开发指南
 
-1. Fork 仓库
-2. 创建功能分支（`git checkout -b feature/amazing-feature`）
-3. 提交您的更改（`git commit -m 'Add amazing feature'`）
-4. 推送到分支（`git push origin feature/amazing-feature`）
-5. 开启一个 Pull Request
+1. Fork 这个项目
+2. 创建 feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit 你的修改 (`git commit -m 'Add amazing feature'`)
+4. Push 到 branch (`git push origin feature/amazing-feature`)
+5. 开一个 Pull Request
 
-## 许可证
+## ⭐ Star 历史
 
-本项目使用 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。
+<p align="center">
+  <a href="https://star-history.com/#runkids/PackageFlow&Date">
+    <img src="https://api.star-history.com/svg?repos=runkids/PackageFlow&type=Date" alt="Star History Chart" width="600" />
+  </a>
+</p>
 
-## 致谢
+## 📄 许可证
 
-- [Tauri](https://tauri.app/) - 出色的跨平台框架
-- [React Flow](https://reactflow.dev/) - 工作流可视化
-- [Lucide](https://lucide.dev/) - 精美的图标
-- [Claude Code](https://claude.ai/code) - AI 驱动的开发辅助
+本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+
+## 🙏 致谢
+
+- [Tauri](https://tauri.app/) — 强大的跨平台框架
+- [React Flow](https://reactflow.dev/) — 工作流可视化
+- [Lucide](https://lucide.dev/) — 精美图标
+- [Claude Code](https://claude.ai/code) — AI 辅助开发
 
 ---
 
 <p align="center">
-  由 <a href="https://github.com/runkids">runkids</a> 用 ❤️ 打造
+  <strong>喜欢这个项目吗？</strong><br/>
+  ⭐ Star 我们 = 最大的支持！<br/><br/>
+  <a href="https://github.com/runkids/PackageFlow">
+    <img src="https://img.shields.io/github/stars/runkids/PackageFlow?style=social" alt="GitHub stars" />
+  </a>
+</p>
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/runkids">runkids</a>
 </p>

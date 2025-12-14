@@ -228,8 +228,8 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
               </div>
             ) : (
               <>
-                {/* Deployment Progress - show current or last deployment */}
-                {currentDeployment ? (
+                {/* Deployment Progress - show current or last deployment for THIS project only */}
+                {currentDeployment && currentDeployment.projectId === projectId ? (
                   <DeploymentProgress
                     deployment={currentDeployment}
                     onComplete={() => loadHistory(projectId)}

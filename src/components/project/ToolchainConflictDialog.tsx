@@ -61,7 +61,7 @@ const StrategyOption: React.FC<StrategyOptionProps> = ({
             </span>
             {isRecommended && (
               <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/20 text-green-400">
-                推薦
+                Recommended
               </span>
             )}
           </div>
@@ -135,21 +135,21 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
         <DialogClose onClick={onClose} />
 
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-500" />
-            Node.js Toolchain 配置衝突
+            Node.js Toolchain Conflict
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 min-h-0">
           {/* Project info */}
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wrench className="w-4 h-4" />
-            <span>專案：{projectName}</span>
+            <span>Project: {projectName}</span>
           </div>
 
           {/* Conflict description */}
@@ -167,7 +167,7 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
           {/* Strategy selection */}
           <div className="space-y-2">
             <h4 className="text-sm font-medium text-foreground">
-              請選擇工具鏈執行策略：
+              Select a toolchain execution strategy:
             </h4>
             <div className="space-y-2">
               {conflict.suggested_strategies.map((strategy) => (
@@ -184,15 +184,30 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
 
           {/* Remember choice checkbox and diagnostics button */}
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={rememberChoice}
-                onChange={(e) => setRememberChoice(e.target.checked)}
-                className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary/30"
-              />
+            <label className="flex items-center gap-2.5 cursor-pointer group select-none">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={rememberChoice}
+                  onChange={(e) => setRememberChoice(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className={cn(
+                  'w-4 h-4 rounded border-2 transition-all duration-150',
+                  'flex items-center justify-center',
+                  rememberChoice
+                    ? 'bg-primary border-primary'
+                    : 'border-muted-foreground/40 group-hover:border-muted-foreground/60'
+                )}>
+                  {rememberChoice && (
+                    <svg className="w-2.5 h-2.5 text-primary-foreground" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+              </div>
               <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                記住此選擇
+                Remember this choice
               </span>
             </label>
             <button
@@ -206,12 +221,12 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
               )}
             >
               <Activity className="w-3.5 h-3.5" />
-              查看診斷
+              View Diagnostics
             </button>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
@@ -223,7 +238,7 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
               'transition-colors duration-150'
             )}
           >
-            取消
+            Cancel
           </button>
           <button
             type="button"
@@ -236,7 +251,7 @@ export const ToolchainConflictDialog: React.FC<ToolchainConflictDialogProps> = (
               'transition-colors duration-150'
             )}
           >
-            確認
+            Confirm
           </button>
         </DialogFooter>
       </DialogContent>
