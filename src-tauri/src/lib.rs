@@ -3,11 +3,14 @@
 
 mod commands;
 pub mod models;
+pub mod repositories;
 mod services;
 pub mod utils;
 
 // Re-export models for use in commands
 pub use models::*;
+
+use std::sync::Arc;
 
 use commands::script::ScriptExecutionState;
 use commands::workflow::WorkflowExecutionState;
@@ -16,6 +19,11 @@ use commands::{
     settings, shortcuts, step_template, toolchain, version, webhook, workflow, worktree,
 };
 use services::{FileWatcherManager, IncomingWebhookManager};
+use utils::database::{Database, get_database_path};
+use utils::migration_sqlite;
+
+/// Database state wrapper for Tauri
+pub struct DatabaseState(pub Arc<Database>);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -23,7 +31,21 @@ pub fn run() {
     // Try project root first, then current dir
     let _ = dotenvy::from_filename("../.env").or_else(|_| dotenvy::dotenv());
 
+    // Initialize SQLite database
+    let db = match initialize_database() {
+        Ok(db) => Arc::new(db),
+        Err(e) => {
+            eprintln!("[PackageFlow] Failed to initialize database: {}", e);
+            eprintln!("[PackageFlow] Falling back to JSON store only");
+            // Continue without SQLite - commands will use tauri-plugin-store fallback
+            // This allows gradual migration
+            Arc::new(Database::new(get_database_path().unwrap_or_default())
+                .expect("Failed to create database"))
+        }
+    };
+
     tauri::Builder::default()
+        .manage(DatabaseState(db.clone()))
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Plugins

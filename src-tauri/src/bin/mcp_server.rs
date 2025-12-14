@@ -27,6 +27,8 @@ use rmcp::{
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::io::{stdin, stdout};
+#[cfg(unix)]
+use tokio::signal::unix::{signal, SignalKind};
 use uuid::Uuid;
 
 // Import shared store module for atomic file operations and security features
@@ -254,7 +256,16 @@ fn sanitize_arguments(args: &serde_json::Value) -> serde_json::Value {
 
 /// Read store data from disk using atomic shared store
 fn read_store_data() -> Result<StoreData, String> {
+    // Debug: log the store path being used
+    if let Ok(path) = packageflow_lib::utils::shared_store::get_store_path() {
+        eprintln!("[MCP Debug] Reading store from: {:?}", path);
+        eprintln!("[MCP Debug] File exists: {}", path.exists());
+    }
+
     let shared_data = read_shared_store()?;
+
+    // Debug: log the MCP config being read
+    eprintln!("[MCP Debug] mcp_config: {:?}", shared_data.mcp_config);
 
     // Convert SharedStoreData to StoreData
     Ok(StoreData {
@@ -294,6 +305,10 @@ fn read_store_data() -> Result<StoreData, String> {
 /// - Atomic write (temp file + rename)
 /// - Automatic backup creation
 fn write_store_data(data: &StoreData) -> Result<(), String> {
+    eprintln!("[MCP Debug] write_store_data called");
+    eprintln!("[MCP Debug] - workflows count: {}", data.workflows.len());
+    eprintln!("[MCP Debug] - projects count: {}", data.projects.len());
+
     // Convert StoreData back to SharedStoreData
     let shared_data = SharedStoreData {
         version: data.version.clone(),
@@ -325,8 +340,17 @@ fn write_store_data(data: &StoreData) -> Result<(), String> {
         extra: serde_json::Map::new(),
     };
 
+    eprintln!("[MCP Debug] Calling write_store_data_validated...");
+
     // Use validated write which checks data integrity before saving
-    write_store_data_validated(&shared_data)
+    let result = write_store_data_validated(&shared_data);
+
+    match &result {
+        Ok(_) => eprintln!("[MCP Debug] write_store_data_validated SUCCESS"),
+        Err(e) => eprintln!("[MCP Debug] write_store_data_validated FAILED: {}", e),
+    }
+
+    result
 }
 
 // ============================================================================
@@ -1398,10 +1422,18 @@ impl PackageFlowMcp {
                 };
 
                 w.nodes.push(node);
-                w.updated_at = now;
+                w.updated_at = now.clone();
+
+                eprintln!("[MCP Debug] add_workflow_step - Writing to store...");
+                eprintln!("[MCP Debug] add_workflow_step - Workflow {} now has {} nodes", params.workflow_id, w.nodes.len());
 
                 write_store_data(&store_data)
-                    .map_err(|e| McpError::internal_error(e, None))?;
+                    .map_err(|e| {
+                        eprintln!("[MCP Debug] add_workflow_step - Write FAILED: {}", e);
+                        McpError::internal_error(e, None)
+                    })?;
+
+                eprintln!("[MCP Debug] add_workflow_step - Write SUCCESS");
 
                 let response = AddStepResponse {
                     node_id,
@@ -1719,9 +1751,20 @@ impl ServerHandler for PackageFlowMcp {
             let arguments = serde_json::Value::Object(arguments_map.clone());
 
             // Read MCP config from store
-            let config = read_store_data()
-                .map(|data| data.mcp_config)
-                .unwrap_or_default();
+            let config = match read_store_data() {
+                Ok(data) => {
+                    eprintln!("[MCP Debug] call_tool - Store read success");
+                    eprintln!("[MCP Debug] call_tool - permission_mode: {:?}", data.mcp_config.permission_mode);
+                    eprintln!("[MCP Debug] call_tool - is_enabled: {}", data.mcp_config.is_enabled);
+                    eprintln!("[MCP Debug] call_tool - allowed_tools: {:?}", data.mcp_config.allowed_tools);
+                    data.mcp_config
+                }
+                Err(e) => {
+                    eprintln!("[MCP Debug] call_tool - Store read FAILED: {}", e);
+                    eprintln!("[MCP Debug] call_tool - Using default config (ReadOnly)");
+                    MCPServerConfig::default()
+                }
+            };
 
             // Check if MCP server is enabled
             if !config.is_enabled {
@@ -1863,6 +1906,45 @@ impl ServerHandler for PackageFlowMcp {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Debug: Log startup info
+    eprintln!("[MCP Server] Starting PackageFlow MCP Server (PID: {})...", std::process::id());
+
+    // Debug: Check store path at startup
+    match packageflow_lib::utils::shared_store::get_store_path() {
+        Ok(path) => {
+            eprintln!("[MCP Server] Store path: {:?}", path);
+            eprintln!("[MCP Server] Store file exists: {}", path.exists());
+
+            // Try to read and log the actual config
+            if path.exists() {
+                match std::fs::read_to_string(&path) {
+                    Ok(contents) => {
+                        // Try to extract just the mcp_server_config portion
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
+                            if let Some(mcp_config) = json.get("mcp_server_config") {
+                                eprintln!("[MCP Server] Raw mcp_server_config JSON: {}", mcp_config);
+                            } else {
+                                eprintln!("[MCP Server] No mcp_server_config key in store file!");
+                            }
+                        }
+                    }
+                    Err(e) => eprintln!("[MCP Server] Failed to read store file: {}", e),
+                }
+            }
+        }
+        Err(e) => eprintln!("[MCP Server] Failed to get store path: {}", e),
+    }
+
+    // Also test the full read_store_data function
+    match read_store_data() {
+        Ok(data) => {
+            eprintln!("[MCP Server] Store read successful at startup");
+            eprintln!("[MCP Server] Config - is_enabled: {}", data.mcp_config.is_enabled);
+            eprintln!("[MCP Server] Config - permission_mode: {:?}", data.mcp_config.permission_mode);
+        }
+        Err(e) => eprintln!("[MCP Server] Store read failed at startup: {}", e),
+    }
+
     // Create the MCP server
     let server = PackageFlowMcp::new();
 
@@ -1872,8 +1954,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start the server using serve_server
     let service = rmcp::serve_server(server, transport).await?;
 
-    // Wait for the service to complete
-    service.waiting().await?;
+    // Set up signal handlers for graceful shutdown (Unix only)
+    #[cfg(unix)]
+    {
+        let mut sigterm = signal(SignalKind::terminate())?;
+        let mut sigint = signal(SignalKind::interrupt())?;
+        let mut sighup = signal(SignalKind::hangup())?;
 
+        // Wait for either service completion or signal
+        tokio::select! {
+            result = service.waiting() => {
+                match result {
+                    Ok(_) => eprintln!("[MCP Server] Service ended normally"),
+                    Err(e) => eprintln!("[MCP Server] Service ended with error: {:?}", e),
+                }
+            }
+            _ = sigterm.recv() => {
+                eprintln!("[MCP Server] Received SIGTERM, shutting down gracefully...");
+            }
+            _ = sigint.recv() => {
+                eprintln!("[MCP Server] Received SIGINT, shutting down gracefully...");
+            }
+            _ = sighup.recv() => {
+                eprintln!("[MCP Server] Received SIGHUP (parent process died), shutting down...");
+            }
+        }
+    }
+
+    // Non-Unix platforms: just wait for service
+    #[cfg(not(unix))]
+    {
+        service.waiting().await?;
+    }
+
+    eprintln!("[MCP Server] Shutdown complete");
     Ok(())
 }

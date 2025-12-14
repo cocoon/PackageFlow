@@ -733,6 +733,7 @@ pub fn restore_from_backup() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::mcp::MCPPermissionMode;
 
     #[test]
     fn test_default_store_data() {
@@ -748,4 +749,66 @@ mod tests {
         let data = SharedStoreData::default();
         assert!(validate_store_data(&data).is_ok());
     }
+
+    #[test]
+    fn test_shared_store_with_mcp_config() {
+        // This simulates the actual JSON structure in the store file
+        let json = r#"{
+            "version": "",
+            "projects": [],
+            "workflows": [],
+            "runningExecutions": {},
+            "settings": null,
+            "securityScans": {},
+            "customStepTemplates": [],
+            "mcp_server_config": {
+                "allowedTools": [],
+                "isEnabled": true,
+                "logRequests": true,
+                "permissionMode": "full_access"
+            }
+        }"#;
+
+        let data: SharedStoreData = serde_json::from_str(json).expect("Should parse SharedStoreData");
+
+        assert!(data.mcp_config.is_some(), "mcp_config should be Some");
+        let mcp_config = data.mcp_config.unwrap();
+
+        assert!(mcp_config.is_enabled, "is_enabled should be true");
+        assert!(mcp_config.log_requests, "log_requests should be true");
+        assert!(mcp_config.allowed_tools.is_empty(), "allowed_tools should be empty");
+        assert_eq!(
+            mcp_config.permission_mode,
+            MCPPermissionMode::FullAccess,
+            "permission_mode should be FullAccess, got {:?}",
+            mcp_config.permission_mode
+        );
+    }
+
+    #[test]
+    fn test_shared_store_read_only_mode() {
+        let json = r#"{
+            "mcp_server_config": {
+                "permissionMode": "read_only"
+            }
+        }"#;
+
+        let data: SharedStoreData = serde_json::from_str(json).expect("Should parse");
+        let mcp_config = data.mcp_config.unwrap();
+        assert_eq!(mcp_config.permission_mode, MCPPermissionMode::ReadOnly);
+    }
+
+    #[test]
+    fn test_shared_store_execute_with_confirm_mode() {
+        let json = r#"{
+            "mcp_server_config": {
+                "permissionMode": "execute_with_confirm"
+            }
+        }"#;
+
+        let data: SharedStoreData = serde_json::from_str(json).expect("Should parse");
+        let mcp_config = data.mcp_config.unwrap();
+        assert_eq!(mcp_config.permission_mode, MCPPermissionMode::ExecuteWithConfirm);
+    }
+
 }

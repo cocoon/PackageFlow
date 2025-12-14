@@ -526,3 +526,41 @@ impl MCPError {
         Self::new("EXECUTION_FAILED", format!("執行失敗: {}", reason))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mcp_config_deserialization() {
+        let json = r#"{
+            "allowedTools": [],
+            "isEnabled": true,
+            "logRequests": true,
+            "permissionMode": "full_access"
+        }"#;
+        
+        let config: MCPServerConfig = serde_json::from_str(json).expect("Should parse");
+        
+        assert_eq!(config.is_enabled, true);
+        assert_eq!(config.permission_mode, MCPPermissionMode::FullAccess);
+        assert_eq!(config.log_requests, true);
+        assert!(config.allowed_tools.is_empty());
+    }
+    
+    #[test]
+    fn test_mcp_permission_mode_deserialization() {
+        assert_eq!(
+            serde_json::from_str::<MCPPermissionMode>(r#""read_only""#).unwrap(),
+            MCPPermissionMode::ReadOnly
+        );
+        assert_eq!(
+            serde_json::from_str::<MCPPermissionMode>(r#""execute_with_confirm""#).unwrap(),
+            MCPPermissionMode::ExecuteWithConfirm
+        );
+        assert_eq!(
+            serde_json::from_str::<MCPPermissionMode>(r#""full_access""#).unwrap(),
+            MCPPermissionMode::FullAccess
+        );
+    }
+}

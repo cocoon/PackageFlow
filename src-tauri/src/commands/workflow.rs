@@ -258,6 +258,9 @@ pub async fn save_workflow(app: AppHandle, workflow: Workflow) -> Result<(), Str
         e.to_string()
     })?;
 
+    // Reload from disk to get latest changes (e.g., from MCP Server)
+    let _ = store.reload();
+
     let mut workflows: Vec<Workflow> = store
         .get("workflows")
         .and_then(|v| serde_json::from_value(v).ok())
@@ -290,6 +293,9 @@ pub async fn save_workflow(app: AppHandle, workflow: Workflow) -> Result<(), Str
 #[tauri::command]
 pub async fn delete_workflow(app: AppHandle, workflow_id: String) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+
+    // Reload from disk to get latest changes (e.g., from MCP Server)
+    let _ = store.reload();
 
     let mut workflows: Vec<Workflow> = store
         .get("workflows")
@@ -326,8 +332,10 @@ pub async fn execute_workflow(
         workflow_id, parent_execution_id
     );
 
-    // Load workflow
+    // Load workflow (reload from disk to get latest changes from MCP Server)
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let _ = store.reload();
+
     let workflows: Vec<Workflow> = store
         .get("workflows")
         .and_then(|v| serde_json::from_value(v).ok())

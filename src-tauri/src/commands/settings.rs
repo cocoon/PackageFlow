@@ -161,6 +161,9 @@ pub async fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Resu
 pub async fn load_projects(app: tauri::AppHandle) -> Result<Vec<Project>, String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
 
+    // Reload from disk to get latest changes (e.g., from MCP Server)
+    let _ = store.reload();
+
     let projects: Vec<Project> = store
         .get("projects")
         .and_then(|v| serde_json::from_value(v).ok())
@@ -188,6 +191,9 @@ pub async fn save_projects(app: tauri::AppHandle, projects: Vec<Project>) -> Res
 pub async fn load_workflows(app: tauri::AppHandle) -> Result<Vec<Workflow>, String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
 
+    // Reload from disk to get latest changes (e.g., from MCP Server)
+    let _ = store.reload();
+
     let workflows: Vec<Workflow> = store
         .get("workflows")
         .and_then(|v| serde_json::from_value(v).ok())
@@ -214,6 +220,9 @@ pub async fn save_workflows(app: tauri::AppHandle, workflows: Vec<Workflow>) -> 
 #[tauri::command]
 pub async fn load_store_data(app: tauri::AppHandle) -> Result<StoreData, String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+
+    // Reload from disk to get latest changes (e.g., from MCP Server)
+    let _ = store.reload();
 
     // Load each field separately for flexibility
     let version: String = store

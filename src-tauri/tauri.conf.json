@@ -4,19 +4,19 @@
   "version": "0.2.1",
   "identifier": "com.packageflow.PackageFlow-macOS",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm dev && pkill -f packageflow-mcp || true && cargo build --release --bin packageflow-mcp",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build && cargo build --release --bin packageflow-mcp",
+    "beforeBuildCommand": "pnpm build && pkill -f packageflow-mcp || true && cargo build --release --bin packageflow-mcp",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
         "title": "PackageFlow",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 800,
-        "minHeight": 600,
+        "width": 2400,
+        "height": 1600,
+        "minWidth": 1200,
+        "minHeight": 800,
         "resizable": true,
         "fullscreen": false,
         "decorations": true,
@@ -40,9 +40,7 @@
     "active": true,
     "targets": "all",
     "createUpdaterArtifacts": true,
-    "resources": {
-      "target/release/packageflow-mcp": "bin/"
-    },
+    "resources": {},
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

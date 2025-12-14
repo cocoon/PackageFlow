@@ -56,16 +56,6 @@ pub fn get_mcp_server_info(app: AppHandle) -> Result<McpServerInfo, String> {
     let dev_debug_path = src_tauri_dir
         .map(|p| p.join("target").join("debug").join("packageflow-mcp"));
 
-    // Log paths for debugging
-    println!("[MCP] Resource path: {:?}", resource_path);
-    println!("[MCP] Bundled path: {:?} (exists: {})", bundled_path, bundled_path.exists());
-    if let Some(ref p) = dev_release_path {
-        println!("[MCP] Dev release path: {:?} (exists: {})", p, p.exists());
-    }
-    if let Some(ref p) = dev_debug_path {
-        println!("[MCP] Dev debug path: {:?} (exists: {})", p, p.exists());
-    }
-
     // Find the first available binary (production first, then dev)
     let (binary_path, is_available, env_type) = if bundled_path.exists() {
         (bundled_path.clone(), true, "production")
@@ -84,8 +74,6 @@ pub fn get_mcp_server_info(app: AppHandle) -> Result<McpServerInfo, String> {
     } else {
         (bundled_path.clone(), false, "not found")
     };
-
-    println!("[MCP] Selected path: {:?} (env: {})", binary_path, env_type);
 
     let binary_path_str = binary_path.to_string_lossy().to_string();
 

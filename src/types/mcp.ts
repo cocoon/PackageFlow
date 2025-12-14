@@ -259,33 +259,6 @@ export interface PermissionModeInfo {
   badge: 'safe' | 'caution' | 'danger';
 }
 
-/** List of permission modes with display info */
-export const PERMISSION_MODES: PermissionModeInfo[] = [
-  {
-    id: 'read_only',
-    name: '唯讀模式',
-    description: '僅允許查詢操作，執行操作會被拒絕',
-    badge: 'safe',
-  },
-  {
-    id: 'execute_with_confirm',
-    name: '執行模式',
-    description: '允許讀取和執行工作流程，但無法建立或修改',
-    badge: 'caution',
-  },
-  {
-    id: 'full_access',
-    name: '完全存取模式',
-    description: '允許所有操作，包括建立和修改（危險）',
-    badge: 'danger',
-  },
-];
-
-/** Get permission mode info by ID */
-export function getPermissionModeInfo(modeId: MCPPermissionMode): PermissionModeInfo | undefined {
-  return PERMISSION_MODES.find((m) => m.id === modeId);
-}
-
 /** Check if a tool is a read-only tool */
 export function isReadOnlyTool(toolName: string): boolean {
   return (DEFAULT_READ_ONLY_TOOLS as readonly string[]).includes(toolName);
