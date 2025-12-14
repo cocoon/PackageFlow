@@ -332,3 +332,47 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+/// Initialize SQLite database with migrations
+fn initialize_database() -> Result<Database, String> {
+    // Get database path
+    let db_path = get_database_path()?;
+
+    // Ensure parent directory exists
+    if let Some(parent) = db_path.parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create database directory: {}", e))?;
+    }
+
+    log::info!("[PackageFlow] Initializing database at: {:?}", db_path);
+
+    // Create or open database
+    let db = Database::new(db_path.clone())?;
+
+    // Run schema migrations
+    utils::schema::migrate(&db)?;
+    log::info!("[PackageFlow] Database schema migrations complete");
+
+    // Check if JSON migration is needed
+    let json_path = db_path.with_file_name("packageflow.json");
+    let migrated_path = db_path.with_file_name("packageflow.json.migrated");
+
+    if json_path.exists() && !migrated_path.exists() {
+        log::info!("[PackageFlow] Found existing JSON store, starting migration...");
+        match migration_sqlite::migrate_from_json(&db) {
+            Ok(result) => {
+                log::info!(
+                    "[PackageFlow] Migration complete: {} projects, {} workflows migrated",
+                    result.stats.projects,
+                    result.stats.workflows
+                );
+            }
+            Err(e) => {
+                log::error!("[PackageFlow] Migration failed: {}", e);
+                // Continue anyway - user can still use the app with empty database
+            }
+        }
+    }
+
+    Ok(db)
+}

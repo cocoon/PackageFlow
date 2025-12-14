@@ -3,7 +3,7 @@
 
 use rusqlite::params;
 
-use crate::models::step_template::CustomStepTemplate;
+use crate::models::step_template::{CustomStepTemplate, TemplateCategory};
 use crate::utils::database::Database;
 
 /// Repository for custom step template data access
@@ -125,6 +125,8 @@ impl TemplateRepository {
 
     /// Save a template
     pub fn save(&self, template: &CustomStepTemplate) -> Result<(), String> {
+        let category_str = category_to_string(&template.category);
+
         self.db.with_connection(|conn| {
             conn.execute(
                 r#"
@@ -136,7 +138,7 @@ impl TemplateRepository {
                     template.id,
                     template.name,
                     template.command,
-                    template.category,
+                    category_str,
                     template.description,
                     template.is_custom as i32,
                     template.created_at,
@@ -163,6 +165,42 @@ impl TemplateRepository {
     }
 }
 
+/// Convert TemplateCategory to string
+fn category_to_string(category: &TemplateCategory) -> &'static str {
+    match category {
+        TemplateCategory::PackageManager => "package-manager",
+        TemplateCategory::Git => "git",
+        TemplateCategory::Docker => "docker",
+        TemplateCategory::Shell => "shell",
+        TemplateCategory::Testing => "testing",
+        TemplateCategory::CodeQuality => "code-quality",
+        TemplateCategory::Kubernetes => "kubernetes",
+        TemplateCategory::Database => "database",
+        TemplateCategory::Cloud => "cloud",
+        TemplateCategory::Security => "security",
+        TemplateCategory::Nodejs => "nodejs",
+        TemplateCategory::Custom => "custom",
+    }
+}
+
+/// Convert string to TemplateCategory
+fn string_to_category(s: &str) -> TemplateCategory {
+    match s {
+        "package-manager" => TemplateCategory::PackageManager,
+        "git" => TemplateCategory::Git,
+        "docker" => TemplateCategory::Docker,
+        "shell" => TemplateCategory::Shell,
+        "testing" => TemplateCategory::Testing,
+        "code-quality" => TemplateCategory::CodeQuality,
+        "kubernetes" => TemplateCategory::Kubernetes,
+        "database" => TemplateCategory::Database,
+        "cloud" => TemplateCategory::Cloud,
+        "security" => TemplateCategory::Security,
+        "nodejs" => TemplateCategory::Nodejs,
+        "custom" | _ => TemplateCategory::Custom,
+    }
+}
+
 /// Internal row structure for mapping database rows
 struct TemplateRow {
     id: String,
@@ -180,7 +218,7 @@ impl TemplateRow {
             id: self.id,
             name: self.name,
             command: self.command,
-            category: self.category,
+            category: string_to_category(&self.category),
             description: self.description,
             is_custom: self.is_custom != 0,
             created_at: self.created_at,

@@ -74,7 +74,18 @@ impl Database {
     }
 
     /// Execute a function with the database connection
+    /// The closure should return Result<T, String> with errors already converted
     pub fn with_connection<T, F>(&self, f: F) -> Result<T, String>
+    where
+        F: FnOnce(&Connection) -> Result<T, String>,
+    {
+        let conn = self.lock()?;
+        f(&conn)
+    }
+
+    /// Execute a function with the database connection (raw SQLite result)
+    /// For operations that want to use rusqlite's error type directly
+    pub fn with_connection_raw<T, F>(&self, f: F) -> Result<T, String>
     where
         F: FnOnce(&Connection) -> SqliteResult<T>,
     {
@@ -113,14 +124,14 @@ impl Database {
 
     /// Get the current schema version
     pub fn schema_version(&self) -> Result<i32, String> {
-        self.with_connection(|conn| {
+        self.with_connection_raw(|conn| {
             conn.query_row(
                 "SELECT COALESCE(MAX(version), 0) FROM schema_version",
                 [],
                 |row| row.get(0),
             )
         })
-        .unwrap_or(Ok(0))
+        .or_else(|_| Ok(0))
     }
 }
 
@@ -165,7 +176,7 @@ mod tests {
         let db = Database::new(path).unwrap();
 
         let mode: String = db
-            .with_connection(|conn| conn.query_row("PRAGMA journal_mode", [], |row| row.get(0)))
+            .with_connection_raw(|conn| conn.query_row("PRAGMA journal_mode", [], |row| row.get(0)))
             .unwrap();
 
         assert_eq!(mode.to_lowercase(), "wal");
@@ -190,7 +201,7 @@ mod tests {
 
         // Verify table exists
         let exists: i32 = db
-            .with_connection(|conn| {
+            .with_connection_raw(|conn| {
                 conn.query_row(
                     "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='test'",
                     [],

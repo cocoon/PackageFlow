@@ -230,6 +230,11 @@ const MIGRATIONS: &[Migration] = &[
     },
 ];
 
+/// Run all pending migrations using Database wrapper
+pub fn migrate(db: &super::database::Database) -> Result<(), String> {
+    db.with_connection(|conn| run_migrations(conn))
+}
+
 /// Run all pending migrations
 pub fn run_migrations(conn: &Connection) -> Result<(), String> {
     // Ensure schema_version table exists first

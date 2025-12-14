@@ -3,7 +3,7 @@
 
 use rusqlite::params;
 
-use crate::commands::workflow::ExecutionHistoryItem;
+use crate::commands::workflow::{ExecutionHistoryItem, WorkflowOutputLine};
 use crate::models::Execution;
 use crate::utils::database::Database;
 
@@ -127,9 +127,9 @@ impl ExecutionRepository {
                     r#"
                     SELECT id, workflow_id, workflow_name, status, started_at, finished_at,
                            duration_ms, node_count, completed_node_count, error_message,
-                           output, triggered_by, created_at
+                           output, triggered_by
                     FROM execution_history
-                    ORDER BY created_at DESC
+                    ORDER BY started_at DESC
                     LIMIT ?1
                     "#,
                 )
@@ -150,7 +150,6 @@ impl ExecutionRepository {
                         error_message: row.get(9)?,
                         output: row.get(10)?,
                         triggered_by: row.get(11)?,
-                        created_at: row.get(12)?,
                     })
                 })
                 .map_err(|e| format!("Failed to query execution history: {}", e))?;
@@ -179,10 +178,10 @@ impl ExecutionRepository {
                     r#"
                     SELECT id, workflow_id, workflow_name, status, started_at, finished_at,
                            duration_ms, node_count, completed_node_count, error_message,
-                           output, triggered_by, created_at
+                           output, triggered_by
                     FROM execution_history
                     WHERE workflow_id = ?1
-                    ORDER BY created_at DESC
+                    ORDER BY started_at DESC
                     LIMIT ?2
                     "#,
                 )
@@ -203,7 +202,6 @@ impl ExecutionRepository {
                         error_message: row.get(9)?,
                         output: row.get(10)?,
                         triggered_by: row.get(11)?,
-                        created_at: row.get(12)?,
                     })
                 })
                 .map_err(|e| format!("Failed to query execution history: {}", e))?;
@@ -220,11 +218,8 @@ impl ExecutionRepository {
 
     /// Save execution history entry
     pub fn save_history(&self, history: &ExecutionHistoryItem) -> Result<(), String> {
-        let output_json = history
-            .output
-            .as_ref()
-            .map(|o| serde_json::to_string(o).ok())
-            .flatten();
+        let output_json = serde_json::to_string(&history.output)
+            .map_err(|e| format!("Failed to serialize output: {}", e))?;
 
         self.db.with_connection(|conn| {
             conn.execute(
@@ -232,8 +227,8 @@ impl ExecutionRepository {
                 INSERT OR REPLACE INTO execution_history
                 (id, workflow_id, workflow_name, status, started_at, finished_at,
                  duration_ms, node_count, completed_node_count, error_message,
-                 output, triggered_by, created_at)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+                 output, triggered_by)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                 "#,
                 params![
                     history.id,
@@ -242,18 +237,42 @@ impl ExecutionRepository {
                     history.status,
                     history.started_at,
                     history.finished_at,
-                    history.duration_ms,
-                    history.node_count,
-                    history.completed_node_count,
+                    history.duration_ms as i64,
+                    history.node_count as i32,
+                    history.completed_node_count as i32,
                     history.error_message,
                     output_json,
                     history.triggered_by,
-                    history.created_at,
                 ],
             )
             .map_err(|e| format!("Failed to save execution history: {}", e))?;
 
             Ok(())
+        })
+    }
+
+    /// Delete execution history entry
+    pub fn delete_history(&self, id: &str) -> Result<bool, String> {
+        self.db.with_connection(|conn| {
+            let rows_affected = conn
+                .execute("DELETE FROM execution_history WHERE id = ?1", params![id])
+                .map_err(|e| format!("Failed to delete execution history: {}", e))?;
+
+            Ok(rows_affected > 0)
+        })
+    }
+
+    /// Delete all execution history for a workflow
+    pub fn clear_workflow_history(&self, workflow_id: &str) -> Result<usize, String> {
+        self.db.with_connection(|conn| {
+            let rows_affected = conn
+                .execute(
+                    "DELETE FROM execution_history WHERE workflow_id = ?1",
+                    params![workflow_id],
+                )
+                .map_err(|e| format!("Failed to clear workflow history: {}", e))?;
+
+            Ok(rows_affected)
         })
     }
 
@@ -268,7 +287,7 @@ impl ExecutionRepository {
                         SELECT id FROM (
                             SELECT id, ROW_NUMBER() OVER (
                                 PARTITION BY workflow_id
-                                ORDER BY created_at DESC
+                                ORDER BY started_at DESC
                             ) as rn
                             FROM execution_history
                         )
@@ -298,16 +317,15 @@ struct HistoryRow {
     error_message: Option<String>,
     output: Option<String>,
     triggered_by: String,
-    created_at: String,
 }
 
 impl HistoryRow {
     fn into_history(self) -> Result<ExecutionHistoryItem, String> {
-        let output = self
+        let output: Vec<WorkflowOutputLine> = self
             .output
             .as_ref()
-            .map(|json| serde_json::from_str(json).ok())
-            .flatten();
+            .and_then(|json| serde_json::from_str(json).ok())
+            .unwrap_or_default();
 
         Ok(ExecutionHistoryItem {
             id: self.id,
@@ -316,9 +334,9 @@ impl HistoryRow {
             status: self.status,
             started_at: self.started_at,
             finished_at: self.finished_at,
-            duration_ms: self.duration_ms,
-            node_count: self.node_count as u32,
-            completed_node_count: self.completed_node_count as u32,
+            duration_ms: self.duration_ms as u64,
+            node_count: self.node_count as usize,
+            completed_node_count: self.completed_node_count as usize,
             error_message: self.error_message,
             output,
             triggered_by: self.triggered_by,

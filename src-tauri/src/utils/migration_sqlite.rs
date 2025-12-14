@@ -324,6 +324,11 @@ fn migrate_custom_templates(
     let mut count = 0;
 
     for template in templates {
+        // Convert category enum to string
+        let category_str = serde_json::to_string(&template.category)
+            .map(|s| s.trim_matches('"').to_string())
+            .unwrap_or_else(|_| "custom".to_string());
+
         conn.execute(
             r#"
             INSERT OR REPLACE INTO custom_step_templates
@@ -334,7 +339,7 @@ fn migrate_custom_templates(
                 template.id,
                 template.name,
                 template.command,
-                template.category,
+                category_str,
                 template.description,
                 template.is_custom as i32,
                 template.created_at,

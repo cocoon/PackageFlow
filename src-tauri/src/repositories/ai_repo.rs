@@ -4,7 +4,7 @@
 use chrono::Utc;
 use rusqlite::params;
 
-use crate::models::ai::{AIProvider, AIServiceConfig, PromptTemplate, TemplateCategory};
+use crate::models::ai::{AIProvider, AIServiceConfig, CommitFormat, PromptTemplate, TemplateCategory};
 use crate::utils::database::Database;
 
 /// Repository for AI service and template data access
@@ -268,6 +268,7 @@ impl AIRepository {
     pub fn save_template(&self, template: &PromptTemplate) -> Result<(), String> {
         let category_str = format!("{:?}", template.category).to_lowercase();
         let now = Utc::now().to_rfc3339();
+        let output_format_str = template.output_format.as_ref().map(commit_format_to_string);
 
         self.db.with_connection(|conn| {
             conn.execute(
@@ -283,7 +284,7 @@ impl AIRepository {
                     template.description,
                     category_str,
                     template.template,
-                    template.output_format,
+                    output_format_str,
                     template.is_default as i32,
                     template.is_builtin as i32,
                     template.created_at.to_rfc3339(),
@@ -392,17 +393,38 @@ impl TemplateRow {
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now());
 
+        let output_format = self.output_format.as_ref().map(|s| string_to_commit_format(s));
+
         Ok(PromptTemplate {
             id: self.id,
             name: self.name,
             description: self.description,
             category,
             template: self.template,
-            output_format: self.output_format,
+            output_format,
             is_default: self.is_default != 0,
             is_builtin: self.is_builtin != 0,
             created_at,
             updated_at,
         })
+    }
+}
+
+/// Convert CommitFormat to string
+fn commit_format_to_string(format: &CommitFormat) -> String {
+    match format {
+        CommitFormat::ConventionalCommits => "conventional_commits".to_string(),
+        CommitFormat::Simple => "simple".to_string(),
+        CommitFormat::Custom => "custom".to_string(),
+    }
+}
+
+/// Convert string to CommitFormat
+fn string_to_commit_format(s: &str) -> CommitFormat {
+    match s {
+        "conventional_commits" => CommitFormat::ConventionalCommits,
+        "simple" => CommitFormat::Simple,
+        "custom" => CommitFormat::Custom,
+        _ => CommitFormat::ConventionalCommits,
     }
 }

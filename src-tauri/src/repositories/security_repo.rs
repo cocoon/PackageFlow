@@ -2,9 +2,9 @@
 // Handles all database operations for security scans
 
 use rusqlite::params;
-use serde_json::Value;
 
-use crate::models::security::SecurityScanData;
+use crate::models::security::{SecurityScanData, VulnScanResult};
+use crate::models::PackageManager;
 use crate::utils::database::Database;
 
 /// Repository for security scan data access
@@ -38,25 +38,25 @@ impl SecurityRepository {
             );
 
             match result {
-                Ok((package_manager, last_scan, scan_history, snooze_until)) => {
-                    // Parse JSON fields
-                    let last_scan_data: Option<Value> = last_scan
+                Ok((package_manager, last_scan, scan_history_json, snooze_until)) => {
+                    let pm = string_to_package_manager(&package_manager);
+
+                    // Parse last_scan JSON
+                    let last_scan_data: Option<VulnScanResult> = last_scan
                         .as_ref()
-                        .map(|json| serde_json::from_str(json).ok())
-                        .flatten();
+                        .and_then(|json| serde_json::from_str(json).ok());
 
-                    let scan_history_data: Vec<Value> = serde_json::from_str(&scan_history)
-                        .unwrap_or_default();
+                    // Parse scan_history JSON
+                    let scan_history: Vec<VulnScanResult> =
+                        serde_json::from_str(&scan_history_json).unwrap_or_default();
 
-                    // Build SecurityScanData from stored data
-                    let data = build_security_scan_data(
-                        &package_manager,
-                        last_scan_data,
-                        scan_history_data,
+                    Ok(Some(SecurityScanData {
+                        project_id: project_id.to_string(),
+                        package_manager: pm,
+                        last_scan: last_scan_data,
+                        scan_history,
                         snooze_until,
-                    )?;
-
-                    Ok(Some(data))
+                    }))
                 }
                 Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
                 Err(e) => Err(format!("Failed to get security scan: {}", e)),
@@ -66,10 +66,13 @@ impl SecurityRepository {
 
     /// Save security scan data for a project
     pub fn save(&self, project_id: &str, data: &SecurityScanData) -> Result<(), String> {
-        let package_manager = format!("{:?}", data.package_manager).to_lowercase();
+        let package_manager = package_manager_to_string(&data.package_manager);
 
-        let last_scan_json = serde_json::to_string(&data)
-            .map_err(|e| format!("Failed to serialize last_scan: {}", e))?;
+        let last_scan_json = data
+            .last_scan
+            .as_ref()
+            .map(|scan| serde_json::to_string(scan).ok())
+            .flatten();
 
         let scan_history_json = serde_json::to_string(&data.scan_history)
             .map_err(|e| format!("Failed to serialize scan_history: {}", e))?;
@@ -127,43 +130,24 @@ impl SecurityRepository {
     }
 }
 
-/// Helper function to build SecurityScanData from stored values
-fn build_security_scan_data(
-    package_manager: &str,
-    last_scan: Option<Value>,
-    scan_history: Vec<Value>,
-    snooze_until: Option<String>,
-) -> Result<SecurityScanData, String> {
-    use crate::models::{PackageManager, ScanStatus, VulnSummary, DependencyCount};
-
-    let pm = match package_manager {
+/// Convert string to PackageManager enum
+fn string_to_package_manager(s: &str) -> PackageManager {
+    match s.to_lowercase().as_str() {
         "npm" => PackageManager::Npm,
         "yarn" => PackageManager::Yarn,
         "pnpm" => PackageManager::Pnpm,
         "bun" => PackageManager::Bun,
         _ => PackageManager::Unknown,
-    };
-
-    // If we have last_scan data, parse it
-    if let Some(scan_data) = last_scan {
-        if let Ok(data) = serde_json::from_value::<SecurityScanData>(scan_data) {
-            return Ok(SecurityScanData {
-                snooze_until,
-                scan_history,
-                ..data
-            });
-        }
     }
+}
 
-    // Return default structure
-    Ok(SecurityScanData {
-        status: ScanStatus::Pending,
-        last_scan_at: None,
-        package_manager: pm,
-        vulnerabilities: Vec::new(),
-        summary: VulnSummary::default(),
-        dependencies: DependencyCount::default(),
-        scan_history,
-        snooze_until,
-    })
+/// Convert PackageManager enum to string
+fn package_manager_to_string(pm: &PackageManager) -> &'static str {
+    match pm {
+        PackageManager::Npm => "npm",
+        PackageManager::Yarn => "yarn",
+        PackageManager::Pnpm => "pnpm",
+        PackageManager::Bun => "bun",
+        PackageManager::Unknown => "unknown",
+    }
 }

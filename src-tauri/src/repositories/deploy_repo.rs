@@ -1,9 +1,10 @@
 // Deploy Repository
 // Handles all database operations for deploy accounts and configurations
 
+use chrono::{DateTime, Utc};
 use rusqlite::params;
 
-use crate::models::deploy::{DeployAccount, DeploymentConfig, PlatformType};
+use crate::models::deploy::{DeployAccount, DeploymentConfig, DeploymentEnvironment, EnvVariable, PlatformType};
 use crate::utils::database::Database;
 
 /// Repository for deploy data access
@@ -144,6 +145,8 @@ impl DeployRepository {
     /// Save a deploy account
     pub fn save_account(&self, account: &DeployAccount) -> Result<(), String> {
         let platform_str = platform_to_string(&account.platform);
+        let connected_at_str = account.connected_at.to_rfc3339();
+        let expires_at_str = account.expires_at.map(|dt| dt.to_rfc3339());
 
         self.db.with_connection(|conn| {
             conn.execute(
@@ -161,8 +164,8 @@ impl DeployRepository {
                     account.display_name,
                     account.avatar_url,
                     account.access_token,
-                    account.connected_at,
-                    account.expires_at,
+                    connected_at_str,
+                    expires_at_str,
                 ],
             )
             .map_err(|e| format!("Failed to save deploy account: {}", e))?;
@@ -230,6 +233,7 @@ impl DeployRepository {
     /// Save deployment config for a project
     pub fn save_config(&self, config: &DeploymentConfig) -> Result<(), String> {
         let platform_str = platform_to_string(&config.platform);
+        let environment_str = environment_to_string(&config.environment);
 
         let env_vars_json = serde_json::to_string(&config.env_variables)
             .map_err(|e| format!("Failed to serialize env_variables: {}", e))?;
@@ -248,7 +252,7 @@ impl DeployRepository {
                     config.project_id,
                     platform_str,
                     config.account_id,
-                    config.environment,
+                    environment_str,
                     config.framework_preset,
                     env_vars_json,
                     config.root_directory,
@@ -285,7 +289,7 @@ impl DeployRepository {
 /// Convert PlatformType to string
 fn platform_to_string(platform: &PlatformType) -> &'static str {
     match platform {
-        PlatformType::GitHubPages => "github_pages",
+        PlatformType::GithubPages => "github_pages",
         PlatformType::Netlify => "netlify",
         PlatformType::CloudflarePages => "cloudflare_pages",
     }
@@ -294,10 +298,26 @@ fn platform_to_string(platform: &PlatformType) -> &'static str {
 /// Convert string to PlatformType
 fn string_to_platform(s: &str) -> PlatformType {
     match s {
-        "github_pages" => PlatformType::GitHubPages,
+        "github_pages" => PlatformType::GithubPages,
         "netlify" => PlatformType::Netlify,
         "cloudflare_pages" => PlatformType::CloudflarePages,
-        _ => PlatformType::GitHubPages,
+        _ => PlatformType::GithubPages,
+    }
+}
+
+/// Convert DeploymentEnvironment to string
+fn environment_to_string(env: &DeploymentEnvironment) -> &'static str {
+    match env {
+        DeploymentEnvironment::Production => "production",
+        DeploymentEnvironment::Preview => "preview",
+    }
+}
+
+/// Convert string to DeploymentEnvironment
+fn string_to_environment(s: &str) -> DeploymentEnvironment {
+    match s.to_lowercase().as_str() {
+        "preview" => DeploymentEnvironment::Preview,
+        _ => DeploymentEnvironment::Production,
     }
 }
 
@@ -316,6 +336,16 @@ struct AccountRow {
 
 impl AccountRow {
     fn into_account(self) -> Result<DeployAccount, String> {
+        let connected_at = DateTime::parse_from_rfc3339(&self.connected_at)
+            .map(|dt| dt.with_timezone(&Utc))
+            .unwrap_or_else(|_| Utc::now());
+
+        let expires_at = self
+            .expires_at
+            .as_ref()
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+            .map(|dt| dt.with_timezone(&Utc));
+
         Ok(DeployAccount {
             id: self.id,
             platform: string_to_platform(&self.platform),
@@ -324,8 +354,8 @@ impl AccountRow {
             display_name: self.display_name,
             avatar_url: self.avatar_url,
             access_token: self.access_token,
-            connected_at: self.connected_at,
-            expires_at: self.expires_at,
+            connected_at,
+            expires_at,
         })
     }
 }
@@ -350,18 +380,23 @@ struct ConfigRow {
 
 impl ConfigRow {
     fn into_config(self) -> Result<DeploymentConfig, String> {
-        let env_variables: Vec<(String, String)> = self
+        let env_variables: Vec<EnvVariable> = self
             .env_variables
             .as_ref()
-            .map(|json| serde_json::from_str(json).ok())
-            .flatten()
+            .and_then(|json| serde_json::from_str(json).ok())
+            .unwrap_or_default();
+
+        let environment = self
+            .environment
+            .as_ref()
+            .map(|s| string_to_environment(s))
             .unwrap_or_default();
 
         Ok(DeploymentConfig {
             project_id: self.project_id,
             platform: string_to_platform(&self.platform),
             account_id: self.account_id,
-            environment: self.environment,
+            environment,
             framework_preset: self.framework_preset,
             env_variables,
             root_directory: self.root_directory,
