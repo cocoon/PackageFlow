@@ -4,7 +4,7 @@
 use rusqlite::{Connection, params};
 
 /// Current schema version
-pub const CURRENT_VERSION: i32 = 1;
+pub const CURRENT_VERSION: i32 = 7;
 
 /// Migration struct containing version and SQL statements
 struct Migration {
@@ -228,6 +228,102 @@ const MIGRATIONS: &[Migration] = &[
             CREATE INDEX IF NOT EXISTS idx_incoming_webhooks_workflow ON incoming_webhooks(workflow_id);
         "#,
     },
+    Migration {
+        version: 2,
+        description: "Add MCP request logs table",
+        up: r#"
+            -- MCP request logs
+            CREATE TABLE IF NOT EXISTS mcp_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                tool TEXT NOT NULL,
+                arguments TEXT NOT NULL DEFAULT '{}',
+                result TEXT NOT NULL,
+                duration_ms INTEGER NOT NULL DEFAULT 0,
+                error TEXT,
+                source TEXT DEFAULT 'mcp_server'
+            );
+            CREATE INDEX IF NOT EXISTS idx_mcp_logs_timestamp ON mcp_logs(timestamp DESC);
+            CREATE INDEX IF NOT EXISTS idx_mcp_logs_tool ON mcp_logs(tool);
+        "#,
+    },
+    Migration {
+        version: 3,
+        description: "Add project AI settings table",
+        up: r#"
+            -- Project-specific AI settings
+            CREATE TABLE IF NOT EXISTS project_ai_settings (
+                project_path TEXT PRIMARY KEY,
+                preferred_service_id TEXT REFERENCES ai_services(id) ON DELETE SET NULL,
+                preferred_template_id TEXT REFERENCES ai_templates(id) ON DELETE SET NULL
+            );
+        "#,
+    },
+    Migration {
+        version: 4,
+        description: "Add AI API keys and app settings tables",
+        up: r#"
+            -- AI API keys (encrypted)
+            CREATE TABLE IF NOT EXISTS ai_api_keys (
+                service_id TEXT PRIMARY KEY REFERENCES ai_services(id) ON DELETE CASCADE,
+                ciphertext TEXT NOT NULL,
+                nonce TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            -- App settings (for notification preferences, etc.)
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+        "#,
+    },
+    Migration {
+        version: 5,
+        description: "Add encrypted deploy account tokens table",
+        up: r#"
+            -- Deploy account tokens (encrypted)
+            -- Stores access tokens separately with encryption for security
+            CREATE TABLE IF NOT EXISTS deploy_account_tokens (
+                account_id TEXT PRIMARY KEY REFERENCES deploy_accounts(id) ON DELETE CASCADE,
+                ciphertext TEXT NOT NULL,
+                nonce TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+        "#,
+    },
+    Migration {
+        version: 6,
+        description: "Add encrypted webhook tokens table and cleanup unused table",
+        up: r#"
+            -- Drop unused incoming_webhooks table (webhook config is stored in workflows.incoming_webhook JSON)
+            DROP TABLE IF EXISTS incoming_webhooks;
+
+            -- Webhook tokens (encrypted)
+            -- Stores webhook tokens separately with encryption for security
+            -- workflow_id references workflows table
+            CREATE TABLE IF NOT EXISTS webhook_tokens (
+                workflow_id TEXT PRIMARY KEY REFERENCES workflows(id) ON DELETE CASCADE,
+                ciphertext TEXT NOT NULL,
+                nonce TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+        "#,
+    },
+    Migration {
+        version: 7,
+        description: "Add missing project fields (monorepo_tool, framework, ui_framework)",
+        up: r#"
+            -- Add missing project fields that exist in frontend TypeScript but were missing in DB
+            ALTER TABLE projects ADD COLUMN monorepo_tool TEXT;
+            ALTER TABLE projects ADD COLUMN framework TEXT;
+            ALTER TABLE projects ADD COLUMN ui_framework TEXT;
+        "#,
+    },
 ];
 
 /// Run all pending migrations using Database wrapper
@@ -328,6 +424,10 @@ mod tests {
         assert!(table_exists(&conn, "mcp_config").unwrap());
         assert!(table_exists(&conn, "ai_services").unwrap());
         assert!(table_exists(&conn, "deploy_accounts").unwrap());
+        assert!(table_exists(&conn, "deploy_account_tokens").unwrap());
+        assert!(table_exists(&conn, "webhook_tokens").unwrap());
+        // incoming_webhooks was dropped in migration 6
+        assert!(!table_exists(&conn, "incoming_webhooks").unwrap());
     }
 
     #[test]

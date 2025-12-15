@@ -1,8 +1,7 @@
 // Project Repository
 // Handles all database operations for projects
 
-use rusqlite::{params, Connection};
-use serde_json::Value;
+use rusqlite::params;
 use std::collections::HashMap;
 
 use crate::models::{PackageManager, Project};
@@ -27,7 +26,8 @@ impl ProjectRepository {
                     r#"
                     SELECT id, name, path, version, description, is_monorepo,
                            package_manager, scripts, worktree_sessions,
-                           created_at, last_opened_at
+                           created_at, last_opened_at,
+                           monorepo_tool, framework, ui_framework
                     FROM projects
                     ORDER BY last_opened_at DESC
                     "#,
@@ -48,6 +48,9 @@ impl ProjectRepository {
                         worktree_sessions: row.get(8)?,
                         created_at: row.get(9)?,
                         last_opened_at: row.get(10)?,
+                        monorepo_tool: row.get(11)?,
+                        framework: row.get(12)?,
+                        ui_framework: row.get(13)?,
                     })
                 })
                 .map_err(|e| format!("Failed to query projects: {}", e))?;
@@ -70,7 +73,8 @@ impl ProjectRepository {
                     r#"
                     SELECT id, name, path, version, description, is_monorepo,
                            package_manager, scripts, worktree_sessions,
-                           created_at, last_opened_at
+                           created_at, last_opened_at,
+                           monorepo_tool, framework, ui_framework
                     FROM projects
                     WHERE id = ?1
                     "#,
@@ -91,6 +95,9 @@ impl ProjectRepository {
                         worktree_sessions: row.get(8)?,
                         created_at: row.get(9)?,
                         last_opened_at: row.get(10)?,
+                        monorepo_tool: row.get(11)?,
+                        framework: row.get(12)?,
+                        ui_framework: row.get(13)?,
                     })
                 });
 
@@ -110,7 +117,8 @@ impl ProjectRepository {
                     r#"
                     SELECT id, name, path, version, description, is_monorepo,
                            package_manager, scripts, worktree_sessions,
-                           created_at, last_opened_at
+                           created_at, last_opened_at,
+                           monorepo_tool, framework, ui_framework
                     FROM projects
                     WHERE path = ?1
                     "#,
@@ -131,6 +139,9 @@ impl ProjectRepository {
                         worktree_sessions: row.get(8)?,
                         created_at: row.get(9)?,
                         last_opened_at: row.get(10)?,
+                        monorepo_tool: row.get(11)?,
+                        framework: row.get(12)?,
+                        ui_framework: row.get(13)?,
                     })
                 });
 
@@ -155,8 +166,9 @@ impl ProjectRepository {
                 r#"
                 INSERT OR REPLACE INTO projects
                 (id, name, path, version, description, is_monorepo, package_manager,
-                 scripts, worktree_sessions, created_at, last_opened_at)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                 scripts, worktree_sessions, created_at, last_opened_at,
+                 monorepo_tool, framework, ui_framework)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
                 "#,
                 params![
                     project.id,
@@ -170,6 +182,9 @@ impl ProjectRepository {
                     worktree_sessions_json,
                     project.created_at,
                     project.last_opened_at,
+                    project.monorepo_tool,
+                    project.framework,
+                    project.ui_framework,
                 ],
             )
             .map_err(|e| format!("Failed to save project: {}", e))?;
@@ -231,6 +246,9 @@ struct ProjectRow {
     worktree_sessions: Option<String>,
     created_at: String,
     last_opened_at: String,
+    monorepo_tool: Option<String>,
+    framework: Option<String>,
+    ui_framework: Option<String>,
 }
 
 impl ProjectRow {
@@ -262,6 +280,9 @@ impl ProjectRow {
             version: self.version,
             description: self.description,
             is_monorepo: self.is_monorepo != 0,
+            monorepo_tool: self.monorepo_tool,
+            framework: self.framework,
+            ui_framework: self.ui_framework,
             package_manager,
             scripts,
             worktree_sessions,

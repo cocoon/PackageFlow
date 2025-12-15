@@ -1,16 +1,17 @@
 // Project management commands
 // Implements US2: Project Management Functions
+// Updated to use SQLite database for storage
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 
 use crate::models::{PackageManager, Project, WorkspacePackage};
-use crate::utils::store::STORE_FILE;
+use crate::repositories::ProjectRepository;
+use crate::DatabaseState;
 
 /// Response for scan_project command
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -220,7 +221,7 @@ pub fn parse_package_json(path: &Path) -> Result<PackageJson, String> {
 /// Scan a project directory
 #[tauri::command]
 pub async fn scan_project(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     path: String,
 ) -> Result<ScanProjectResponse, String> {
     let project_path = Path::new(&path);
@@ -235,14 +236,9 @@ pub async fn scan_project(
         });
     }
 
-    // Check if project already exists
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let existing_projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    if existing_projects.iter().any(|p| p.path == path) {
+    // Check if project already exists using SQLite repository
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
+    if repo.exists_by_path(&path)? {
         return Ok(ScanProjectResponse {
             success: false,
             project: None,
@@ -282,6 +278,9 @@ pub async fn scan_project(
         version: package_json.version.unwrap_or_else(|| "0.0.0".to_string()),
         description: package_json.description,
         is_monorepo: is_mono,
+        monorepo_tool: None,
+        framework: None,
+        ui_framework: None,
         package_manager,
         scripts: package_json.scripts.unwrap_or_default(),
         worktree_sessions: Vec::new(),
@@ -309,86 +308,49 @@ pub async fn scan_project(
     })
 }
 
-/// Save a project to store
+/// Save a project to SQLite database
 #[tauri::command]
-pub async fn save_project(app: tauri::AppHandle, project: Project) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let mut projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Update or add project
-    if let Some(idx) = projects.iter().position(|p| p.id == project.id) {
-        projects[idx] = project;
-    } else {
-        projects.push(project);
-    }
-
-    store.set(
-        "projects",
-        serde_json::to_value(&projects).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
-    Ok(())
+pub async fn save_project(
+    db: tauri::State<'_, DatabaseState>,
+    project: Project,
+) -> Result<(), String> {
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
+    repo.save(&project)
 }
 
-/// Remove a project from store
+/// Remove a project from SQLite database
 #[tauri::command]
-pub async fn remove_project(app: tauri::AppHandle, id: String) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let mut projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    projects.retain(|p| p.id != id);
-
-    store.set(
-        "projects",
-        serde_json::to_value(&projects).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
+pub async fn remove_project(
+    db: tauri::State<'_, DatabaseState>,
+    id: String,
+) -> Result<(), String> {
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
+    repo.delete(&id)?;
     Ok(())
 }
 
 /// Refresh project data from disk
 #[tauri::command]
 pub async fn refresh_project(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     id: String,
 ) -> Result<RefreshProjectResponse, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let mut projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
 
     // Find project
-    let project_idx = projects.iter().position(|p| p.id == id);
+    let existing_project = match repo.get(&id)? {
+        Some(p) => p,
+        None => {
+            return Ok(RefreshProjectResponse {
+                success: false,
+                project: None,
+                workspaces: None,
+                error: Some("PROJECT_NOT_FOUND".to_string()),
+            });
+        }
+    };
 
-    if project_idx.is_none() {
-        return Ok(RefreshProjectResponse {
-            success: false,
-            project: None,
-            workspaces: None,
-            error: Some("PROJECT_NOT_FOUND".to_string()),
-        });
-    }
-
-    let idx = project_idx.unwrap();
-
-    // Clone the values we need before mutating projects
-    let project_id = projects[idx].id.clone();
-    let project_path_str = projects[idx].path.clone();
-    let project_created_at = projects[idx].created_at.clone();
-    let project_worktree_sessions = projects[idx].worktree_sessions.clone();
-    let project_path = Path::new(&project_path_str);
+    let project_path = Path::new(&existing_project.path);
 
     // Check path still exists
     if !project_path.exists() {
@@ -426,27 +388,24 @@ pub async fn refresh_project(
 
     // Update project
     let updated_project = Project {
-        id: project_id,
-        path: project_path_str.clone(),
+        id: existing_project.id,
+        path: existing_project.path.clone(),
         name: package_json.name.unwrap_or_else(|| "unnamed".to_string()),
         version: package_json.version.unwrap_or_else(|| "0.0.0".to_string()),
         description: package_json.description,
         is_monorepo: is_mono,
+        monorepo_tool: existing_project.monorepo_tool,
+        framework: existing_project.framework,
+        ui_framework: existing_project.ui_framework,
         package_manager,
         scripts: package_json.scripts.unwrap_or_default(),
-        worktree_sessions: project_worktree_sessions,
-        created_at: project_created_at,
+        worktree_sessions: existing_project.worktree_sessions,
+        created_at: existing_project.created_at,
         last_opened_at: now,
     };
 
-    projects[idx] = updated_project.clone();
-
-    // Save updated projects
-    store.set(
-        "projects",
-        serde_json::to_value(&projects).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    // Save updated project to SQLite
+    repo.save(&updated_project)?;
 
     // Parse workspace packages if monorepo
     let workspaces = if is_mono {

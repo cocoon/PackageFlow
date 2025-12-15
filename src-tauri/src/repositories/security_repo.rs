@@ -98,6 +98,57 @@ impl SecurityRepository {
         })
     }
 
+    /// List all security scans (returns HashMap keyed by project_id)
+    pub fn list_all(&self) -> Result<std::collections::HashMap<String, SecurityScanData>, String> {
+        self.db.with_connection(|conn| {
+            let mut stmt = conn
+                .prepare(
+                    r#"
+                    SELECT project_id, package_manager, last_scan, scan_history, snooze_until
+                    FROM security_scans
+                    "#,
+                )
+                .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+            let rows = stmt
+                .query_map([], |row| {
+                    let project_id: String = row.get(0)?;
+                    let package_manager: String = row.get(1)?;
+                    let last_scan: Option<String> = row.get(2)?;
+                    let scan_history: String = row.get(3)?;
+                    let snooze_until: Option<String> = row.get(4)?;
+                    Ok((project_id, package_manager, last_scan, scan_history, snooze_until))
+                })
+                .map_err(|e| format!("Failed to query security scans: {}", e))?;
+
+            let mut result = std::collections::HashMap::new();
+            for row in rows {
+                let (project_id, package_manager, last_scan, scan_history_json, snooze_until) =
+                    row.map_err(|e| format!("Failed to read row: {}", e))?;
+
+                let pm = string_to_package_manager(&package_manager);
+                let last_scan_data: Option<VulnScanResult> = last_scan
+                    .as_ref()
+                    .and_then(|json| serde_json::from_str(json).ok());
+                let scan_history: Vec<VulnScanResult> =
+                    serde_json::from_str(&scan_history_json).unwrap_or_default();
+
+                result.insert(
+                    project_id.clone(),
+                    SecurityScanData {
+                        project_id,
+                        package_manager: pm,
+                        last_scan: last_scan_data,
+                        scan_history,
+                        snooze_until,
+                    },
+                );
+            }
+
+            Ok(result)
+        })
+    }
+
     /// Delete security scan data for a project
     pub fn delete(&self, project_id: &str) -> Result<bool, String> {
         self.db.with_connection(|conn| {

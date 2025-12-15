@@ -1,22 +1,20 @@
 // Security audit commands
 // Implements Package Security Audit feature (US1-US4)
+// Updated to use SQLite database for storage
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::Path;
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_store::StoreExt;
 
 use crate::models::{
     CvssInfo, DependencyCount, FixInfo, PackageManager, ScanError, ScanStatus, SecurityScanData,
     SecurityScanSummary, Severity, VulnItem, VulnScanResult, VulnSummary, WorkspacePackage,
     WorkspaceVulnSummary,
 };
+use crate::repositories::{ProjectRepository, SecurityRepository};
 use crate::utils::path_resolver;
-use crate::utils::store::{SECURITY_SCANS_FILE, STORE_FILE};
-
-/// Store key for security scans data
-const SECURITY_SCANS_KEY: &str = "securityScans";
+use crate::DatabaseState;
 
 // ============================================================================
 // Response Types
@@ -1316,17 +1314,11 @@ async fn run_single_pm_audit(
 /// Get security scan data for a project
 #[tauri::command]
 pub async fn get_security_scan(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     project_id: String,
 ) -> Result<GetSecurityScanResponse, String> {
-    let store = app.store(SECURITY_SCANS_FILE).map_err(|e| e.to_string())?;
-
-    let security_scans: std::collections::HashMap<String, SecurityScanData> = store
-        .get(SECURITY_SCANS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let data = security_scans.get(&project_id).cloned();
+    let repo = SecurityRepository::new(db.0.as_ref().clone());
+    let data = repo.get(&project_id)?;
 
     Ok(GetSecurityScanResponse {
         success: true,
@@ -1337,21 +1329,17 @@ pub async fn get_security_scan(
 
 /// Get all security scans summary
 #[tauri::command]
-pub async fn get_all_security_scans(app: AppHandle) -> Result<GetAllSecurityScansResponse, String> {
-    let main_store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let scan_store = app.store(SECURITY_SCANS_FILE).map_err(|e| e.to_string())?;
+pub async fn get_all_security_scans(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<GetAllSecurityScansResponse, String> {
+    let project_repo = ProjectRepository::new(db.0.as_ref().clone());
+    let security_repo = SecurityRepository::new(db.0.as_ref().clone());
 
-    // Get projects from main store
-    let projects: Vec<crate::models::Project> = main_store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    // Get projects from SQLite
+    let projects = project_repo.list()?;
 
-    // Get security scans from scan store
-    let security_scans: std::collections::HashMap<String, SecurityScanData> = scan_store
-        .get(SECURITY_SCANS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    // Get security scans from SQLite
+    let security_scans = security_repo.list_all()?;
 
     let mut summaries: Vec<SecurityScanSummary> = Vec::new();
 
@@ -1390,20 +1378,14 @@ pub async fn get_all_security_scans(app: AppHandle) -> Result<GetAllSecurityScan
 /// Save security scan result
 #[tauri::command]
 pub async fn save_security_scan(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     project_id: String,
     result: VulnScanResult,
 ) -> Result<SaveSecurityScanResponse, String> {
-    let store = app.store(SECURITY_SCANS_FILE).map_err(|e| e.to_string())?;
+    let repo = SecurityRepository::new(db.0.as_ref().clone());
 
-    // Get existing security scans
-    let mut security_scans: std::collections::HashMap<String, SecurityScanData> = store
-        .get(SECURITY_SCANS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Update or create scan data
-    let scan_data = security_scans.entry(project_id.clone()).or_insert_with(|| {
+    // Get existing scan data or create new one
+    let mut scan_data = repo.get(&project_id)?.unwrap_or_else(|| {
         SecurityScanData::new(project_id.clone(), result.package_manager.clone())
     });
 
@@ -1411,10 +1393,8 @@ pub async fn save_security_scan(
     // Clear snooze when a new scan is performed
     scan_data.snooze_until = None;
 
-    // Save back to store
-    let value = serde_json::to_value(&security_scans).map_err(|e| e.to_string())?;
-    store.set(SECURITY_SCANS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
+    // Save to SQLite
+    repo.save(&project_id, &scan_data)?;
 
     Ok(SaveSecurityScanResponse {
         success: true,
@@ -1426,32 +1406,25 @@ pub async fn save_security_scan(
 /// Sets a snooze_until timestamp to temporarily hide reminders
 #[tauri::command]
 pub async fn snooze_scan_reminder(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     project_id: String,
     snooze_duration_hours: u32,
 ) -> Result<SaveSecurityScanResponse, String> {
-    let store = app.store(SECURITY_SCANS_FILE).map_err(|e| e.to_string())?;
-
-    let mut security_scans: std::collections::HashMap<String, SecurityScanData> = store
-        .get(SECURITY_SCANS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let repo = SecurityRepository::new(db.0.as_ref().clone());
 
     // Calculate snooze_until timestamp
     let snooze_until = chrono::Utc::now() + chrono::Duration::hours(snooze_duration_hours as i64);
     let snooze_until_str = snooze_until.to_rfc3339();
 
-    // Update or create scan data with snooze
-    let scan_data = security_scans
-        .entry(project_id.clone())
-        .or_insert_with(|| SecurityScanData::new(project_id.clone(), PackageManager::Unknown));
+    // Get existing scan data or create new one
+    let mut scan_data = repo
+        .get(&project_id)?
+        .unwrap_or_else(|| SecurityScanData::new(project_id.clone(), PackageManager::Unknown));
 
     scan_data.snooze_until = Some(snooze_until_str);
 
-    // Save back to store
-    let value = serde_json::to_value(&security_scans).map_err(|e| e.to_string())?;
-    store.set(SECURITY_SCANS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
+    // Save to SQLite
+    repo.save(&project_id, &scan_data)?;
 
     Ok(SaveSecurityScanResponse {
         success: true,
@@ -1463,25 +1436,13 @@ pub async fn snooze_scan_reminder(
 /// Clears the snooze_until timestamp (used when user clicks dismiss/close)
 #[tauri::command]
 pub async fn dismiss_scan_reminder(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     project_id: String,
 ) -> Result<SaveSecurityScanResponse, String> {
-    let store = app.store(SECURITY_SCANS_FILE).map_err(|e| e.to_string())?;
+    let repo = SecurityRepository::new(db.0.as_ref().clone());
 
-    let mut security_scans: std::collections::HashMap<String, SecurityScanData> = store
-        .get(SECURITY_SCANS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Clear snooze if exists
-    if let Some(scan_data) = security_scans.get_mut(&project_id) {
-        scan_data.snooze_until = None;
-    }
-
-    // Save back to store
-    let value = serde_json::to_value(&security_scans).map_err(|e| e.to_string())?;
-    store.set(SECURITY_SCANS_KEY, value);
-    store.save().map_err(|e| e.to_string())?;
+    // Use the specialized set_snooze_until method
+    repo.set_snooze_until(&project_id, None)?;
 
     Ok(SaveSecurityScanResponse {
         success: true,

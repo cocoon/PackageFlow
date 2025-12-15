@@ -2,17 +2,18 @@ use chrono::Utc;
 /**
  * Incoming Webhook Commands
  * Tauri IPC commands for managing incoming webhooks
+ * Updated to use SQLite database for storage
  * @see specs/012-workflow-webhook-support
  */
 use tauri::{AppHandle, Manager};
-use tauri_plugin_store::StoreExt;
 use uuid::Uuid;
 
 use crate::models::{
-    IncomingWebhookConfig, IncomingWebhookServerSettings, IncomingWebhookServerStatus, Workflow,
+    IncomingWebhookConfig, IncomingWebhookServerSettings, IncomingWebhookServerStatus,
 };
+use crate::repositories::{SettingsRepository, WorkflowRepository};
 use crate::services::IncomingWebhookManager;
-use crate::utils::store::STORE_FILE;
+use crate::DatabaseState;
 
 /// Generate a new API token
 #[tauri::command]
@@ -24,50 +25,41 @@ pub async fn generate_incoming_webhook_token() -> Result<String, String> {
 #[tauri::command]
 pub async fn get_incoming_webhook_status(
     app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
 ) -> Result<IncomingWebhookServerStatus, String> {
     let manager = app.state::<IncomingWebhookManager>();
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let workflows = workflow_repo.list()?;
 
     Ok(manager.get_status(&workflows).await)
 }
 
+const INCOMING_WEBHOOK_SERVER_KEY: &str = "incoming_webhook_server";
+
 /// Get incoming webhook server settings
 #[tauri::command]
 pub async fn get_incoming_webhook_settings(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
 ) -> Result<IncomingWebhookServerSettings, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let settings: IncomingWebhookServerSettings = store
-        .get("incomingWebhookServer")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    Ok(settings)
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
+    let settings: Option<IncomingWebhookServerSettings> =
+        settings_repo.get(INCOMING_WEBHOOK_SERVER_KEY)?;
+    Ok(settings.unwrap_or_default())
 }
 
 /// Save incoming webhook server settings
 #[tauri::command]
 pub async fn save_incoming_webhook_settings(
     app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     settings: IncomingWebhookServerSettings,
 ) -> Result<(), String> {
     // Stop existing server first before changing port
     let manager = app.state::<IncomingWebhookManager>();
     manager.stop_server().await;
 
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    store.set(
-        "incomingWebhookServer",
-        serde_json::to_value(&settings).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
+    settings_repo.set(INCOMING_WEBHOOK_SERVER_KEY, &settings)?;
 
     // Don't sync here - let workflow save trigger the sync
     // This ensures we read the latest workflow data (including incoming webhook enabled state)
@@ -134,22 +126,17 @@ pub async fn check_port_available(app: AppHandle, port: u16) -> Result<PortStatu
 /// Sync incoming webhook server state
 /// Called after workflow save to start/stop server as needed
 pub async fn sync_incoming_webhook_server(app: &AppHandle) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let db = app.state::<DatabaseState>();
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
 
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let settings: IncomingWebhookServerSettings = store
-        .get("incomingWebhookServer")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let workflows = workflow_repo.list()?;
+    let settings: Option<IncomingWebhookServerSettings> =
+        settings_repo.get(INCOMING_WEBHOOK_SERVER_KEY)?;
+    let port = settings.map(|s| s.port).unwrap_or(9527);
 
     let manager = app.state::<IncomingWebhookManager>();
-    manager
-        .sync_server_state(app, &workflows, settings.port)
-        .await;
+    manager.sync_server_state(app, &workflows, port).await;
 
     Ok(())
 }

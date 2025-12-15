@@ -15,11 +15,11 @@ use axum::{
     Router,
 };
 use tauri::{AppHandle, Manager};
-use tauri_plugin_store::StoreExt;
 use tokio::sync::{oneshot, RwLock};
 
 use crate::models::{IncomingWebhookServerStatus, WebhookTriggerResponse, Workflow};
 use crate::services::notification::{send_webhook_notification, WebhookNotificationType};
+use crate::DatabaseState;
 
 /// Server shared state
 pub struct IncomingWebhookServerState {
@@ -205,22 +205,13 @@ struct TriggerQueryParams {
     token: Option<String>,
 }
 
-/// Get workflow name from store by workflow ID
+/// Get workflow name from database by workflow ID
 fn get_workflow_name(app: &AppHandle, workflow_id: &str) -> Option<String> {
-    use crate::utils::store::STORE_FILE;
+    use crate::repositories::WorkflowRepository;
 
-    let store = app.store(STORE_FILE).ok()?;
-    let workflows_value = store.get("workflows")?;
-    let workflows = workflows_value.as_array()?;
-
-    workflows.iter().find_map(|w| {
-        let id = w.get("id")?.as_str()?;
-        if id == workflow_id {
-            w.get("name")?.as_str().map(String::from)
-        } else {
-            None
-        }
-    })
+    let db = app.state::<DatabaseState>();
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
+    repo.get(workflow_id).ok()?.map(|w| w.name)
 }
 
 /// Handle incoming webhook trigger request
@@ -263,8 +254,13 @@ async fn handle_webhook_trigger(
         workflow_id
     );
 
-    match crate::commands::workflow::execute_workflow(
+    // Get database from app state for internal execution
+    let db = state.app.state::<DatabaseState>();
+    let db_clone = db.0.as_ref().clone();
+
+    match crate::commands::workflow::execute_workflow_internal(
         state.app.clone(),
+        db_clone,
         workflow_id.clone(),
         None,
         None,

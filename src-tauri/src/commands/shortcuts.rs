@@ -1,53 +1,33 @@
 // Keyboard shortcuts commands
 // Provides commands for managing keyboard shortcuts settings and global shortcuts
+// Updated to use SQLite database for storage
 
-use crate::utils::store::{KeyboardShortcutsSettings, STORE_FILE};
+use crate::repositories::SettingsRepository;
+use crate::utils::store::KeyboardShortcutsSettings;
+use crate::DatabaseState;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
-use tauri_plugin_store::StoreExt;
 
-/// Load keyboard shortcuts settings
+const KEYBOARD_SHORTCUTS_KEY: &str = "keyboard_shortcuts";
+
+/// Load keyboard shortcuts settings from SQLite
 #[tauri::command]
-pub async fn load_keyboard_shortcuts(app: AppHandle) -> Result<KeyboardShortcutsSettings, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let settings = store
-        .get("settings")
-        .and_then(|v| serde_json::from_value::<serde_json::Value>(v.clone()).ok())
-        .and_then(|v| v.get("keyboardShortcuts").cloned())
-        .and_then(|v| serde_json::from_value::<KeyboardShortcutsSettings>(v).ok())
-        .unwrap_or_default();
-
-    Ok(settings)
+pub async fn load_keyboard_shortcuts(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<KeyboardShortcutsSettings, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let settings: Option<KeyboardShortcutsSettings> = repo.get(KEYBOARD_SHORTCUTS_KEY)?;
+    Ok(settings.unwrap_or_default())
 }
 
-/// Save keyboard shortcuts settings
+/// Save keyboard shortcuts settings to SQLite
 #[tauri::command]
 pub async fn save_keyboard_shortcuts(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     settings: KeyboardShortcutsSettings,
 ) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Get current settings
-    let mut app_settings = store
-        .get("settings")
-        .and_then(|v| serde_json::from_value::<serde_json::Value>(v.clone()).ok())
-        .unwrap_or_else(|| serde_json::json!({}));
-
-    // Update keyboard shortcuts
-    if let Some(obj) = app_settings.as_object_mut() {
-        obj.insert(
-            "keyboardShortcuts".to_string(),
-            serde_json::to_value(&settings).map_err(|e| e.to_string())?,
-        );
-    }
-
-    // Save back
-    store.set("settings", app_settings);
-    store.save().map_err(|e| e.to_string())?;
-
-    Ok(())
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.set(KEYBOARD_SHORTCUTS_KEY, &settings)
 }
 
 /// Convert internal shortcut format to tauri-plugin-global-shortcut format

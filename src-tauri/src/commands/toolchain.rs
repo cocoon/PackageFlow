@@ -532,43 +532,37 @@ pub async fn humanize_toolchain_error(raw_error: String) -> Result<ToolchainErro
     })
 }
 
-/// Get project toolchain preference from store
+const TOOLCHAIN_PREFERENCES_KEY: &str = "toolchain_preferences";
+
+/// Get project toolchain preference from SQLite
 #[tauri::command]
 pub async fn get_toolchain_preference(
-    app_handle: tauri::AppHandle,
+    db: tauri::State<'_, crate::DatabaseState>,
     project_path: String,
 ) -> Result<Option<ProjectPreference>, String> {
-    use tauri_plugin_store::StoreExt;
+    use crate::repositories::SettingsRepository;
 
-    let store = app_handle
-        .store("packageflow.json")
-        .map_err(|e| format!("Failed to open store: {}", e))?;
-
-    let preferences: std::collections::HashMap<String, ProjectPreference> = store
-        .get("toolchain_preferences")
-        .and_then(|v| serde_json::from_value(v).ok())
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let preferences: std::collections::HashMap<String, ProjectPreference> = repo
+        .get(TOOLCHAIN_PREFERENCES_KEY)?
         .unwrap_or_default();
 
     Ok(preferences.get(&project_path).cloned())
 }
 
-/// Set project toolchain preference to store
+/// Set project toolchain preference to SQLite
 #[tauri::command]
 pub async fn set_toolchain_preference(
-    app_handle: tauri::AppHandle,
+    db: tauri::State<'_, crate::DatabaseState>,
     project_path: String,
     strategy: ToolchainStrategy,
     remember: bool,
 ) -> Result<(), String> {
-    use tauri_plugin_store::StoreExt;
+    use crate::repositories::SettingsRepository;
 
-    let store = app_handle
-        .store("packageflow.json")
-        .map_err(|e| format!("Failed to open store: {}", e))?;
-
-    let mut preferences: std::collections::HashMap<String, ProjectPreference> = store
-        .get("toolchain_preferences")
-        .and_then(|v| serde_json::from_value(v).ok())
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let mut preferences: std::collections::HashMap<String, ProjectPreference> = repo
+        .get(TOOLCHAIN_PREFERENCES_KEY)?
         .unwrap_or_default();
 
     let preference = ProjectPreference {
@@ -579,46 +573,26 @@ pub async fn set_toolchain_preference(
     };
 
     preferences.insert(project_path, preference);
-
-    store.set(
-        "toolchain_preferences",
-        serde_json::to_value(&preferences).map_err(|e| format!("Serialization error: {}", e))?,
-    );
-
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
+    repo.set(TOOLCHAIN_PREFERENCES_KEY, &preferences)?;
 
     Ok(())
 }
 
-/// Clear project toolchain preference from store
+/// Clear project toolchain preference from SQLite
 #[tauri::command]
 pub async fn clear_toolchain_preference(
-    app_handle: tauri::AppHandle,
+    db: tauri::State<'_, crate::DatabaseState>,
     project_path: String,
 ) -> Result<(), String> {
-    use tauri_plugin_store::StoreExt;
+    use crate::repositories::SettingsRepository;
 
-    let store = app_handle
-        .store("packageflow.json")
-        .map_err(|e| format!("Failed to open store: {}", e))?;
-
-    let mut preferences: std::collections::HashMap<String, ProjectPreference> = store
-        .get("toolchain_preferences")
-        .and_then(|v| serde_json::from_value(v).ok())
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let mut preferences: std::collections::HashMap<String, ProjectPreference> = repo
+        .get(TOOLCHAIN_PREFERENCES_KEY)?
         .unwrap_or_default();
 
     preferences.remove(&project_path);
-
-    store.set(
-        "toolchain_preferences",
-        serde_json::to_value(&preferences).map_err(|e| format!("Serialization error: {}", e))?,
-    );
-
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
+    repo.set(TOOLCHAIN_PREFERENCES_KEY, &preferences)?;
 
     Ok(())
 }

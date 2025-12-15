@@ -42,16 +42,36 @@ pub struct Project {
     pub id: String,
     pub path: String,
     pub name: String,
+    #[serde(default = "default_version")]
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(default)]
     pub is_monorepo: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monorepo_tool: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub framework: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ui_framework: Option<String>,
+    #[serde(default)]
     pub package_manager: PackageManager,
+    #[serde(default)]
     pub scripts: HashMap<String, String>,
     #[serde(default)]
     pub worktree_sessions: Vec<WorktreeSession>,
+    #[serde(default = "default_timestamp")]
     pub created_at: String,
+    #[serde(default = "default_timestamp")]
     pub last_opened_at: String,
+}
+
+fn default_version() -> String {
+    "0.0.0".to_string()
+}
+
+fn default_timestamp() -> String {
+    chrono::Utc::now().to_rfc3339()
 }
 
 impl Project {
@@ -64,6 +84,9 @@ impl Project {
             version: String::from("0.0.0"),
             description: None,
             is_monorepo: false,
+            monorepo_tool: None,
+            framework: None,
+            ui_framework: None,
             package_manager: PackageManager::Unknown,
             scripts: HashMap::new(),
             worktree_sessions: Vec::new(),

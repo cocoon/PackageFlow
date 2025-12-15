@@ -2,19 +2,34 @@
 // Feature: AI CLI Integration (020-ai-cli-integration)
 //
 // Manages secure storage of API keys using the existing crypto module.
-// Keys are stored encrypted in tauri-plugin-store.
+// Keys are stored encrypted in SQLite database.
 
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager, Wry};
 use tauri_plugin_store::StoreExt;
 
 use super::{AIError, AIResult};
+use crate::repositories::AIRepository;
 use crate::services::crypto::{decrypt, encrypt, EncryptedData};
+use crate::utils::database::Database;
+use crate::DatabaseState;
 
 const STORE_FILENAME: &str = "packageflow.json";
 const KEY_AI_API_KEYS: &str = "ai_api_keys";
 
+/// Get Database from AppHandle
+fn get_db(app: &AppHandle<Wry>) -> Database {
+    let db_state = app.state::<DatabaseState>();
+    db_state.0.as_ref().clone()
+}
+
+/// Get AIRepository from AppHandle
+fn get_ai_repo(app: &AppHandle<Wry>) -> AIRepository {
+    AIRepository::new(get_db(app))
+}
+
 /// Secure API Key Storage Manager
+/// Now uses SQLite for storage instead of JSON store.
 pub struct AIKeychain {
     app_handle: AppHandle<Wry>,
 }
@@ -34,25 +49,11 @@ impl AIKeychain {
         let encrypted = encrypt(api_key)
             .map_err(|e| AIError::EncryptionError(e.to_string()))?;
 
-        // Load existing keys
-        let store = self.app_handle
-            .store(STORE_FILENAME)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
+        let repo = get_ai_repo(&self.app_handle);
 
-        let mut keys: HashMap<String, EncryptedData> = store
-            .get(KEY_AI_API_KEYS)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
-
-        // Store the encrypted key
-        keys.insert(service_id.to_string(), encrypted);
-
-        // Save
-        let value = serde_json::to_value(&keys)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
-
-        store.set(KEY_AI_API_KEYS, value);
-        store.save().map_err(|e| AIError::StorageError(e.to_string()))?;
+        // Store in SQLite
+        repo.store_api_key(service_id, &encrypted.ciphertext, &encrypted.nonce)
+            .map_err(|e| AIError::StorageError(e))?;
 
         log::info!("API key stored for service: {}", service_id);
         Ok(())
@@ -66,23 +67,36 @@ impl AIKeychain {
     /// # Returns
     /// The decrypted API key, or None if not found
     pub fn get_api_key(&self, service_id: &str) -> AIResult<Option<String>> {
-        let store = self.app_handle
-            .store(STORE_FILENAME)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
+        let repo = get_ai_repo(&self.app_handle);
 
-        let keys: HashMap<String, EncryptedData> = store
-            .get(KEY_AI_API_KEYS)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
+        // Try SQLite first
+        if let Ok(Some((ciphertext, nonce))) = repo.get_api_key(service_id) {
+            let encrypted = EncryptedData { ciphertext, nonce };
+            let decrypted = decrypt(&encrypted)
+                .map_err(|e| AIError::EncryptionError(e.to_string()))?;
+            return Ok(Some(decrypted));
+        }
 
-        match keys.get(service_id) {
-            Some(encrypted) => {
+        // Fallback: Try legacy JSON store for migration
+        if let Ok(store) = self.app_handle.store(STORE_FILENAME) {
+            let keys: HashMap<String, EncryptedData> = store
+                .get(KEY_AI_API_KEYS)
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+
+            if let Some(encrypted) = keys.get(service_id) {
                 let decrypted = decrypt(encrypted)
                     .map_err(|e| AIError::EncryptionError(e.to_string()))?;
-                Ok(Some(decrypted))
+
+                // Migrate to SQLite
+                let _ = repo.store_api_key(service_id, &encrypted.ciphertext, &encrypted.nonce);
+                log::info!("Migrated API key for service {} to SQLite", service_id);
+
+                return Ok(Some(decrypted));
             }
-            None => Ok(None),
         }
+
+        Ok(None)
     }
 
     /// Delete an API key for a service
@@ -90,25 +104,28 @@ impl AIKeychain {
     /// # Arguments
     /// * `service_id` - The AI service ID
     pub fn delete_api_key(&self, service_id: &str) -> AIResult<()> {
-        let store = self.app_handle
-            .store(STORE_FILENAME)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
+        let repo = get_ai_repo(&self.app_handle);
 
-        let mut keys: HashMap<String, EncryptedData> = store
-            .get(KEY_AI_API_KEYS)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
+        // Delete from SQLite
+        repo.delete_api_key(service_id)
+            .map_err(|e| AIError::StorageError(e))?;
 
-        if keys.remove(service_id).is_some() {
-            let value = serde_json::to_value(&keys)
-                .map_err(|e| AIError::StorageError(e.to_string()))?;
+        // Also delete from legacy JSON store if exists
+        if let Ok(store) = self.app_handle.store(STORE_FILENAME) {
+            let mut keys: HashMap<String, EncryptedData> = store
+                .get(KEY_AI_API_KEYS)
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
 
-            store.set(KEY_AI_API_KEYS, value);
-            store.save().map_err(|e| AIError::StorageError(e.to_string()))?;
-
-            log::info!("API key deleted for service: {}", service_id);
+            if keys.remove(service_id).is_some() {
+                if let Ok(value) = serde_json::to_value(&keys) {
+                    store.set(KEY_AI_API_KEYS, value);
+                    let _ = store.save();
+                }
+            }
         }
 
+        log::info!("API key deleted for service: {}", service_id);
         Ok(())
     }
 
@@ -117,30 +134,32 @@ impl AIKeychain {
     /// # Arguments
     /// * `service_id` - The AI service ID
     pub fn has_api_key(&self, service_id: &str) -> AIResult<bool> {
-        let store = self.app_handle
-            .store(STORE_FILENAME)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
+        let repo = get_ai_repo(&self.app_handle);
 
-        let keys: HashMap<String, EncryptedData> = store
-            .get(KEY_AI_API_KEYS)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
+        // Check SQLite first
+        if repo.has_api_key(service_id).unwrap_or(false) {
+            return Ok(true);
+        }
 
-        Ok(keys.contains_key(service_id))
+        // Fallback: Check legacy JSON store
+        if let Ok(store) = self.app_handle.store(STORE_FILENAME) {
+            let keys: HashMap<String, EncryptedData> = store
+                .get(KEY_AI_API_KEYS)
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+                .unwrap_or_default();
+
+            return Ok(keys.contains_key(service_id));
+        }
+
+        Ok(false)
     }
 
     /// List all service IDs that have stored API keys
     pub fn list_service_ids_with_keys(&self) -> AIResult<Vec<String>> {
-        let store = self.app_handle
-            .store(STORE_FILENAME)
-            .map_err(|e| AIError::StorageError(e.to_string()))?;
+        let repo = get_ai_repo(&self.app_handle);
 
-        let keys: HashMap<String, EncryptedData> = store
-            .get(KEY_AI_API_KEYS)
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
-
-        Ok(keys.keys().cloned().collect())
+        repo.list_service_ids_with_keys()
+            .map_err(|e| AIError::StorageError(e))
     }
 }
 

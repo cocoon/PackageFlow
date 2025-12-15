@@ -1,10 +1,9 @@
 /**
  * Workflow storage module (Tauri version)
- * Uses Tauri Store Plugin for local storage
+ * Uses SQLite database via Tauri commands for persistent storage
  * @see specs/001-expo-workflow-automation/contracts/ipc-api.md
  */
 
-import { Store } from '@tauri-apps/plugin-store';
 import type {
   Workflow,
   WorkflowNode,
@@ -15,16 +14,7 @@ import type {
   CancelResponse,
   ContinueResponse,
 } from '../types/workflow';
-import { workflowAPI } from './tauri-api';
-
-let store: Store | null = null;
-
-async function getStore(): Promise<Store> {
-  if (!store) {
-    store = await Store.load('packageflow.json');
-  }
-  return store;
-}
+import { workflowAPI, settingsAPI } from './tauri-api';
 
 /**
  * Generate UUID v4
@@ -89,13 +79,11 @@ export function createScriptNode(
 }
 
 /**
- * Load all workflows
+ * Load all workflows from SQLite database
  */
 export async function loadWorkflows(): Promise<Workflow[]> {
   try {
-    const s = await getStore();
-    const workflows = await s.get<Workflow[]>('workflows');
-    return workflows || [];
+    return await settingsAPI.loadWorkflows();
   } catch (error) {
     console.error('[Tauri] Failed to load workflows:', error);
     return [];

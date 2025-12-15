@@ -1,22 +1,12 @@
 /**
  * useTemplatePreferences Hook
  * Manages template favorites, recent usage, and category collapse state
- * Persists preferences to localStorage for cross-session memory
+ * Persists preferences to SQLite database via Tauri commands
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { TemplateCategory } from '../types/step-template';
-
-/** Maximum number of recent templates to track */
-const MAX_RECENT_TEMPLATES = 8;
-
-/** Storage keys */
-const STORAGE_KEYS = {
-  favorites: 'packageflow:template-favorites',
-  recentlyUsed: 'packageflow:template-recently-used',
-  collapsedCategories: 'packageflow:template-collapsed-categories',
-  preferredView: 'packageflow:template-preferred-view',
-} as const;
 
 /** View mode for template display */
 export type TemplateViewMode = 'categories' | 'all' | 'favorites';
@@ -44,38 +34,15 @@ const DEFAULT_PREFERENCES: TemplatePreferences = {
 };
 
 /**
- * Load preferences from localStorage
+ * Load preferences from backend
  */
-function loadPreferences(): TemplatePreferences {
+async function loadPreferences(): Promise<TemplatePreferences> {
   try {
-    const favorites = localStorage.getItem(STORAGE_KEYS.favorites);
-    const recentlyUsed = localStorage.getItem(STORAGE_KEYS.recentlyUsed);
-    const collapsedCategories = localStorage.getItem(STORAGE_KEYS.collapsedCategories);
-    const preferredView = localStorage.getItem(STORAGE_KEYS.preferredView);
-
-    return {
-      favorites: favorites ? JSON.parse(favorites) : [],
-      recentlyUsed: recentlyUsed ? JSON.parse(recentlyUsed) : [],
-      collapsedCategories: collapsedCategories ? JSON.parse(collapsedCategories) : [],
-      preferredView: (preferredView as TemplateViewMode) || 'categories',
-    };
+    const prefs = await invoke<TemplatePreferences>('get_template_preferences');
+    return prefs;
   } catch (error) {
     console.error('Failed to load template preferences:', error);
     return DEFAULT_PREFERENCES;
-  }
-}
-
-/**
- * Save a specific preference to localStorage
- */
-function savePreference<K extends keyof TemplatePreferences>(
-  key: K,
-  value: TemplatePreferences[K]
-): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS[key], JSON.stringify(value));
-  } catch (error) {
-    console.error(`Failed to save template preference "${key}":`, error);
   }
 }
 
@@ -88,9 +55,10 @@ export function useTemplatePreferences() {
 
   // Load preferences on mount
   useEffect(() => {
-    const loaded = loadPreferences();
-    setPreferences(loaded);
-    setIsLoaded(true);
+    loadPreferences().then((loaded) => {
+      setPreferences(loaded);
+      setIsLoaded(true);
+    });
   }, []);
 
   // Favorites management
@@ -101,62 +69,58 @@ export function useTemplatePreferences() {
     [preferences.favorites]
   );
 
-  const toggleFavorite = useCallback((templateId: string): void => {
-    setPreferences((prev) => {
-      const isFav = prev.favorites.includes(templateId);
-      const newFavorites = isFav
-        ? prev.favorites.filter((id) => id !== templateId)
-        : [...prev.favorites, templateId];
-
-      savePreference('favorites', newFavorites);
-      return { ...prev, favorites: newFavorites };
-    });
+  const toggleFavorite = useCallback(async (templateId: string): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('toggle_template_favorite', {
+        templateId,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+    }
   }, []);
 
-  const addFavorite = useCallback((templateId: string): void => {
-    setPreferences((prev) => {
-      if (prev.favorites.includes(templateId)) {
-        return prev;
-      }
-      const newFavorites = [...prev.favorites, templateId];
-      savePreference('favorites', newFavorites);
-      return { ...prev, favorites: newFavorites };
-    });
+  const addFavorite = useCallback(async (templateId: string): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('add_template_favorite', {
+        templateId,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to add favorite:', error);
+    }
   }, []);
 
-  const removeFavorite = useCallback((templateId: string): void => {
-    setPreferences((prev) => {
-      const newFavorites = prev.favorites.filter((id) => id !== templateId);
-      savePreference('favorites', newFavorites);
-      return { ...prev, favorites: newFavorites };
-    });
+  const removeFavorite = useCallback(async (templateId: string): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('remove_template_favorite', {
+        templateId,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to remove favorite:', error);
+    }
   }, []);
 
   // Recent usage tracking
-  const recordUsage = useCallback((templateId: string): void => {
-    setPreferences((prev) => {
-      // Remove existing entry if present
-      const filtered = prev.recentlyUsed.filter((entry) => entry.templateId !== templateId);
-
-      // Add new entry at the beginning
-      const newEntry: RecentTemplateEntry = {
+  const recordUsage = useCallback(async (templateId: string): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('record_template_usage', {
         templateId,
-        usedAt: new Date().toISOString(),
-      };
-
-      // Keep only MAX_RECENT_TEMPLATES entries
-      const newRecentlyUsed = [newEntry, ...filtered].slice(0, MAX_RECENT_TEMPLATES);
-
-      savePreference('recentlyUsed', newRecentlyUsed);
-      return { ...prev, recentlyUsed: newRecentlyUsed };
-    });
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to record template usage:', error);
+    }
   }, []);
 
-  const clearRecentlyUsed = useCallback((): void => {
-    setPreferences((prev) => {
-      savePreference('recentlyUsed', []);
-      return { ...prev, recentlyUsed: [] };
-    });
+  const clearRecentlyUsed = useCallback(async (): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('clear_recently_used_templates');
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to clear recently used:', error);
+    }
   }, []);
 
   // Category collapse state management
@@ -167,38 +131,47 @@ export function useTemplatePreferences() {
     [preferences.collapsedCategories]
   );
 
-  const toggleCategoryCollapse = useCallback((categoryId: TemplateCategory): void => {
-    setPreferences((prev) => {
-      const isCollapsed = prev.collapsedCategories.includes(categoryId);
-      const newCollapsed = isCollapsed
-        ? prev.collapsedCategories.filter((id) => id !== categoryId)
-        : [...prev.collapsedCategories, categoryId];
-
-      savePreference('collapsedCategories', newCollapsed);
-      return { ...prev, collapsedCategories: newCollapsed };
-    });
+  const toggleCategoryCollapse = useCallback(async (categoryId: TemplateCategory): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('toggle_template_category_collapse', {
+        categoryId,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to toggle category collapse:', error);
+    }
   }, []);
 
-  const expandAllCategories = useCallback((): void => {
-    setPreferences((prev) => {
-      savePreference('collapsedCategories', []);
-      return { ...prev, collapsedCategories: [] };
-    });
+  const expandAllCategories = useCallback(async (): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('expand_all_template_categories');
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to expand all categories:', error);
+    }
   }, []);
 
-  const collapseAllCategories = useCallback((categoryIds: TemplateCategory[]): void => {
-    setPreferences((prev) => {
-      savePreference('collapsedCategories', categoryIds);
-      return { ...prev, collapsedCategories: categoryIds };
-    });
+  const collapseAllCategories = useCallback(async (categoryIds: TemplateCategory[]): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('collapse_template_categories', {
+        categoryIds,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to collapse categories:', error);
+    }
   }, []);
 
   // View mode management
-  const setPreferredView = useCallback((view: TemplateViewMode): void => {
-    setPreferences((prev) => {
-      savePreference('preferredView', view);
-      return { ...prev, preferredView: view };
-    });
+  const setPreferredView = useCallback(async (view: TemplateViewMode): Promise<void> => {
+    try {
+      const newPrefs = await invoke<TemplatePreferences>('set_template_preferred_view', {
+        view,
+      });
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('Failed to set preferred view:', error);
+    }
   }, []);
 
   // Derived data

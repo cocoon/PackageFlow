@@ -36,11 +36,19 @@ pub fn run() {
         Ok(db) => Arc::new(db),
         Err(e) => {
             eprintln!("[PackageFlow] Failed to initialize database: {}", e);
-            eprintln!("[PackageFlow] Falling back to JSON store only");
-            // Continue without SQLite - commands will use tauri-plugin-store fallback
-            // This allows gradual migration
-            Arc::new(Database::new(get_database_path().unwrap_or_default())
-                .expect("Failed to create database"))
+            // Database is required - all commands use Repository layer
+            // If initialization fails, we need to handle this gracefully
+            // Try one more time with a fresh database path
+            let db_path = get_database_path().unwrap_or_else(|_| {
+                dirs::data_dir()
+                    .unwrap_or_else(|| std::path::PathBuf::from("."))
+                    .join("packageflow.db")
+            });
+            eprintln!("[PackageFlow] Attempting recovery at: {:?}", db_path);
+            Arc::new(
+                Database::new(db_path)
+                    .expect("Failed to create database - application cannot start")
+            )
         }
     };
 
@@ -78,6 +86,17 @@ pub fn run() {
             settings::set_store_path,
             settings::reset_store_path,
             settings::open_store_location,
+            // Template preferences commands
+            settings::get_template_preferences,
+            settings::toggle_template_favorite,
+            settings::add_template_favorite,
+            settings::remove_template_favorite,
+            settings::record_template_usage,
+            settings::clear_recently_used_templates,
+            settings::toggle_template_category_collapse,
+            settings::expand_all_template_categories,
+            settings::collapse_template_categories,
+            settings::set_template_preferred_view,
             // Project commands (US2)
             project::scan_project,
             project::save_project,
@@ -307,6 +326,8 @@ pub fn run() {
             ai::ai_get_project_settings,
             ai::ai_update_project_settings,
             ai::ai_generate_commit_message,
+            ai::ai_store_api_key,
+            ai::ai_check_api_key_status,
             // MCP Server Integration
             mcp::get_mcp_server_info,
             mcp::get_mcp_tools,
@@ -346,16 +367,15 @@ fn initialize_database() -> Result<Database, String> {
 
     log::info!("[PackageFlow] Initializing database at: {:?}", db_path);
 
-    // Create or open database
+    // Create or open database (this also runs migrations internally)
     let db = Database::new(db_path.clone())?;
-
-    // Run schema migrations
-    utils::schema::migrate(&db)?;
     log::info!("[PackageFlow] Database schema migrations complete");
 
     // Check if JSON migration is needed
-    let json_path = db_path.with_file_name("packageflow.json");
-    let migrated_path = db_path.with_file_name("packageflow.json.migrated");
+    // Use shared_store::get_store_path() for correct JSON path
+    let json_path = utils::shared_store::get_store_path()
+        .unwrap_or_else(|_| db_path.with_file_name("packageflow.json"));
+    let migrated_path = json_path.with_extension("json.migrated");
 
     if json_path.exists() && !migrated_path.exists() {
         log::info!("[PackageFlow] Found existing JSON store, starting migration...");

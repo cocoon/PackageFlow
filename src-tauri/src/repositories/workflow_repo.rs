@@ -217,6 +217,79 @@ impl WorkflowRepository {
             Ok(())
         })
     }
+
+    // =========================================================================
+    // Webhook Tokens (Encrypted)
+    // =========================================================================
+
+    /// Store an encrypted webhook token for a workflow
+    pub fn store_webhook_token(
+        &self,
+        workflow_id: &str,
+        ciphertext: &str,
+        nonce: &str,
+    ) -> Result<(), String> {
+        self.db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                INSERT OR REPLACE INTO webhook_tokens
+                (workflow_id, ciphertext, nonce, updated_at)
+                VALUES (?1, ?2, ?3, datetime('now'))
+                "#,
+                params![workflow_id, ciphertext, nonce],
+            )
+            .map_err(|e| format!("Failed to store webhook token: {}", e))?;
+
+            Ok(())
+        })
+    }
+
+    /// Get encrypted webhook token data for a workflow
+    /// Returns (ciphertext, nonce) if found
+    pub fn get_webhook_token(&self, workflow_id: &str) -> Result<Option<(String, String)>, String> {
+        self.db.with_connection(|conn| {
+            let result = conn.query_row(
+                "SELECT ciphertext, nonce FROM webhook_tokens WHERE workflow_id = ?1",
+                params![workflow_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            );
+
+            match result {
+                Ok(data) => Ok(Some(data)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(format!("Failed to get webhook token: {}", e)),
+            }
+        })
+    }
+
+    /// Delete encrypted webhook token for a workflow
+    pub fn delete_webhook_token(&self, workflow_id: &str) -> Result<bool, String> {
+        self.db.with_connection(|conn| {
+            let rows_affected = conn
+                .execute(
+                    "DELETE FROM webhook_tokens WHERE workflow_id = ?1",
+                    params![workflow_id],
+                )
+                .map_err(|e| format!("Failed to delete webhook token: {}", e))?;
+
+            Ok(rows_affected > 0)
+        })
+    }
+
+    /// Check if encrypted webhook token exists for a workflow
+    pub fn has_webhook_token(&self, workflow_id: &str) -> Result<bool, String> {
+        self.db.with_connection(|conn| {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM webhook_tokens WHERE workflow_id = ?1",
+                    params![workflow_id],
+                    |row| row.get(0),
+                )
+                .map_err(|e| format!("Failed to check webhook token: {}", e))?;
+
+            Ok(count > 0)
+        })
+    }
 }
 
 /// Internal row structure for mapping database rows

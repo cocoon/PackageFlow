@@ -12,21 +12,28 @@ use serde::{Deserialize, Serialize};
 pub struct Workflow {
     pub id: String,
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
+    #[serde(default)]
     pub nodes: Vec<WorkflowNode>,
+    #[serde(default = "default_workflow_timestamp")]
     pub created_at: String,
+    #[serde(default = "default_workflow_timestamp")]
     pub updated_at: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_executed_at: Option<String>,
     /// Outgoing webhook configuration for notifications
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub webhook: Option<WebhookConfig>,
     /// Incoming webhook configuration for external triggers
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub incoming_webhook: Option<IncomingWebhookConfig>,
+}
+
+fn default_workflow_timestamp() -> String {
+    chrono::Utc::now().to_rfc3339()
 }
 
 impl Workflow {
@@ -149,13 +156,23 @@ impl Default for NodeConfig {
 #[serde(rename_all = "camelCase")]
 pub struct WorkflowNode {
     pub id: String,
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default = "default_node_type")]
     pub node_type: String,
     pub name: String,
+    #[serde(default = "default_node_config")]
     pub config: serde_json::Value,
+    #[serde(default)]
     pub order: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position: Option<NodePosition>,
+}
+
+fn default_node_type() -> String {
+    "script".to_string()
+}
+
+fn default_node_config() -> serde_json::Value {
+    serde_json::json!({})
 }
 
 impl WorkflowNode {

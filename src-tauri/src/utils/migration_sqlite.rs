@@ -23,66 +23,116 @@ pub fn needs_migration() -> Result<bool, String> {
 /// Migrate data from JSON store to SQLite database
 pub fn migrate_from_json(db: &Database) -> Result<MigrationResult, String> {
     let json_path = get_store_path()?;
+    let marker_path = json_path.with_extension("json.migrated");
 
-    if !json_path.exists() {
+    // Skip if already migrated (marker file exists)
+    if marker_path.exists() {
+        log::info!("[Migration] Already migrated, skipping");
         return Ok(MigrationResult::no_migration_needed());
     }
 
-    log::info!("Starting migration from JSON to SQLite...");
+    if !json_path.exists() {
+        log::info!("[Migration] No JSON file to migrate");
+        return Ok(MigrationResult::no_migration_needed());
+    }
+
+    log::info!("[Migration] Starting migration from JSON to SQLite...");
+    log::info!("[Migration] JSON path: {:?}", json_path);
 
     // Create backup before migration
-    let backup_path = create_backup(&json_path)?;
-    log::info!("Created backup at: {:?}", backup_path);
+    let backup_path = match create_backup(&json_path) {
+        Ok(path) => {
+            log::info!("[Migration] Created backup at: {:?}", path);
+            Some(path)
+        }
+        Err(e) => {
+            log::warn!("[Migration] Failed to create backup: {}, continuing anyway", e);
+            None
+        }
+    };
 
     // Read JSON data
     let content = std::fs::read_to_string(&json_path)
         .map_err(|e| format!("Failed to read JSON store: {}", e))?;
 
+    log::info!("[Migration] Read {} bytes from JSON file", content.len());
+
     let store_data: SharedStoreData = serde_json::from_str(&content)
-        .map_err(|e| format!("Failed to parse JSON store: {}", e))?;
+        .map_err(|e| {
+            log::error!("[Migration] Failed to parse JSON: {}", e);
+            format!("Failed to parse JSON store: {}", e)
+        })?;
+
+    log::info!(
+        "[Migration] Parsed JSON: {} projects, {} workflows",
+        store_data.projects.len(),
+        store_data.workflows.len()
+    );
 
     // Migrate data to SQLite in a transaction
     let result = db.with_transaction(|conn| {
         let mut stats = MigrationStats::default();
 
         // Migrate projects
+        log::info!("[Migration] Migrating projects...");
         stats.projects = migrate_projects(conn, &store_data.projects)?;
+        log::info!("[Migration] Migrated {} projects", stats.projects);
 
         // Migrate workflows
+        log::info!("[Migration] Migrating workflows...");
         stats.workflows = migrate_workflows(conn, &store_data.workflows)?;
+        log::info!("[Migration] Migrated {} workflows", stats.workflows);
 
         // Migrate settings
+        log::info!("[Migration] Migrating settings...");
         stats.settings = migrate_settings(conn, &store_data.settings)?;
+        log::info!("[Migration] Migrated {} settings", stats.settings);
 
         // Migrate security scans
+        log::info!("[Migration] Migrating security scans...");
         stats.security_scans = migrate_security_scans(conn, &store_data.security_scans)?;
+        log::info!("[Migration] Migrated {} security scans", stats.security_scans);
 
         // Migrate MCP config
         if let Some(mcp_config) = &store_data.mcp_config {
+            log::info!("[Migration] Migrating MCP config...");
             migrate_mcp_config(conn, mcp_config)?;
             stats.mcp_config = true;
         }
 
         // Migrate custom step templates
+        log::info!("[Migration] Migrating custom step templates...");
         stats.templates = migrate_custom_templates(conn, &store_data.custom_step_templates)?;
+        log::info!("[Migration] Migrated {} templates", stats.templates);
 
         // Migrate extra fields (AI services, deploy accounts, etc.)
+        log::info!("[Migration] Migrating extra fields...");
         migrate_extra_fields(conn, &store_data.extra)?;
 
         Ok(stats)
     })?;
 
-    // Mark migration as complete by renaming JSON file
-    let migrated_path = json_path.with_extension("json.migrated");
-    std::fs::rename(&json_path, &migrated_path)
-        .map_err(|e| format!("Failed to rename JSON file: {}", e))?;
+    // Create marker file to indicate migration is complete
+    std::fs::write(&marker_path, "Migration completed")
+        .map_err(|e| format!("Failed to create migration marker: {}", e))?;
 
-    log::info!("Migration completed: {:?}", result);
+    // Delete the original JSON file (backup is kept for safety)
+    if let Err(e) = std::fs::remove_file(&json_path) {
+        log::warn!("[Migration] Failed to delete JSON file: {}, manual cleanup may be needed", e);
+    } else {
+        log::info!("[Migration] Deleted original JSON file");
+    }
+
+    log::info!("[Migration] Migration completed successfully!");
+    log::info!(
+        "[Migration] Stats: {} projects, {} workflows, {} settings, {} security scans, {} templates",
+        result.projects, result.workflows, result.settings, result.security_scans, result.templates
+    );
 
     Ok(MigrationResult {
         success: true,
         stats: result,
-        backup_path: Some(backup_path),
+        backup_path,
     })
 }
 
@@ -145,8 +195,9 @@ fn migrate_projects(conn: &Connection, projects: &[Value]) -> Result<usize, Stri
             r#"
             INSERT OR REPLACE INTO projects
             (id, name, path, version, description, is_monorepo, package_manager,
-             scripts, worktree_sessions, created_at, last_opened_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+             scripts, worktree_sessions, created_at, last_opened_at,
+             monorepo_tool, framework, ui_framework)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             "#,
             params![
                 id,
@@ -160,6 +211,10 @@ fn migrate_projects(conn: &Connection, projects: &[Value]) -> Result<usize, Stri
                 project.get("worktreeSessions").map(|v| v.to_string()),
                 project["createdAt"].as_str().unwrap_or_default(),
                 project["lastOpenedAt"].as_str().unwrap_or_default(),
+                // New fields for migration v7
+                project["monorepoTool"].as_str(),
+                project["framework"].as_str(),
+                project["uiFramework"].as_str(),
             ],
         )
         .map_err(|e| format!("Failed to insert project {}: {}", id, e))?;

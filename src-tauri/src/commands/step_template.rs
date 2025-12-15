@@ -1,25 +1,19 @@
 // Step Template commands for custom template management
-// Stores custom templates in the Tauri store
+// Updated to use SQLite database for storage
 
 use crate::models::step_template::{
     CustomStepTemplate, CustomTemplateResponse, ListCustomTemplatesResponse,
 };
-use crate::utils::store::STORE_FILE;
-use tauri_plugin_store::StoreExt;
+use crate::repositories::TemplateRepository;
+use crate::DatabaseState;
 
-const CUSTOM_TEMPLATES_KEY: &str = "customStepTemplates";
-
-/// Load all custom templates from store
+/// Load all custom templates from SQLite
 #[tauri::command]
 pub async fn load_custom_step_templates(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
 ) -> Result<ListCustomTemplatesResponse, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let templates: Vec<CustomStepTemplate> = store
-        .get(CUSTOM_TEMPLATES_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let repo = TemplateRepository::new(db.0.as_ref().clone());
+    let templates = repo.list()?;
 
     Ok(ListCustomTemplatesResponse {
         success: true,
@@ -28,33 +22,14 @@ pub async fn load_custom_step_templates(
     })
 }
 
-/// Save a custom template to store
+/// Save a custom template to SQLite
 #[tauri::command]
 pub async fn save_custom_step_template(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     template: CustomStepTemplate,
 ) -> Result<CustomTemplateResponse, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Load existing templates
-    let mut templates: Vec<CustomStepTemplate> = store
-        .get(CUSTOM_TEMPLATES_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Check if template with same ID exists and update, otherwise add
-    if let Some(index) = templates.iter().position(|t| t.id == template.id) {
-        templates[index] = template.clone();
-    } else {
-        templates.push(template.clone());
-    }
-
-    // Save to store
-    store.set(
-        CUSTOM_TEMPLATES_KEY,
-        serde_json::to_value(&templates).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    let repo = TemplateRepository::new(db.0.as_ref().clone());
+    repo.save(&template)?;
 
     Ok(CustomTemplateResponse {
         success: true,
@@ -63,38 +38,22 @@ pub async fn save_custom_step_template(
     })
 }
 
-/// Delete a custom template from store
+/// Delete a custom template from SQLite
 #[tauri::command]
 pub async fn delete_custom_step_template(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     template_id: String,
 ) -> Result<CustomTemplateResponse, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let repo = TemplateRepository::new(db.0.as_ref().clone());
+    let deleted = repo.delete(&template_id)?;
 
-    // Load existing templates
-    let mut templates: Vec<CustomStepTemplate> = store
-        .get(CUSTOM_TEMPLATES_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Find and remove template
-    let original_len = templates.len();
-    templates.retain(|t| t.id != template_id);
-
-    if templates.len() == original_len {
+    if !deleted {
         return Ok(CustomTemplateResponse {
             success: false,
             template: None,
             error: Some(format!("Template with ID '{}' not found", template_id)),
         });
     }
-
-    // Save to store
-    store.set(
-        CUSTOM_TEMPLATES_KEY,
-        serde_json::to_value(&templates).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
 
     Ok(CustomTemplateResponse {
         success: true,

@@ -2,10 +2,11 @@
 // Feature: AI CLI Integration (020-ai-cli-integration)
 //
 // Tauri commands for AI service management and commit message generation.
+// Now using AIRepository for SQLite-based storage.
 
 use std::path::Path;
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use crate::models::ai::{
     AIServiceConfig, AddServiceRequest, AddTemplateRequest, GenerateCommitMessageRequest,
@@ -13,10 +14,28 @@ use crate::models::ai::{
     TestConnectionResult, UpdateProjectSettingsRequest, UpdateServiceRequest,
     UpdateTemplateRequest, ChatMessage, ChatOptions,
 };
+use crate::repositories::AIRepository;
 use crate::services::ai::{
-    create_provider, AIKeychain, AIStorage, AIResult, AIError,
+    create_provider, AIKeychain, AIError,
 };
-use crate::services::ai::diff::{get_staged_diff, DiffAnalysis};
+use crate::services::ai::diff::get_staged_diff;
+use crate::utils::database::Database;
+use crate::DatabaseState;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/// Get Database from AppHandle
+fn get_db(app: &AppHandle) -> Database {
+    let db_state = app.state::<DatabaseState>();
+    db_state.0.as_ref().clone()
+}
+
+/// Get AIRepository from AppHandle
+fn get_ai_repo(app: &AppHandle) -> AIRepository {
+    AIRepository::new(get_db(app))
+}
 
 // ============================================================================
 // Response Types
@@ -57,10 +76,10 @@ impl<T> ApiResponse<T> {
 pub async fn ai_list_services(
     app: AppHandle,
 ) -> Result<ApiResponse<Vec<AIServiceConfig>>, String> {
-    let storage = AIStorage::new(app);
-    match storage.list_services().await {
+    let repo = get_ai_repo(&app);
+    match repo.list_services() {
         Ok(services) => Ok(ApiResponse::success(services)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -70,8 +89,13 @@ pub async fn ai_add_service(
     app: AppHandle,
     config: AddServiceRequest,
 ) -> Result<ApiResponse<AIServiceConfig>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
+
+    // Check for duplicate name
+    if repo.service_name_exists(&config.name, None).unwrap_or(false) {
+        return Ok(ApiResponse::error(format!("Service name '{}' already exists", config.name)));
+    }
 
     // Create service config
     let service = AIServiceConfig::new(
@@ -81,20 +105,23 @@ pub async fn ai_add_service(
         config.model,
     );
 
-    // Store API key if provided
-    if let Some(api_key) = config.api_key {
+    // Save service config first (required for API key foreign key constraint)
+    if let Err(e) = repo.save_service(&service) {
+        return Ok(ApiResponse::error(e));
+    }
+
+    // Store API key if provided (after service is saved due to foreign key constraint)
+    if let Some(ref api_key) = config.api_key {
         if !api_key.is_empty() {
-            if let Err(e) = keychain.store_api_key(&service.id, &api_key) {
-                return Ok(ApiResponse::error(e.to_string()));
+            if let Err(e) = keychain.store_api_key(&service.id, api_key) {
+                // Rollback: delete the service if API key storage fails
+                let _ = repo.delete_service(&service.id);
+                return Ok(ApiResponse::error(format!("Failed to store API key: {}", e)));
             }
         }
     }
 
-    // Save service config
-    match storage.add_service(service).await {
-        Ok(saved) => Ok(ApiResponse::success(saved)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
-    }
+    Ok(ApiResponse::success(service))
 }
 
 /// Update an AI service configuration
@@ -103,15 +130,22 @@ pub async fn ai_update_service(
     app: AppHandle,
     config: UpdateServiceRequest,
 ) -> Result<ApiResponse<AIServiceConfig>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
 
     // Get existing service
-    let existing = match storage.get_service(&config.id).await {
+    let existing = match repo.get_service(&config.id) {
         Ok(Some(s)) => s,
         Ok(None) => return Ok(ApiResponse::error(format!("Service not found: {}", config.id))),
-        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+        Err(e) => return Ok(ApiResponse::error(e)),
     };
+
+    // Check for duplicate name (excluding self)
+    if let Some(ref name) = config.name {
+        if repo.service_name_exists(name, Some(&config.id)).unwrap_or(false) {
+            return Ok(ApiResponse::error(format!("Service name '{}' already exists", name)));
+        }
+    }
 
     // Update fields
     let updated = AIServiceConfig {
@@ -136,9 +170,9 @@ pub async fn ai_update_service(
     }
 
     // Save updated config
-    match storage.update_service(updated).await {
-        Ok(saved) => Ok(ApiResponse::success(saved)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    match repo.save_service(&updated) {
+        Ok(()) => Ok(ApiResponse::success(updated)),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -148,16 +182,16 @@ pub async fn ai_delete_service(
     app: AppHandle,
     id: String,
 ) -> Result<ApiResponse<()>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
 
     // Delete API key
     let _ = keychain.delete_api_key(&id);
 
     // Delete service config
-    match storage.delete_service(&id).await {
-        Ok(()) => Ok(ApiResponse::success(())),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    match repo.delete_service(&id) {
+        Ok(_) => Ok(ApiResponse::success(())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -167,10 +201,10 @@ pub async fn ai_set_default_service(
     app: AppHandle,
     id: String,
 ) -> Result<ApiResponse<()>, String> {
-    let storage = AIStorage::new(app);
-    match storage.set_default_service(&id).await {
+    let repo = get_ai_repo(&app);
+    match repo.set_default_service(&id) {
         Ok(()) => Ok(ApiResponse::success(())),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -180,18 +214,29 @@ pub async fn ai_test_connection(
     app: AppHandle,
     id: String,
 ) -> Result<ApiResponse<TestConnectionResult>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
 
     // Get service config
-    let service = match storage.get_service(&id).await {
+    let service = match repo.get_service(&id) {
         Ok(Some(s)) => s,
         Ok(None) => return Ok(ApiResponse::error(format!("Service not found: {}", id))),
-        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+        Err(e) => return Ok(ApiResponse::error(e)),
     };
 
     // Get API key if needed
-    let api_key = keychain.get_api_key(&id).unwrap_or(None);
+    let api_key = match keychain.get_api_key(&id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", id, e);
+            return Ok(ApiResponse::success(TestConnectionResult {
+                success: false,
+                latency_ms: None,
+                models: None,
+                error: Some(format!("Failed to retrieve API key: {}", e)),
+            }));
+        }
+    };
 
     // Create provider
     let provider = match create_provider(service, api_key) {
@@ -245,18 +290,24 @@ pub async fn ai_list_models(
     app: AppHandle,
     service_id: String,
 ) -> Result<ApiResponse<Vec<ModelInfo>>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
 
     // Get service config
-    let service = match storage.get_service(&service_id).await {
+    let service = match repo.get_service(&service_id) {
         Ok(Some(s)) => s,
         Ok(None) => return Ok(ApiResponse::error(format!("Service not found: {}", service_id))),
-        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+        Err(e) => return Ok(ApiResponse::error(e)),
     };
 
     // Get API key if needed
-    let api_key = keychain.get_api_key(&service_id).unwrap_or(None);
+    let api_key = match keychain.get_api_key(&service_id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service_id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
 
     // Create provider
     let provider = match create_provider(service, api_key) {
@@ -280,11 +331,25 @@ pub async fn ai_list_models(
 pub async fn ai_list_templates(
     app: AppHandle,
 ) -> Result<ApiResponse<Vec<PromptTemplate>>, String> {
-    let storage = AIStorage::new(app);
-    match storage.list_templates().await {
-        Ok(templates) => Ok(ApiResponse::success(templates)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    let repo = get_ai_repo(&app);
+
+    // Get templates from SQLite
+    let mut templates = match repo.list_templates() {
+        Ok(t) => t,
+        Err(e) => return Ok(ApiResponse::error(e)),
+    };
+
+    // Ensure built-in templates exist
+    let builtins = PromptTemplate::all_builtins();
+    for builtin in builtins {
+        if !templates.iter().any(|t| t.id == builtin.id) {
+            // Save built-in template to database
+            let _ = repo.save_template(&builtin);
+            templates.insert(0, builtin);
+        }
     }
+
+    Ok(ApiResponse::success(templates))
 }
 
 /// Add a new prompt template
@@ -293,7 +358,12 @@ pub async fn ai_add_template(
     app: AppHandle,
     template: AddTemplateRequest,
 ) -> Result<ApiResponse<PromptTemplate>, String> {
-    let storage = AIStorage::new(app);
+    let repo = get_ai_repo(&app);
+
+    // Check for duplicate name
+    if repo.template_name_exists(&template.name, None).unwrap_or(false) {
+        return Ok(ApiResponse::error(format!("Template name '{}' already exists", template.name)));
+    }
 
     let new_template = PromptTemplate::new(
         template.name,
@@ -303,9 +373,14 @@ pub async fn ai_add_template(
         template.output_format,
     );
 
-    match storage.add_template(new_template).await {
-        Ok(saved) => Ok(ApiResponse::success(saved)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    // Validate template has required variables for its category
+    if let Err(msg) = new_template.validate_variables() {
+        return Ok(ApiResponse::error(msg));
+    }
+
+    match repo.save_template(&new_template) {
+        Ok(()) => Ok(ApiResponse::success(new_template)),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -315,14 +390,26 @@ pub async fn ai_update_template(
     app: AppHandle,
     template: UpdateTemplateRequest,
 ) -> Result<ApiResponse<PromptTemplate>, String> {
-    let storage = AIStorage::new(app);
+    let repo = get_ai_repo(&app);
 
     // Get existing template
-    let existing = match storage.get_template(&template.id).await {
+    let existing = match repo.get_template(&template.id) {
         Ok(Some(t)) => t,
         Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", template.id))),
-        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+        Err(e) => return Ok(ApiResponse::error(e)),
     };
+
+    // Cannot modify built-in templates
+    if existing.is_builtin {
+        return Ok(ApiResponse::error(format!("Cannot modify built-in template: {}", existing.name)));
+    }
+
+    // Check for duplicate name (excluding self)
+    if let Some(ref name) = template.name {
+        if repo.template_name_exists(name, Some(&template.id)).unwrap_or(false) {
+            return Ok(ApiResponse::error(format!("Template name '{}' already exists", name)));
+        }
+    }
 
     // Update fields
     let updated = PromptTemplate {
@@ -338,9 +425,14 @@ pub async fn ai_update_template(
         updated_at: chrono::Utc::now(),
     };
 
-    match storage.update_template(updated).await {
-        Ok(saved) => Ok(ApiResponse::success(saved)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    // Validate template has required variables for its category
+    if let Err(msg) = updated.validate_variables() {
+        return Ok(ApiResponse::error(msg));
+    }
+
+    match repo.save_template(&updated) {
+        Ok(()) => Ok(ApiResponse::success(updated)),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -350,10 +442,18 @@ pub async fn ai_delete_template(
     app: AppHandle,
     id: String,
 ) -> Result<ApiResponse<()>, String> {
-    let storage = AIStorage::new(app);
-    match storage.delete_template(&id).await {
-        Ok(()) => Ok(ApiResponse::success(())),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    let repo = get_ai_repo(&app);
+
+    // Check if template exists and is not built-in
+    if let Ok(Some(template)) = repo.get_template(&id) {
+        if template.is_builtin {
+            return Ok(ApiResponse::error(format!("Cannot delete built-in template: {}", template.name)));
+        }
+    }
+
+    match repo.delete_template(&id) {
+        Ok(_) => Ok(ApiResponse::success(())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -363,10 +463,10 @@ pub async fn ai_set_default_template(
     app: AppHandle,
     id: String,
 ) -> Result<ApiResponse<()>, String> {
-    let storage = AIStorage::new(app);
-    match storage.set_default_template(&id).await {
+    let repo = get_ai_repo(&app);
+    match repo.set_default_template(&id) {
         Ok(()) => Ok(ApiResponse::success(())),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -380,10 +480,10 @@ pub async fn ai_get_project_settings(
     app: AppHandle,
     project_path: String,
 ) -> Result<ApiResponse<ProjectAISettings>, String> {
-    let storage = AIStorage::new(app);
-    match storage.get_project_settings(&project_path).await {
+    let repo = get_ai_repo(&app);
+    match repo.get_project_settings(&project_path) {
         Ok(settings) => Ok(ApiResponse::success(settings)),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -393,7 +493,7 @@ pub async fn ai_update_project_settings(
     app: AppHandle,
     settings: UpdateProjectSettingsRequest,
 ) -> Result<ApiResponse<()>, String> {
-    let storage = AIStorage::new(app);
+    let repo = get_ai_repo(&app);
 
     let project_settings = ProjectAISettings {
         project_path: settings.project_path,
@@ -401,9 +501,9 @@ pub async fn ai_update_project_settings(
         preferred_template_id: settings.preferred_template_id,
     };
 
-    match storage.update_project_settings(project_settings).await {
+    match repo.save_project_settings(&project_settings) {
         Ok(()) => Ok(ApiResponse::success(())),
-        Err(e) => Ok(ApiResponse::error(e.to_string())),
+        Err(e) => Ok(ApiResponse::error(e)),
     }
 }
 
@@ -417,7 +517,7 @@ pub async fn ai_generate_commit_message(
     app: AppHandle,
     request: GenerateCommitMessageRequest,
 ) -> Result<ApiResponse<GenerateResult>, String> {
-    let storage = AIStorage::new(app.clone());
+    let repo = get_ai_repo(&app);
     let keychain = AIKeychain::new(app);
 
     // Get the diff from the project
@@ -430,7 +530,7 @@ pub async fn ai_generate_commit_message(
     };
 
     // Get project settings for preferred service/template
-    let project_settings = storage.get_project_settings(&request.project_path).await
+    let project_settings = repo.get_project_settings(&request.project_path)
         .unwrap_or_default();
 
     // Determine which service to use
@@ -438,17 +538,17 @@ pub async fn ai_generate_commit_message(
         .or(project_settings.preferred_service_id);
 
     let service = if let Some(id) = service_id {
-        match storage.get_service(&id).await {
+        match repo.get_service(&id) {
             Ok(Some(s)) if s.is_enabled => s,
             Ok(Some(_)) => return Ok(ApiResponse::error("The specified AI service is disabled")),
             Ok(None) => return Ok(ApiResponse::error(format!("AI service not found: {}", id))),
-            Err(e) => return Ok(ApiResponse::error(e.to_string())),
+            Err(e) => return Ok(ApiResponse::error(e)),
         }
     } else {
-        match storage.get_default_service().await {
+        match repo.get_default_service() {
             Ok(Some(s)) => s,
             Ok(None) => return Ok(ApiResponse::error("No default AI service configured")),
-            Err(e) => return Ok(ApiResponse::error(e.to_string())),
+            Err(e) => return Ok(ApiResponse::error(e)),
         }
     };
 
@@ -457,22 +557,28 @@ pub async fn ai_generate_commit_message(
         .or(project_settings.preferred_template_id);
 
     let template = if let Some(id) = template_id {
-        match storage.get_template(&id).await {
+        match repo.get_template(&id) {
             Ok(Some(t)) => t,
             Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", id))),
-            Err(e) => return Ok(ApiResponse::error(e.to_string())),
+            Err(e) => return Ok(ApiResponse::error(e)),
         }
     } else {
         // Get default template for GitCommit category
-        match storage.get_default_template(Some(&TemplateCategory::GitCommit)).await {
+        match repo.get_default_template(Some(&TemplateCategory::GitCommit)) {
             Ok(Some(t)) => t,
             Ok(None) => PromptTemplate::builtin_git_conventional(),
-            Err(e) => return Ok(ApiResponse::error(e.to_string())),
+            Err(e) => return Ok(ApiResponse::error(e)),
         }
     };
 
     // Get API key if needed
-    let api_key = keychain.get_api_key(&service.id).unwrap_or(None);
+    let api_key = match keychain.get_api_key(&service.id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service.id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
 
     // Create provider
     let provider = match create_provider(service, api_key) {
@@ -506,5 +612,90 @@ pub async fn ai_generate_commit_message(
             }))
         }
         Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+// ============================================================================
+// Diagnostic Commands
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyStatus {
+    pub service_id: String,
+    pub exists_in_db: bool,
+    pub can_decrypt: bool,
+    pub key_prefix: Option<String>,
+    pub error: Option<String>,
+}
+
+/// Manually store an API key for a service (diagnostic command)
+#[tauri::command]
+pub async fn ai_store_api_key(
+    app: AppHandle,
+    service_id: String,
+    api_key: String,
+) -> Result<ApiResponse<String>, String> {
+    let keychain = AIKeychain::new(app);
+
+    match keychain.store_api_key(&service_id, &api_key) {
+        Ok(()) => Ok(ApiResponse::success("API key stored successfully".to_string())),
+        Err(e) => Ok(ApiResponse::error(format!("Failed to store API key: {}", e))),
+    }
+}
+
+/// Check API key status for a service (diagnostic command)
+#[tauri::command]
+pub async fn ai_check_api_key_status(
+    app: AppHandle,
+    service_id: String,
+) -> Result<ApiResponse<ApiKeyStatus>, String> {
+    let repo = get_ai_repo(&app);
+    let keychain = AIKeychain::new(app);
+
+    // Check if key exists in database
+    let exists_in_db = repo.has_api_key(&service_id).unwrap_or(false);
+
+    if !exists_in_db {
+        return Ok(ApiResponse::success(ApiKeyStatus {
+            service_id,
+            exists_in_db: false,
+            can_decrypt: false,
+            key_prefix: None,
+            error: Some("API key not found in database".to_string()),
+        }));
+    }
+
+    // Try to decrypt
+    match keychain.get_api_key(&service_id) {
+        Ok(Some(key)) => {
+            // Show first 4 chars of key for verification
+            let prefix = if key.len() >= 4 {
+                Some(format!("{}...", &key[..4]))
+            } else {
+                Some("****".to_string())
+            };
+            Ok(ApiResponse::success(ApiKeyStatus {
+                service_id,
+                exists_in_db: true,
+                can_decrypt: true,
+                key_prefix: prefix,
+                error: None,
+            }))
+        }
+        Ok(None) => Ok(ApiResponse::success(ApiKeyStatus {
+            service_id,
+            exists_in_db: true,
+            can_decrypt: false,
+            key_prefix: None,
+            error: Some("Key exists but could not be retrieved".to_string()),
+        })),
+        Err(e) => Ok(ApiResponse::success(ApiKeyStatus {
+            service_id,
+            exists_in_db: true,
+            can_decrypt: false,
+            key_prefix: None,
+            error: Some(format!("Decryption error: {}", e)),
+        })),
     }
 }

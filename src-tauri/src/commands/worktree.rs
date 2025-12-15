@@ -1455,10 +1455,12 @@ pub async fn get_available_editors() -> Result<GetAvailableEditorsResponse, Stri
 
 // ============================================================================
 // Worktree Template Commands (US5)
+// Updated to use SQLite database for storage
 // ============================================================================
 
 use crate::models::WorktreeTemplate;
-use tauri_plugin_store::StoreExt;
+use crate::repositories::SettingsRepository;
+use crate::DatabaseState;
 
 /// Response for template save operation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1498,22 +1500,19 @@ pub struct CreateWorktreeFromTemplateResponse {
     pub error: Option<String>,
 }
 
-const TEMPLATES_STORE_KEY: &str = "worktree_templates";
+const WORKTREE_TEMPLATES_KEY: &str = "worktree_templates";
 
 /// T049: Save a worktree template
 #[tauri::command]
 pub async fn save_worktree_template(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     template: WorktreeTemplate,
 ) -> Result<SaveTemplateResponse, String> {
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
 
     // Load existing templates
-    let mut templates: Vec<WorktreeTemplate> = store
-        .get(TEMPLATES_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
+    let mut templates: Vec<WorktreeTemplate> = repo
+        .get(WORKTREE_TEMPLATES_KEY)?
         .unwrap_or_default();
 
     // Update or add template
@@ -1525,14 +1524,8 @@ pub async fn save_worktree_template(
         templates.push(updated_template.clone());
     }
 
-    // Save back to store
-    store.set(
-        TEMPLATES_STORE_KEY.to_string(),
-        serde_json::to_value(&templates).map_err(|e| format!("Serialization error: {}", e))?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
+    // Save back to SQLite
+    repo.set(WORKTREE_TEMPLATES_KEY, &templates)?;
 
     Ok(SaveTemplateResponse {
         success: true,
@@ -1544,17 +1537,14 @@ pub async fn save_worktree_template(
 /// T049: Delete a worktree template
 #[tauri::command]
 pub async fn delete_worktree_template(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     template_id: String,
 ) -> Result<DeleteTemplateResponse, String> {
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
 
     // Load existing templates
-    let mut templates: Vec<WorktreeTemplate> = store
-        .get(TEMPLATES_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
+    let mut templates: Vec<WorktreeTemplate> = repo
+        .get(WORKTREE_TEMPLATES_KEY)?
         .unwrap_or_default();
 
     // Find and remove template
@@ -1568,14 +1558,8 @@ pub async fn delete_worktree_template(
         });
     }
 
-    // Save back to store
-    store.set(
-        TEMPLATES_STORE_KEY.to_string(),
-        serde_json::to_value(&templates).map_err(|e| format!("Serialization error: {}", e))?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
+    // Save back to SQLite
+    repo.set(WORKTREE_TEMPLATES_KEY, &templates)?;
 
     Ok(DeleteTemplateResponse {
         success: true,
@@ -1586,15 +1570,11 @@ pub async fn delete_worktree_template(
 /// T049: List all saved worktree templates
 #[tauri::command]
 pub async fn list_worktree_templates(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
 ) -> Result<ListTemplatesResponse, String> {
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
-
-    let templates: Vec<WorktreeTemplate> = store
-        .get(TEMPLATES_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let templates: Vec<WorktreeTemplate> = repo
+        .get(WORKTREE_TEMPLATES_KEY)?
         .unwrap_or_default();
 
     Ok(ListTemplatesResponse {
@@ -1836,6 +1816,7 @@ pub async fn add_worktrees_to_gitignore(
 #[tauri::command]
 pub async fn create_worktree_from_template(
     app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     project_path: String,
     template_id: String,
     name: String,
@@ -1924,14 +1905,10 @@ pub async fn create_worktree_from_template(
         });
     }
 
-    // Load templates (both saved and defaults)
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
-
-    let mut templates: Vec<WorktreeTemplate> = store
-        .get(TEMPLATES_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
+    // Load templates (both saved and defaults) from SQLite
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let mut templates: Vec<WorktreeTemplate> = repo
+        .get(WORKTREE_TEMPLATES_KEY)?
         .unwrap_or_default();
 
     // Add defaults if not found
@@ -2162,7 +2139,7 @@ fn check_app_bundle_available(_bundle_id: &str) -> bool {
 /// Get list of available terminals on the system
 #[tauri::command]
 pub async fn get_available_terminals(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
 ) -> Result<GetAvailableTerminalsResponse, String> {
     let mut terminals: Vec<TerminalDefinition> = Vec::new();
 
@@ -2220,14 +2197,9 @@ pub async fn get_available_terminals(
         terminals.push(hyper);
     }
 
-    // Load saved preference
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
-
-    let default_terminal: Option<String> = store
-        .get(PREFERRED_TERMINAL_KEY)
-        .and_then(|v| v.as_str().map(|s| s.to_string()));
+    // Load saved preference from SQLite
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let default_terminal: Option<String> = repo.get(PREFERRED_TERMINAL_KEY)?;
 
     // If no preference saved, default to builtin
     let default_terminal = default_terminal.unwrap_or_else(|| "builtin".to_string());
@@ -2243,28 +2215,18 @@ pub async fn get_available_terminals(
 /// Save preferred terminal preference
 #[tauri::command]
 pub async fn set_preferred_terminal(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     terminal_id: String,
 ) -> Result<bool, String> {
-    let store = app
-        .store("store.json")
-        .map_err(|e| format!("Failed to access store: {}", e))?;
-
-    store.set(
-        PREFERRED_TERMINAL_KEY.to_string(),
-        serde_json::Value::String(terminal_id),
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
-
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.set(PREFERRED_TERMINAL_KEY, &terminal_id)?;
     Ok(true)
 }
 
 /// Open a directory in an external terminal application
 #[tauri::command]
 pub async fn open_in_terminal(
-    app: tauri::AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     path: String,
     terminal_id: Option<String>,
 ) -> Result<OpenInTerminalResponse, String> {
@@ -2308,7 +2270,8 @@ pub async fn open_in_terminal(
             match result {
                 Ok(_) => {
                     // Save as preferred terminal
-                    let _ = set_preferred_terminal(app, terminal_id.clone()).await;
+                    let repo = SettingsRepository::new(db.0.as_ref().clone());
+                    let _ = repo.set(PREFERRED_TERMINAL_KEY, &terminal_id);
 
                     return Ok(OpenInTerminalResponse {
                         success: true,
@@ -2337,7 +2300,8 @@ pub async fn open_in_terminal(
             match command.spawn() {
                 Ok(_) => {
                     // Save as preferred terminal
-                    let _ = set_preferred_terminal(app, terminal_id.clone()).await;
+                    let repo = SettingsRepository::new(db.0.as_ref().clone());
+                    let _ = repo.set(PREFERRED_TERMINAL_KEY, &terminal_id);
 
                     return Ok(OpenInTerminalResponse {
                         success: true,
@@ -2369,7 +2333,8 @@ pub async fn open_in_terminal(
             match command.spawn() {
                 Ok(_) => {
                     // Save as preferred terminal
-                    let _ = set_preferred_terminal(app, terminal_id.clone()).await;
+                    let repo = SettingsRepository::new(db.0.as_ref().clone());
+                    let _ = repo.set(PREFERRED_TERMINAL_KEY, &terminal_id);
 
                     return Ok(OpenInTerminalResponse {
                         success: true,

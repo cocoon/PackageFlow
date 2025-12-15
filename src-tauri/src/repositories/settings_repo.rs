@@ -3,7 +3,7 @@
 
 use chrono::Utc;
 use rusqlite::params;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::utils::database::Database;
 use crate::utils::store::{AppSettings, KeyboardShortcutsSettings};
@@ -15,6 +15,43 @@ pub const KEY_PROJECT_SORT_MODE: &str = "project_sort_mode";
 pub const KEY_PROJECT_ORDER: &str = "project_order";
 pub const KEY_WORKFLOW_SORT_MODE: &str = "workflow_sort_mode";
 pub const KEY_WORKFLOW_ORDER: &str = "workflow_order";
+pub const KEY_TEMPLATE_PREFERENCES: &str = "template_preferences";
+
+/// View mode for template display
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum TemplateViewMode {
+    Categories,
+    All,
+    Favorites,
+}
+
+impl Default for TemplateViewMode {
+    fn default() -> Self {
+        Self::Categories
+    }
+}
+
+/// Recently used template entry with timestamp
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentTemplateEntry {
+    pub template_id: String,
+    pub used_at: String, // ISO 8601
+}
+
+/// Template preferences structure
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TemplatePreferences {
+    pub favorites: Vec<String>,
+    pub recently_used: Vec<RecentTemplateEntry>,
+    pub collapsed_categories: Vec<String>,
+    pub preferred_view: TemplateViewMode,
+}
+
+/// Maximum number of recent templates to track
+const MAX_RECENT_TEMPLATES: usize = 8;
 
 /// Repository for settings data access
 pub struct SettingsRepository {
@@ -172,5 +209,120 @@ impl SettingsRepository {
     /// Set workflow order
     pub fn set_workflow_order(&self, order: &[String]) -> Result<(), String> {
         self.set(KEY_WORKFLOW_ORDER, &order)
+    }
+
+    // =========================================================================
+    // Template Preferences methods
+    // =========================================================================
+
+    /// Get template preferences
+    pub fn get_template_preferences(&self) -> Result<TemplatePreferences, String> {
+        self.get_or_default(KEY_TEMPLATE_PREFERENCES)
+    }
+
+    /// Save template preferences
+    pub fn save_template_preferences(&self, prefs: &TemplatePreferences) -> Result<(), String> {
+        self.set(KEY_TEMPLATE_PREFERENCES, prefs)
+    }
+
+    /// Toggle a template favorite
+    pub fn toggle_template_favorite(&self, template_id: &str) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+
+        if let Some(pos) = prefs.favorites.iter().position(|id| id == template_id) {
+            prefs.favorites.remove(pos);
+        } else {
+            prefs.favorites.push(template_id.to_string());
+        }
+
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Add a template to favorites
+    pub fn add_template_favorite(&self, template_id: &str) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+
+        if !prefs.favorites.contains(&template_id.to_string()) {
+            prefs.favorites.push(template_id.to_string());
+            self.save_template_preferences(&prefs)?;
+        }
+
+        Ok(prefs)
+    }
+
+    /// Remove a template from favorites
+    pub fn remove_template_favorite(&self, template_id: &str) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+        prefs.favorites.retain(|id| id != template_id);
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Record template usage (adds to recently used list)
+    pub fn record_template_usage(&self, template_id: &str) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+
+        // Remove existing entry if present
+        prefs.recently_used.retain(|entry| entry.template_id != template_id);
+
+        // Add new entry at the beginning
+        let new_entry = RecentTemplateEntry {
+            template_id: template_id.to_string(),
+            used_at: Utc::now().to_rfc3339(),
+        };
+        prefs.recently_used.insert(0, new_entry);
+
+        // Keep only MAX_RECENT_TEMPLATES entries
+        prefs.recently_used.truncate(MAX_RECENT_TEMPLATES);
+
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Clear recently used templates
+    pub fn clear_recently_used_templates(&self) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+        prefs.recently_used.clear();
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Toggle category collapse state
+    pub fn toggle_template_category_collapse(&self, category_id: &str) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+
+        if let Some(pos) = prefs.collapsed_categories.iter().position(|id| id == category_id) {
+            prefs.collapsed_categories.remove(pos);
+        } else {
+            prefs.collapsed_categories.push(category_id.to_string());
+        }
+
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Expand all categories
+    pub fn expand_all_template_categories(&self) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+        prefs.collapsed_categories.clear();
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Collapse specific categories
+    pub fn collapse_template_categories(&self, category_ids: Vec<String>) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+        prefs.collapsed_categories = category_ids;
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
+    }
+
+    /// Set preferred view mode
+    pub fn set_template_preferred_view(&self, view: TemplateViewMode) -> Result<TemplatePreferences, String> {
+        let mut prefs = self.get_template_preferences()?;
+        prefs.preferred_view = view;
+        self.save_template_preferences(&prefs)?;
+        Ok(prefs)
     }
 }

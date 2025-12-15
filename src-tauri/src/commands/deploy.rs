@@ -2,18 +2,23 @@
 // One-Click Deploy feature (015-one-click-deploy)
 // Extended with Multi Deploy Accounts (016-multi-deploy-accounts)
 // Secure token storage with AES-256-GCM encryption
+// Refactored to use DeployRepository for proper SQLite schema access
 
 use crate::models::deploy::{
     CloudflareValidationResult, ConnectedPlatform, DeployAccount, DeployPreferences, Deployment,
     DeploymentConfig, DeploymentStatus, DeploymentStatusEvent, GitHubWorkflowResult,
     OAuthFlowResult, PlatformType, RemoveAccountResult,
 };
-use crate::services::crypto::{self, EncryptedData};
+use crate::repositories::DeployRepository;
+use crate::services::crypto;
+use crate::services::crypto::EncryptedData;
+use crate::utils::database::Database;
 use crate::utils::store::DEPLOYMENT_HISTORY_FILE;
+use crate::DatabaseState;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
@@ -271,17 +276,15 @@ const NETLIFY_SITES_URL: &str = "https://api.netlify.com/api/v1/sites";
 const CLOUDFLARE_API_BASE: &str = "https://api.cloudflare.com/client/v4";
 const CLOUDFLARE_VERIFY_URL: &str = "https://api.cloudflare.com/client/v4/user/tokens/verify";
 
-// Store keys
+// Legacy store keys (for migration only)
 const STORE_CONNECTED_PLATFORMS: &str = "connected_platforms"; // Very old: ConnectedPlatform format
-const STORE_ENCRYPTED_ACCOUNTS: &str = "encrypted_accounts"; // New: encrypted tokens (preferred)
-const STORE_DEPLOY_ACCOUNTS: &str = "deploy_accounts"; // Fallback: plain-text when encryption fails
+const STORE_ENCRYPTED_ACCOUNTS: &str = "encrypted_accounts"; // Legacy: encrypted tokens
+const STORE_DEPLOY_ACCOUNTS: &str = "deploy_accounts"; // Legacy: plain-text
 const STORE_DEPLOYMENT_CONFIGS: &str = "deployment_configs";
 const STORE_DEPLOYMENT_HISTORY: &str = "deployment_history";
 // T008: Deploy preferences store key (016-multi-deploy-accounts)
 const STORE_DEPLOY_PREFERENCES: &str = "deploy_preferences";
 
-// History limit per project
-const MAX_HISTORY_PER_PROJECT: usize = 50;
 // T015: Maximum accounts per platform
 const MAX_ACCOUNTS_PER_PLATFORM: usize = 5;
 
@@ -299,224 +302,210 @@ struct DeployResult {
 }
 
 // ============================================================================
-// Helper Functions
+// Helper Functions (SQLite-based via DeployRepository)
 // ============================================================================
 
-/// Get the store instance
+/// Get Database from AppHandle
+fn get_db(app: &AppHandle) -> Database {
+    let db_state = app.state::<DatabaseState>();
+    db_state.0.as_ref().clone()
+}
+
+/// Get DeployRepository from AppHandle
+fn get_deploy_repo(app: &AppHandle) -> DeployRepository {
+    DeployRepository::new(get_db(app))
+}
+
+/// Get the legacy store instance (for migration only)
 fn get_store(app: &AppHandle) -> Result<Arc<tauri_plugin_store::Store<tauri::Wry>>, String> {
     app.store("packageflow.json")
         .map_err(|e| format!("Failed to access store: {}", e))
 }
 
-/// Get connected platforms from store
-fn get_platforms_from_store(app: &AppHandle) -> Result<Vec<ConnectedPlatform>, String> {
-    let store = get_store(app)?;
-    let platforms: Vec<ConnectedPlatform> = store
-        .get(STORE_CONNECTED_PLATFORMS)
-        .and_then(|v| serde_json::from_value(v.clone()).ok())
-        .unwrap_or_default();
-    Ok(platforms)
-}
-
-/// Save connected platforms to store
-fn save_platforms_to_store(app: &AppHandle, platforms: &[ConnectedPlatform]) -> Result<(), String> {
-    let store = get_store(app)?;
-    store.set(
-        STORE_CONNECTED_PLATFORMS,
-        serde_json::to_value(platforms).map_err(|e| e.to_string())?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))
-}
-
 // ============================================================================
 // T006, T007: Deploy Account Helper Functions (016-multi-deploy-accounts)
+// Now using DeployRepository for proper SQLite schema access
 // ============================================================================
 
-/// Get deploy accounts from store with automatic migration from legacy formats
-/// Priority: 1. Encrypted accounts, 2. Plain-text DeployAccounts, 3. ConnectedPlatform (very old)
+/// Get deploy accounts from SQLite with automatic migration from legacy JSON store
 fn get_accounts_from_store(app: &AppHandle) -> Result<Vec<DeployAccount>, String> {
-    let store = get_store(app)?;
+    let repo = get_deploy_repo(app);
 
-    // 1. Try to load encrypted accounts (preferred format)
-    if let Some(value) = store.get(STORE_ENCRYPTED_ACCOUNTS) {
-        if let Ok(encrypted_accounts) =
-            serde_json::from_value::<Vec<EncryptedDeployAccount>>(value.clone())
-        {
-            if !encrypted_accounts.is_empty() {
-                let accounts: Result<Vec<DeployAccount>, String> =
-                    encrypted_accounts.iter().map(|e| e.to_account()).collect();
+    // 1. Try to load from SQLite first (preferred)
+    let accounts = repo.list_accounts()?;
+    if !accounts.is_empty() {
+        return Ok(accounts);
+    }
 
-                match accounts {
-                    Ok(accts) if !accts.is_empty() => {
-                        log::info!("Loaded {} encrypted accounts", accts.len());
-                        return Ok(accts);
+    // 2. Try to migrate from legacy JSON store
+    if let Ok(store) = get_store(app) {
+        // Try encrypted accounts from JSON (legacy format)
+        if let Some(value) = store.get(STORE_ENCRYPTED_ACCOUNTS) {
+            if let Ok(encrypted_accounts) =
+                serde_json::from_value::<Vec<EncryptedDeployAccount>>(value.clone())
+            {
+                if !encrypted_accounts.is_empty() {
+                    let accounts: Result<Vec<DeployAccount>, String> =
+                        encrypted_accounts.iter().map(|e| e.to_account()).collect();
+
+                    if let Ok(accts) = accounts {
+                        if !accts.is_empty() {
+                            log::info!("Migrating {} encrypted accounts from JSON to SQLite", accts.len());
+                            for account in &accts {
+                                let _ = repo.save_account(account);
+                            }
+                            // Clear legacy storage
+                            store.delete(STORE_ENCRYPTED_ACCOUNTS);
+                            let _ = store.save();
+                            return Ok(accts);
+                        }
                     }
-                    Err(e) => {
-                        log::error!(
-                            "Failed to decrypt accounts: {}. Will try fallback formats.",
-                            e
-                        );
-                        // Clear corrupted encrypted data
-                        store.delete(STORE_ENCRYPTED_ACCOUNTS);
-                        let _ = store.save();
-                    }
-                    _ => {}
                 }
             }
         }
-    }
 
-    // 2. Try to load plain-text DeployAccounts (fallback)
-    if let Some(value) = store.get(STORE_DEPLOY_ACCOUNTS) {
-        if let Ok(accounts) = serde_json::from_value::<Vec<DeployAccount>>(value.clone()) {
-            if !accounts.is_empty() {
-                log::info!(
-                    "Migrating {} plain-text accounts to encrypted storage",
-                    accounts.len()
-                );
-                // Migrate to encrypted storage
-                let _ = save_accounts_to_store(app, &accounts);
-                return Ok(accounts);
-            }
-        }
-    }
-
-    // 3. Try to load very old legacy format and migrate
-    if let Some(value) = store.get(STORE_CONNECTED_PLATFORMS) {
-        // Try parsing as Vec<DeployAccount> first
-        if let Ok(accounts) = serde_json::from_value::<Vec<DeployAccount>>(value.clone()) {
-            // Check if migration is needed (accounts without id field)
-            let needs_migration = accounts.iter().any(|a| a.id.is_empty());
-            if !needs_migration && !accounts.is_empty() {
-                // Migrate to encrypted storage
-                log::info!(
-                    "Migrating {} plain-text accounts to encrypted storage",
-                    accounts.len()
-                );
-                let _ = save_accounts_to_store(app, &accounts);
-                // Clear legacy storage after successful migration
-                store.delete(STORE_CONNECTED_PLATFORMS);
-                let _ = store.save();
-                return Ok(accounts);
+        // Try plain-text DeployAccounts from JSON
+        if let Some(value) = store.get(STORE_DEPLOY_ACCOUNTS) {
+            if let Ok(accounts) = serde_json::from_value::<Vec<DeployAccount>>(value.clone()) {
+                if !accounts.is_empty() {
+                    log::info!(
+                        "Migrating {} plain-text accounts from JSON to SQLite",
+                        accounts.len()
+                    );
+                    for account in &accounts {
+                        let _ = repo.save_account(account);
+                    }
+                    store.delete(STORE_DEPLOY_ACCOUNTS);
+                    let _ = store.save();
+                    return Ok(accounts);
+                }
             }
         }
 
-        // 3. Try parsing as legacy Vec<ConnectedPlatform> and migrate
-        if let Ok(legacy_platforms) =
-            serde_json::from_value::<Vec<ConnectedPlatform>>(value.clone())
-        {
-            let migrated: Vec<DeployAccount> = legacy_platforms
-                .into_iter()
-                .map(DeployAccount::from_connected_platform)
-                .collect();
+        // Try legacy ConnectedPlatform format
+        if let Some(value) = store.get(STORE_CONNECTED_PLATFORMS) {
+            if let Ok(legacy_platforms) =
+                serde_json::from_value::<Vec<ConnectedPlatform>>(value.clone())
+            {
+                let migrated: Vec<DeployAccount> = legacy_platforms
+                    .into_iter()
+                    .map(DeployAccount::from_connected_platform)
+                    .collect();
 
-            // Save migrated data to encrypted store
-            if !migrated.is_empty() {
-                log::info!(
-                    "Migrating {} legacy ConnectedPlatform to encrypted storage",
-                    migrated.len()
-                );
-                let _ = save_accounts_to_store(app, &migrated);
-                // Clear legacy storage after successful migration
-                store.delete(STORE_CONNECTED_PLATFORMS);
-                let _ = store.save();
+                if !migrated.is_empty() {
+                    log::info!(
+                        "Migrating {} legacy ConnectedPlatform from JSON to SQLite",
+                        migrated.len()
+                    );
+                    for account in &migrated {
+                        let _ = repo.save_account(account);
+                    }
+                    store.delete(STORE_CONNECTED_PLATFORMS);
+                    let _ = store.save();
+                }
+                return Ok(migrated);
             }
-            return Ok(migrated);
         }
     }
 
     Ok(Vec::new())
 }
 
-/// Save deploy accounts to store with encryption
-/// Uses machine-derived key (no Keychain dependency) for stable encryption across restarts
-fn save_accounts_to_store(app: &AppHandle, accounts: &[DeployAccount]) -> Result<(), String> {
-    let store = get_store(app)?;
+/// Save deploy account to SQLite with encrypted token storage
+fn save_account_to_store(app: &AppHandle, account: &DeployAccount) -> Result<(), String> {
+    let repo = get_deploy_repo(app);
 
-    // Encrypt all accounts using machine-derived key
-    let encrypted: Result<Vec<EncryptedDeployAccount>, String> = accounts
-        .iter()
-        .map(EncryptedDeployAccount::from_account)
-        .collect();
+    // Save account without plaintext token
+    let mut account_to_save = account.clone();
+    account_to_save.access_token = String::new(); // Don't store plaintext token
+    repo.save_account(&account_to_save)?;
 
-    match encrypted {
-        Ok(encrypted_accounts) => {
-            // Success - save encrypted accounts
-            store.set(
-                STORE_ENCRYPTED_ACCOUNTS,
-                serde_json::to_value(&encrypted_accounts).map_err(|e| e.to_string())?,
-            );
-            // Clear any plain-text fallback
-            store.delete(STORE_DEPLOY_ACCOUNTS);
-            log::info!("Saved {} accounts with encryption", accounts.len());
-        }
-        Err(e) => {
-            // Encryption failed (shouldn't happen with machine-derived key)
-            log::error!("Encryption failed unexpectedly: {}", e);
-            return Err(format!("Failed to encrypt accounts: {}", e));
+    // Encrypt and store token separately if not empty
+    if !account.access_token.is_empty() {
+        let encrypted = crypto::encrypt(&account.access_token)
+            .map_err(|e| format!("Failed to encrypt token: {}", e))?;
+        repo.store_token(&account.id, &encrypted.ciphertext, &encrypted.nonce)?;
+    }
+
+    Ok(())
+}
+
+/// Get decrypted access token for an account
+/// Tries encrypted storage first, falls back to legacy plaintext for migration
+fn get_decrypted_token(repo: &DeployRepository, account_id: &str) -> Result<Option<String>, String> {
+    // Try encrypted token first
+    if let Some((ciphertext, nonce)) = repo.get_token(account_id)? {
+        let encrypted = crypto::EncryptedData { ciphertext, nonce };
+        let decrypted = crypto::decrypt(&encrypted)
+            .map_err(|e| format!("Failed to decrypt token: {}", e))?;
+        return Ok(Some(decrypted));
+    }
+
+    // Fall back to legacy plaintext token for migration
+    if let Some(legacy_token) = repo.get_legacy_token(account_id)? {
+        // Migrate: encrypt and store in new table, then clear legacy
+        log::info!("Migrating deploy token for account {} to encrypted storage", account_id);
+        let encrypted = crypto::encrypt(&legacy_token)
+            .map_err(|e| format!("Failed to encrypt legacy token: {}", e))?;
+        repo.store_token(account_id, &encrypted.ciphertext, &encrypted.nonce)?;
+        repo.clear_legacy_token(account_id)?;
+        return Ok(Some(legacy_token));
+    }
+
+    Ok(None)
+}
+
+/// T008: Get deploy preferences from SQLite
+fn get_preferences_from_store(app: &AppHandle) -> Result<DeployPreferences, String> {
+    let repo = get_deploy_repo(app);
+
+    // Try SQLite first
+    let prefs = repo.get_preferences()?;
+    if prefs.default_github_pages_account_id.is_some()
+        || prefs.default_netlify_account_id.is_some()
+        || prefs.default_cloudflare_pages_account_id.is_some()
+    {
+        return Ok(prefs);
+    }
+
+    // Try legacy JSON store for migration
+    if let Ok(store) = get_store(app) {
+        if let Some(value) = store.get(STORE_DEPLOY_PREFERENCES) {
+            if let Ok(prefs) = serde_json::from_value::<DeployPreferences>(value.clone()) {
+                log::info!("Migrating deploy preferences from JSON to SQLite");
+                let _ = repo.save_preferences(&prefs);
+                store.delete(STORE_DEPLOY_PREFERENCES);
+                let _ = store.save();
+                return Ok(prefs);
+            }
         }
     }
 
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))
+    Ok(DeployPreferences::default())
 }
 
-/// T008: Get deploy preferences from store
-fn get_preferences_from_store(app: &AppHandle) -> Result<DeployPreferences, String> {
-    let store = get_store(app)?;
-    let prefs: DeployPreferences = store
-        .get(STORE_DEPLOY_PREFERENCES)
-        .and_then(|v| serde_json::from_value(v.clone()).ok())
-        .unwrap_or_default();
-    Ok(prefs)
-}
-
-/// T008: Save deploy preferences to store
+/// T008: Save deploy preferences to SQLite
 fn save_preferences_to_store(app: &AppHandle, prefs: &DeployPreferences) -> Result<(), String> {
-    let store = get_store(app)?;
-    store.set(
-        STORE_DEPLOY_PREFERENCES,
-        serde_json::to_value(prefs).map_err(|e| e.to_string())?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))
+    let repo = get_deploy_repo(app);
+    repo.save_preferences(prefs)
 }
 
-/// Find account by ID
-fn find_account_by_id(accounts: &[DeployAccount], account_id: &str) -> Option<DeployAccount> {
-    accounts.iter().find(|a| a.id == account_id).cloned()
+/// Find account by ID using repository
+fn find_account_by_id_from_store(app: &AppHandle, account_id: &str) -> Result<Option<DeployAccount>, String> {
+    let repo = get_deploy_repo(app);
+    repo.get_account(account_id)
 }
 
 /// T037: Find projects using a specific account
 fn find_projects_using_account(app: &AppHandle, account_id: &str) -> Result<Vec<String>, String> {
-    let configs = get_configs_from_store(app)?;
-    let affected: Vec<String> = configs
-        .values()
-        .filter(|c| c.account_id.as_deref() == Some(account_id))
-        .map(|c| c.project_id.clone())
-        .collect();
-    Ok(affected)
+    let repo = get_deploy_repo(app);
+    repo.find_projects_using_account(account_id)
 }
 
 /// Clear account_id from all configs that reference the given account
 fn clear_account_from_configs(app: &AppHandle, account_id: &str) -> Result<(), String> {
-    let mut configs = get_configs_from_store(app)?;
-    let mut modified = false;
-
-    for config in configs.values_mut() {
-        if config.account_id.as_deref() == Some(account_id) {
-            config.account_id = None;
-            modified = true;
-        }
-    }
-
-    if modified {
-        save_configs_to_store(app, &configs)?;
-    }
+    let repo = get_deploy_repo(app);
+    repo.clear_account_from_configs(account_id)?;
     Ok(())
 }
 
@@ -533,78 +522,83 @@ fn get_deployment_access_token(
         return Ok(String::new());
     }
 
-    let accounts = get_accounts_from_store(app)?;
-    let prefs = get_preferences_from_store(app)?;
+    let repo = get_deploy_repo(app);
+    let prefs = repo.get_preferences()?;
 
     // 1. Try bound account
     if let Some(account_id) = &config.account_id {
-        if let Some(account) = find_account_by_id(&accounts, account_id) {
-            if !account.access_token.is_empty() {
-                return Ok(account.access_token);
+        if repo.get_account(account_id)?.is_some() {
+            if let Some(token) = get_decrypted_token(&repo, account_id)? {
+                return Ok(token);
             }
         }
     }
 
     // 2. Try default account for platform
     if let Some(default_id) = prefs.get_default_account_id(&config.platform) {
-        if let Some(account) = find_account_by_id(&accounts, default_id) {
-            if !account.access_token.is_empty() {
-                return Ok(account.access_token);
+        if repo.get_account(default_id)?.is_some() {
+            if let Some(token) = get_decrypted_token(&repo, default_id)? {
+                return Ok(token);
             }
         }
     }
 
     // 3. Try any account for the platform
-    if let Some(account) = accounts
-        .iter()
-        .find(|a| a.platform == config.platform && !a.access_token.is_empty())
-    {
-        return Ok(account.access_token.clone());
+    let accounts = repo.list_accounts_by_platform(config.platform.clone())?;
+    for account in &accounts {
+        if let Some(token) = get_decrypted_token(&repo, &account.id)? {
+            return Ok(token);
+        }
     }
 
-    // 4. Fall back to legacy connected platform
+    // 4. Fall back to legacy connected platform (before multi-account support)
     let connected = check_platform_connected(app, &config.platform)?;
+    // Legacy connected platforms don't have account IDs, just return their token directly
     Ok(connected.access_token)
 }
 
-/// Get deployment configs from store
-fn get_configs_from_store(
-    app: &AppHandle,
-) -> Result<std::collections::HashMap<String, DeploymentConfig>, String> {
-    let store = get_store(app)?;
-    let configs: std::collections::HashMap<String, DeploymentConfig> = store
-        .get(STORE_DEPLOYMENT_CONFIGS)
-        .and_then(|v| serde_json::from_value(v.clone()).ok())
-        .unwrap_or_default();
-    Ok(configs)
+/// Get deployment config from SQLite
+fn get_config_from_store(app: &AppHandle, project_id: &str) -> Result<Option<DeploymentConfig>, String> {
+    let repo = get_deploy_repo(app);
+
+    // Try SQLite first
+    if let Some(config) = repo.get_config(project_id)? {
+        return Ok(Some(config));
+    }
+
+    // Try legacy JSON store for migration
+    if let Ok(store) = get_store(app) {
+        if let Some(value) = store.get(STORE_DEPLOYMENT_CONFIGS) {
+            if let Ok(configs) = serde_json::from_value::<std::collections::HashMap<String, DeploymentConfig>>(value.clone()) {
+                if let Some(config) = configs.get(project_id) {
+                    log::info!("Migrating deployment config for {} from JSON to SQLite", project_id);
+                    let _ = repo.save_config(config);
+                    return Ok(Some(config.clone()));
+                }
+            }
+        }
+    }
+
+    Ok(None)
 }
 
-/// Save deployment configs to store
-fn save_configs_to_store(
-    app: &AppHandle,
-    configs: &std::collections::HashMap<String, DeploymentConfig>,
-) -> Result<(), String> {
-    let store = get_store(app)?;
-    store.set(
-        STORE_DEPLOYMENT_CONFIGS,
-        serde_json::to_value(configs).map_err(|e| e.to_string())?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))
+/// Save deployment config to SQLite
+fn save_config_to_store(app: &AppHandle, config: &DeploymentConfig) -> Result<(), String> {
+    let repo = get_deploy_repo(app);
+    repo.save_config(config)
 }
 
 /// Save Netlify site ID to config for reuse across deployments
 fn save_netlify_site_id(app: &AppHandle, project_id: &str, site_id: &str) -> Result<(), String> {
-    let mut configs = get_configs_from_store(app)?;
-    if let Some(config) = configs.get_mut(project_id) {
+    let repo = get_deploy_repo(app);
+    if let Some(mut config) = repo.get_config(project_id)? {
         config.netlify_site_id = Some(site_id.to_string());
-        save_configs_to_store(app, &configs)?;
+        repo.save_config(&config)?;
     }
     Ok(())
 }
 
-/// Get the history store instance (separate file for deployment history)
+/// Get the history store instance (legacy - for migration only)
 fn get_history_store(
     app: &AppHandle,
 ) -> Result<Arc<tauri_plugin_store::Store<tauri::Wry>>, String> {
@@ -612,58 +606,55 @@ fn get_history_store(
         .map_err(|e| format!("Failed to access deployment history store: {}", e))
 }
 
-/// Get deployment history from store
-fn get_history_from_store(
-    app: &AppHandle,
-) -> Result<std::collections::HashMap<String, Vec<Deployment>>, String> {
-    let store = get_history_store(app)?;
-    let history: std::collections::HashMap<String, Vec<Deployment>> = store
-        .get(STORE_DEPLOYMENT_HISTORY)
-        .and_then(|v| serde_json::from_value(v.clone()).ok())
-        .unwrap_or_default();
-    Ok(history)
-}
+/// Get deployment history from SQLite
+fn get_deployments_from_store(app: &AppHandle, project_id: &str) -> Result<Vec<Deployment>, String> {
+    let repo = get_deploy_repo(app);
 
-/// Save deployment history to store
-fn save_history_to_store(
-    app: &AppHandle,
-    history: &std::collections::HashMap<String, Vec<Deployment>>,
-) -> Result<(), String> {
-    let store = get_history_store(app)?;
-    store.set(
-        STORE_DEPLOYMENT_HISTORY,
-        serde_json::to_value(history).map_err(|e| e.to_string())?,
-    );
-    store
-        .save()
-        .map_err(|e| format!("Failed to save deployment history store: {}", e))
+    // Try SQLite first
+    let deployments = repo.list_deployments(project_id)?;
+    if !deployments.is_empty() {
+        return Ok(deployments);
+    }
+
+    // Try legacy JSON store for migration
+    if let Ok(store) = get_history_store(app) {
+        if let Some(value) = store.get(STORE_DEPLOYMENT_HISTORY) {
+            if let Ok(history) = serde_json::from_value::<std::collections::HashMap<String, Vec<Deployment>>>(value.clone()) {
+                if let Some(project_deployments) = history.get(project_id) {
+                    if !project_deployments.is_empty() {
+                        log::info!("Migrating {} deployments for {} from JSON to SQLite", project_deployments.len(), project_id);
+                        for deployment in project_deployments {
+                            let _ = repo.save_deployment(deployment);
+                        }
+                        return Ok(project_deployments.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(Vec::new())
 }
 
 /// Save a single deployment to history
 fn save_deployment_to_history(app: &AppHandle, deployment: &Deployment) -> Result<(), String> {
-    let mut history = get_history_from_store(app)?;
-    let project_history = history.entry(deployment.project_id.clone()).or_default();
-
-    // Insert at the beginning (newest first)
-    project_history.insert(0, deployment.clone());
-
-    // Trim to max history limit
-    if project_history.len() > MAX_HISTORY_PER_PROJECT {
-        project_history.truncate(MAX_HISTORY_PER_PROJECT);
-    }
-
-    save_history_to_store(app, &history)
+    let repo = get_deploy_repo(app);
+    repo.save_deployment(deployment)
 }
 
-/// Check if a platform is connected
+/// Check if a platform is connected - now reads from SQLite
 fn check_platform_connected(
     app: &AppHandle,
     platform: &PlatformType,
 ) -> Result<ConnectedPlatform, String> {
-    let platforms = get_platforms_from_store(app)?;
-    platforms
+    let repo = get_deploy_repo(app);
+    let accounts = repo.list_accounts_by_platform(platform.clone())?;
+
+    // Return the first account found for this platform
+    accounts
         .into_iter()
-        .find(|p| &p.platform == platform)
+        .next()
+        .map(|a| a.to_connected_platform())
         .ok_or_else(|| format!("Platform {} not connected", platform))
 }
 
@@ -775,11 +766,15 @@ pub async fn start_oauth_flow(
         }
     };
 
-    // Save connected platform
-    let mut platforms = get_platforms_from_store(&app)?;
-    platforms.retain(|p| p.platform != platform);
-    platforms.push(connected_platform.clone());
-    save_platforms_to_store(&app, &platforms)?;
+    // Convert to DeployAccount and save to SQLite
+    let new_account = DeployAccount::from_connected_platform(connected_platform.clone());
+    let repo = get_deploy_repo(&app);
+
+    // Check for duplicate account (same platform + platform_user_id)
+    if !repo.account_exists_by_platform_user(&platform, &new_account.platform_user_id)? {
+        // Save new account to SQLite
+        save_account_to_store(&app, &new_account)?;
+    }
 
     Ok(OAuthFlowResult {
         success: true,
@@ -858,18 +853,42 @@ async fn extract_netlify_token(
 }
 
 /// Get all connected platforms (sanitized - no tokens)
+/// Now reads from SQLite and converts DeployAccount to ConnectedPlatform for backward compatibility
 #[tauri::command]
 pub async fn get_connected_platforms(app: AppHandle) -> Result<Vec<ConnectedPlatform>, String> {
-    let platforms = get_platforms_from_store(&app)?;
-    Ok(platforms.into_iter().map(|p| p.sanitized()).collect())
+    let repo = get_deploy_repo(&app);
+    let accounts = repo.list_accounts()?;
+
+    // Convert DeployAccount to ConnectedPlatform for backward compatibility
+    Ok(accounts
+        .into_iter()
+        .map(|a| a.to_connected_platform().sanitized())
+        .collect())
 }
 
-/// Disconnect a platform
+/// Disconnect a platform - removes all accounts of this platform type from SQLite
 #[tauri::command]
 pub async fn disconnect_platform(app: AppHandle, platform: PlatformType) -> Result<(), String> {
-    let mut platforms = get_platforms_from_store(&app)?;
-    platforms.retain(|p| p.platform != platform);
-    save_platforms_to_store(&app, &platforms)
+    let repo = get_deploy_repo(&app);
+
+    // Get all accounts for this platform
+    let accounts = repo.list_accounts_by_platform(platform.clone())?;
+
+    // Delete each account
+    for account in accounts {
+        // Clear from deployment configs first
+        repo.clear_account_from_configs(&account.id)?;
+
+        // Clear from preferences if it was a default
+        let mut prefs = repo.get_preferences()?;
+        prefs.clear_if_matches(&account.id);
+        repo.save_preferences(&prefs)?;
+
+        // Delete the account
+        repo.delete_account(&account.id)?;
+    }
+
+    Ok(())
 }
 
 // ============================================================================
@@ -912,52 +931,50 @@ pub async fn start_deployment(
         )
         .await;
 
-        // Update deployment status based on result
-        let mut history = get_history_from_store(&app_clone).unwrap_or_default();
-        if let Some(project_history) = history.get_mut(&config_clone.project_id) {
-            if let Some(dep) = project_history.iter_mut().find(|d| d.id == deployment_id) {
-                match result {
-                    Ok(deploy_result) => {
-                        dep.status = DeploymentStatus::Ready;
-                        dep.url = Some(deploy_result.url.clone());
-                        dep.completed_at = Some(chrono::Utc::now());
-                        // Store Netlify-specific info
-                        dep.admin_url = deploy_result.admin_url;
-                        dep.deploy_time = deploy_result.deploy_time;
-                        dep.site_name = deploy_result.site_name;
-                        dep.preview_url = deploy_result.preview_url;
-                        dep.branch = deploy_result.branch;
+        // Update deployment status based on result using repository
+        let repo = get_deploy_repo(&app_clone);
+        if let Ok(Some(mut dep)) = repo.get_deployment(&deployment_id) {
+            match result {
+                Ok(deploy_result) => {
+                    dep.status = DeploymentStatus::Ready;
+                    dep.url = Some(deploy_result.url.clone());
+                    dep.completed_at = Some(chrono::Utc::now());
+                    // Store Netlify-specific info
+                    dep.admin_url = deploy_result.admin_url;
+                    dep.deploy_time = deploy_result.deploy_time;
+                    dep.site_name = deploy_result.site_name;
+                    dep.preview_url = deploy_result.preview_url;
+                    dep.branch = deploy_result.branch;
 
-                        // Emit success event
-                        let _ = app_clone.emit(
-                            "deployment:status",
-                            DeploymentStatusEvent {
-                                deployment_id: deployment_id.clone(),
-                                status: DeploymentStatus::Ready,
-                                url: Some(deploy_result.url),
-                                error_message: None,
-                            },
-                        );
-                    }
-                    Err(error) => {
-                        dep.status = DeploymentStatus::Failed;
-                        dep.error_message = Some(error.clone());
-                        dep.completed_at = Some(chrono::Utc::now());
-
-                        // Emit failure event
-                        let _ = app_clone.emit(
-                            "deployment:status",
-                            DeploymentStatusEvent {
-                                deployment_id: deployment_id.clone(),
-                                status: DeploymentStatus::Failed,
-                                url: None,
-                                error_message: Some(error),
-                            },
-                        );
-                    }
+                    // Emit success event
+                    let _ = app_clone.emit(
+                        "deployment:status",
+                        DeploymentStatusEvent {
+                            deployment_id: deployment_id.clone(),
+                            status: DeploymentStatus::Ready,
+                            url: Some(deploy_result.url),
+                            error_message: None,
+                        },
+                    );
                 }
-                let _ = save_history_to_store(&app_clone, &history);
+                Err(error) => {
+                    dep.status = DeploymentStatus::Failed;
+                    dep.error_message = Some(error.clone());
+                    dep.completed_at = Some(chrono::Utc::now());
+
+                    // Emit failure event
+                    let _ = app_clone.emit(
+                        "deployment:status",
+                        DeploymentStatusEvent {
+                            deployment_id: deployment_id.clone(),
+                            status: DeploymentStatus::Failed,
+                            url: None,
+                            error_message: Some(error),
+                        },
+                    );
+                }
             }
+            let _ = repo.save_deployment(&dep);
         }
     });
 
@@ -1752,31 +1769,27 @@ pub async fn get_deployment_history(
     app: AppHandle,
     project_id: String,
 ) -> Result<Vec<Deployment>, String> {
-    let history = get_history_from_store(&app)?;
-    Ok(history.get(&project_id).cloned().unwrap_or_default())
+    get_deployments_from_store(&app, &project_id)
 }
 
 /// Delete a single deployment from history
 #[tauri::command]
 pub async fn delete_deployment_history_item(
     app: AppHandle,
-    project_id: String,
+    _project_id: String,
     deployment_id: String,
 ) -> Result<(), String> {
-    let mut history = get_history_from_store(&app)?;
-    if let Some(deployments) = history.get_mut(&project_id) {
-        deployments.retain(|d| d.id != deployment_id);
-        save_history_to_store(&app, &history)?;
-    }
+    let repo = get_deploy_repo(&app);
+    repo.delete_deployment(&deployment_id)?;
     Ok(())
 }
 
 /// Clear all deployment history for a project
 #[tauri::command]
 pub async fn clear_deployment_history(app: AppHandle, project_id: String) -> Result<(), String> {
-    let mut history = get_history_from_store(&app)?;
-    history.remove(&project_id);
-    save_history_to_store(&app, &history)
+    let repo = get_deploy_repo(&app);
+    repo.clear_deployments(&project_id)?;
+    Ok(())
 }
 
 /// Get deployment config for a project
@@ -1785,8 +1798,7 @@ pub async fn get_deployment_config(
     app: AppHandle,
     project_id: String,
 ) -> Result<Option<DeploymentConfig>, String> {
-    let configs = get_configs_from_store(&app)?;
-    Ok(configs.get(&project_id).cloned())
+    get_config_from_store(&app, &project_id)
 }
 
 /// Save deployment config for a project
@@ -1795,9 +1807,7 @@ pub async fn save_deployment_config(
     app: AppHandle,
     config: DeploymentConfig,
 ) -> Result<(), String> {
-    let mut configs = get_configs_from_store(&app)?;
-    configs.insert(config.project_id.clone(), config);
-    save_configs_to_store(&app, &configs)
+    save_config_to_store(&app, &config)
 }
 
 /// Detect framework from project path
@@ -2012,9 +2022,8 @@ pub async fn add_deploy_account(
         });
     }
 
-    // Add new account
-    accounts.push(new_account.clone());
-    save_accounts_to_store(&app, &accounts)?;
+    // Add new account using repository
+    save_account_to_store(&app, &new_account)?;
 
     Ok(OAuthFlowResult {
         success: true,
@@ -2052,10 +2061,9 @@ pub async fn remove_deploy_account(
     prefs.clear_if_matches(&account_id);
     save_preferences_to_store(&app, &prefs)?;
 
-    // Remove the account
-    let mut accounts = get_accounts_from_store(&app)?;
-    accounts.retain(|a| a.id != account_id);
-    save_accounts_to_store(&app, &accounts)?;
+    // Remove the account using repository
+    let repo = get_deploy_repo(&app);
+    repo.delete_account(&account_id)?;
 
     Ok(RemoveAccountResult {
         success: true,
@@ -2070,18 +2078,15 @@ pub async fn update_deploy_account(
     account_id: String,
     display_name: Option<String>,
 ) -> Result<DeployAccount, String> {
-    let mut accounts = get_accounts_from_store(&app)?;
+    let repo = get_deploy_repo(&app);
 
-    let account = accounts
-        .iter_mut()
-        .find(|a| a.id == account_id)
+    let mut account = repo.get_account(&account_id)?
         .ok_or("Account not found")?;
 
     account.display_name = display_name;
-    let updated = account.clone();
+    repo.save_account(&account)?;
 
-    save_accounts_to_store(&app, &accounts)?;
-    Ok(updated.sanitized())
+    Ok(account.sanitized())
 }
 
 /// T028: Bind a project to a specific deploy account
@@ -2091,30 +2096,28 @@ pub async fn bind_project_account(
     project_id: String,
     account_id: String,
 ) -> Result<DeploymentConfig, String> {
+    let repo = get_deploy_repo(&app);
+
     // Verify account exists
-    let accounts = get_accounts_from_store(&app)?;
-    let account = find_account_by_id(&accounts, &account_id).ok_or("Account not found")?;
+    let account = repo.get_account(&account_id)?.ok_or("Account not found")?;
 
     // Get or create deployment config
-    let mut configs = get_configs_from_store(&app)?;
-    let config = configs
-        .entry(project_id.clone())
-        .or_insert(DeploymentConfig {
-            project_id: project_id.clone(),
-            platform: account.platform.clone(),
-            account_id: None,
-            environment: crate::models::deploy::DeploymentEnvironment::Production,
-            framework_preset: None,
-            env_variables: Vec::new(),
-            root_directory: None,
-            install_command: None,
-            build_command: None,
-            output_directory: None,
-            netlify_site_id: None,
-            netlify_site_name: None,
-            cloudflare_account_id: None,
-            cloudflare_project_name: None,
-        });
+    let mut config = repo.get_config(&project_id)?.unwrap_or(DeploymentConfig {
+        project_id: project_id.clone(),
+        platform: account.platform.clone(),
+        account_id: None,
+        environment: crate::models::deploy::DeploymentEnvironment::Production,
+        framework_preset: None,
+        env_variables: Vec::new(),
+        root_directory: None,
+        install_command: None,
+        build_command: None,
+        output_directory: None,
+        netlify_site_id: None,
+        netlify_site_name: None,
+        cloudflare_account_id: None,
+        cloudflare_project_name: None,
+    });
 
     // Verify platform matches
     if config.platform != account.platform {
@@ -2122,10 +2125,8 @@ pub async fn bind_project_account(
     }
 
     config.account_id = Some(account_id);
-    let updated = config.clone();
-
-    save_configs_to_store(&app, &configs)?;
-    Ok(updated)
+    repo.save_config(&config)?;
+    Ok(config)
 }
 
 /// T029: Unbind a project from its deploy account
@@ -2134,17 +2135,13 @@ pub async fn unbind_project_account(
     app: AppHandle,
     project_id: String,
 ) -> Result<DeploymentConfig, String> {
-    let mut configs = get_configs_from_store(&app)?;
+    let repo = get_deploy_repo(&app);
 
-    let config = configs
-        .get_mut(&project_id)
-        .ok_or("Deployment config not found")?;
+    let mut config = repo.get_config(&project_id)?.ok_or("Deployment config not found")?;
 
     config.account_id = None;
-    let updated = config.clone();
-
-    save_configs_to_store(&app, &configs)?;
-    Ok(updated)
+    repo.save_config(&config)?;
+    Ok(config)
 }
 
 /// T030: Get the account bound to a project
@@ -2153,8 +2150,9 @@ pub async fn get_project_binding(
     app: AppHandle,
     project_id: String,
 ) -> Result<Option<DeployAccount>, String> {
-    let configs = get_configs_from_store(&app)?;
-    let config = match configs.get(&project_id) {
+    let repo = get_deploy_repo(&app);
+
+    let config = match repo.get_config(&project_id)? {
         Some(c) => c,
         None => return Ok(None),
     };
@@ -2164,8 +2162,7 @@ pub async fn get_project_binding(
         None => return Ok(None),
     };
 
-    let accounts = get_accounts_from_store(&app)?;
-    Ok(find_account_by_id(&accounts, account_id).map(|a| a.sanitized()))
+    Ok(repo.get_account(account_id)?.map(|a| a.sanitized()))
 }
 
 /// T042: Get deploy preferences
@@ -2181,18 +2178,19 @@ pub async fn set_default_account(
     platform: PlatformType,
     account_id: Option<String>,
 ) -> Result<DeployPreferences, String> {
+    let repo = get_deploy_repo(&app);
+
     // If setting a default, verify account exists and matches platform
     if let Some(ref id) = account_id {
-        let accounts = get_accounts_from_store(&app)?;
-        let account = find_account_by_id(&accounts, id).ok_or("Account not found")?;
+        let account = repo.get_account(id)?.ok_or("Account not found")?;
         if account.platform != platform {
             return Err("Account platform does not match".to_string());
         }
     }
 
-    let mut prefs = get_preferences_from_store(&app)?;
+    let mut prefs = repo.get_preferences()?;
     prefs.set_default_account_id(&platform, account_id);
-    save_preferences_to_store(&app, &prefs)?;
+    repo.save_preferences(&prefs)?;
 
     Ok(prefs)
 }
@@ -2631,10 +2629,8 @@ pub async fn add_cloudflare_account(
         expires_at: None, // API tokens don't expire
     };
 
-    // Save account
-    let mut accounts = accounts;
-    accounts.push(new_account.clone());
-    save_accounts_to_store(&app, &accounts)?;
+    // Save account using repository
+    save_account_to_store(&app, &new_account)?;
 
     Ok(new_account.sanitized())
 }
@@ -2664,11 +2660,8 @@ async fn deploy_to_cloudflare_pages(
         .as_ref()
         .ok_or("No deploy account is bound to this project")?;
 
-    // Get all accounts from the store
-    let accounts = get_accounts_from_store(app)?;
-
-    // Find the correct account using the internal UUID
-    let account = find_account_by_id(&accounts, internal_account_id)
+    // Find the correct account using repository
+    let account = find_account_by_id_from_store(app, internal_account_id)?
         .ok_or("Bound deploy account not found")?;
 
     // Get the REAL Cloudflare Account ID (the hex string)
@@ -3215,10 +3208,10 @@ pub async fn import_deploy_backup(
     let imported_accounts: Vec<DeployAccount> = serde_json::from_str(&accounts_json)
         .map_err(|e| format!("Failed to parse backup: {}", e))?;
 
-    let accounts_restored = imported_accounts.len();
-
     // Merge with existing accounts (avoid duplicates based on platform + platform_user_id)
-    let mut existing = get_accounts_from_store(&app)?;
+    let repo = get_deploy_repo(&app);
+    let existing = get_accounts_from_store(&app)?;
+    let mut accounts_restored = 0;
 
     for imported in imported_accounts {
         let is_duplicate = existing.iter().any(|a| {
@@ -3226,12 +3219,10 @@ pub async fn import_deploy_backup(
         });
 
         if !is_duplicate {
-            existing.push(imported);
+            repo.save_account(&imported)?;
+            accounts_restored += 1;
         }
     }
-
-    // Save merged accounts
-    save_accounts_to_store(&app, &existing)?;
 
     Ok(BackupImportResult {
         success: true,
@@ -3279,8 +3270,7 @@ pub async fn get_deployment_stats(
     app: AppHandle,
     project_id: String,
 ) -> Result<DeploymentStats, String> {
-    let history = get_history_from_store(&app)?;
-    let deployments = history.get(&project_id).cloned().unwrap_or_default();
+    let deployments = get_deployments_from_store(&app, &project_id)?;
 
     let total = deployments.len();
     let successful: Vec<_> = deployments
@@ -3353,14 +3343,13 @@ pub async fn get_platform_site_info(
     project_id: String,
 ) -> Result<Option<PlatformSiteInfo>, String> {
     // Get deployment config for the project
-    let configs = get_configs_from_store(&app)?;
-    let config = match configs.get(&project_id) {
+    let config = match get_config_from_store(&app, &project_id)? {
         Some(c) => c,
         None => return Ok(None),
     };
 
     // Get access token from bound account
-    let access_token = match get_deployment_access_token(&app, config) {
+    let access_token = match get_deployment_access_token(&app, &config) {
         Ok(token) => token,
         Err(_) => return Ok(None),
     };
@@ -3386,12 +3375,11 @@ pub async fn get_platform_site_info(
                 None => return Ok(None),
             };
 
-            // Get account from bound account
-            let accounts = get_accounts_from_store(&app)?;
-            let account = config
-                .account_id
-                .as_ref()
-                .and_then(|id| find_account_by_id(&accounts, id));
+            // Get account from bound account using repository
+            let account = match config.account_id.as_ref() {
+                Some(id) => find_account_by_id_from_store(&app, id)?,
+                None => None,
+            };
 
             let cf_account_id = match account {
                 Some(acc) => acc.platform_user_id.clone(),

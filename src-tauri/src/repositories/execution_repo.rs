@@ -102,6 +102,16 @@ impl ExecutionRepository {
         })
     }
 
+    /// List all running executions as a HashMap keyed by execution ID
+    pub fn list_running_as_map(&self) -> Result<std::collections::HashMap<String, Execution>, String> {
+        let executions = self.list_running()?;
+        let mut map = std::collections::HashMap::new();
+        for execution in executions {
+            map.insert(execution.id.clone(), execution);
+        }
+        Ok(map)
+    }
+
     /// Clear all running executions (called on app restart)
     pub fn clear_running(&self) -> Result<usize, String> {
         self.db.with_connection(|conn| {
@@ -274,6 +284,24 @@ impl ExecutionRepository {
 
             Ok(rows_affected)
         })
+    }
+
+    /// List all execution history grouped by workflow_id
+    pub fn list_all_history_grouped(
+        &self,
+    ) -> Result<std::collections::HashMap<String, Vec<ExecutionHistoryItem>>, String> {
+        let history = self.list_history(Some(10000))?; // Get all history
+
+        let mut grouped: std::collections::HashMap<String, Vec<ExecutionHistoryItem>> =
+            std::collections::HashMap::new();
+        for item in history {
+            grouped
+                .entry(item.workflow_id.clone())
+                .or_insert_with(Vec::new)
+                .push(item);
+        }
+
+        Ok(grouped)
     }
 
     /// Delete old execution history (keep last N entries per workflow)

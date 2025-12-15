@@ -4,9 +4,47 @@
  */
 
 import type { Project, Workflow, AppSettings } from './index';
-import type { WorktreeTemplate, CustomStepTemplate } from '../lib/tauri-api';
+import type { WorktreeTemplate, CustomStepTemplate, McpServerConfig, DeploymentConfig } from '../lib/tauri-api';
+import type { AIServiceConfig, PromptTemplate } from './ai';
 
-export type DataType = 'projects' | 'workflows' | 'templates' | 'stepTemplates' | 'settings';
+export type DataType =
+  | 'projects'
+  | 'workflows'
+  | 'templates'
+  | 'stepTemplates'
+  | 'settings'
+  | 'aiServices'
+  | 'aiTemplates'
+  | 'mcpConfig'
+  | 'deployAccounts'
+  | 'deployPreferences'
+  | 'deploymentConfigs';
+
+/** Deploy account data for export (without sensitive tokens) */
+export interface ExportDeployAccount {
+  id: string;
+  platform: string;
+  platformUserId: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+  connectedAt: string;
+  expiresAt?: string;
+}
+
+/** Deploy preferences for export */
+export interface ExportDeployPreferences {
+  defaultGithubPagesAccountId?: string;
+  defaultNetlifyAccountId?: string;
+  defaultCloudflareAccountId?: string;
+}
+
+/** Project AI settings for export */
+export interface ExportProjectAISettings {
+  projectPath: string;
+  preferredServiceId?: string;
+  preferredTemplateId?: string;
+}
 
 export interface ExportMetadata {
   version: string;
@@ -19,11 +57,22 @@ export interface ExportMetadata {
 export interface ExportData {
   metadata: ExportMetadata;
   data: {
+    // Core data
     projects?: Project[];
     workflows?: Workflow[];
     worktreeTemplates?: WorktreeTemplate[];
     customStepTemplates?: CustomStepTemplate[];
     settings?: AppSettings;
+    // AI Integration (020-ai-cli-integration)
+    aiServices?: AIServiceConfig[];
+    aiTemplates?: PromptTemplate[];
+    projectAiSettings?: ExportProjectAISettings[];
+    // MCP Configuration
+    mcpConfig?: McpServerConfig;
+    // Deploy Integration (without tokens)
+    deployAccounts?: ExportDeployAccount[];
+    deployPreferences?: ExportDeployPreferences;
+    deploymentConfigs?: DeploymentConfig[];
   };
 }
 
@@ -34,28 +83,34 @@ export interface ExportOptions {
   includeSettings: boolean;
 }
 
+export interface ExportCounts {
+  projects: number;
+  workflows: number;
+  templates: number;
+  stepTemplates: number;
+  hasSettings: boolean;
+  // AI Integration
+  aiServices: number;
+  aiTemplates: number;
+  projectAiSettings: number;
+  // MCP
+  hasMcpConfig: boolean;
+  // Deploy
+  deployAccounts: number;
+  hasDeployPreferences: boolean;
+  deploymentConfigs: number;
+}
+
 export interface ExportResult {
   success: boolean;
   filePath?: string;
   error?: string;
-  counts?: {
-    projects: number;
-    workflows: number;
-    templates: number;
-    stepTemplates: number;
-    hasSettings: boolean;
-  };
+  counts?: ExportCounts;
 }
 
 export interface ImportPreview {
   metadata: ExportMetadata;
-  counts: {
-    projects: number;
-    workflows: number;
-    templates: number;
-    stepTemplates: number;
-    hasSettings: boolean;
-  };
+  counts: ExportCounts;
   conflicts: ConflictItem[];
   versionWarning?: string;
 }
@@ -95,29 +150,29 @@ export interface ImportFileResult {
   preview?: ImportPreview;
 }
 
+export interface ImportSummaryItem {
+  projects: number;
+  workflows: number;
+  templates: number;
+  stepTemplates: number;
+  aiServices: number;
+  aiTemplates: number;
+  deployAccounts: number;
+  deploymentConfigs: number;
+}
+
 export interface ImportResult {
   success: boolean;
   error?: string;
   summary: {
-    imported: {
-      projects: number;
-      workflows: number;
-      templates: number;
-      stepTemplates: number;
+    imported: ImportSummaryItem & {
       settings: boolean;
+      mcpConfig: boolean;
+      deployPreferences: boolean;
+      projectAiSettings: number;
     };
-    skipped: {
-      projects: number;
-      workflows: number;
-      templates: number;
-      stepTemplates: number;
-    };
-    overwritten: {
-      projects: number;
-      workflows: number;
-      templates: number;
-      stepTemplates: number;
-    };
+    skipped: ImportSummaryItem;
+    overwritten: ImportSummaryItem;
   };
 }
 
@@ -127,7 +182,8 @@ export interface ValidationResult {
   warnings?: string[];
 }
 
-export const EXPORT_FORMAT_VERSION = '1.0.0';
+// Version 2.0.0: Added AI services, AI templates, MCP config, deploy accounts/configs
+export const EXPORT_FORMAT_VERSION = '2.0.0';
 export const MIN_SUPPORTED_VERSION = '1.0.0';
 export const EXPORT_FILE_EXTENSION = 'packageflow';
 export const DEFAULT_EXPORT_FILENAME = `packageflow-backup.${EXPORT_FILE_EXTENSION}`;

@@ -15,9 +15,11 @@ pub mod workflow_repo;
 pub use ai_repo::AIRepository;
 pub use deploy_repo::DeployRepository;
 pub use execution_repo::ExecutionRepository;
-pub use mcp_repo::MCPRepository;
+pub use mcp_repo::{MCPRepository, McpLogEntry};
 pub use project_repo::ProjectRepository;
 pub use security_repo::SecurityRepository;
-pub use settings_repo::SettingsRepository;
+pub use settings_repo::{
+    RecentTemplateEntry, SettingsRepository, TemplatePreferences, TemplateViewMode,
+};
 pub use template_repo::TemplateRepository;
 pub use workflow_repo::WorkflowRepository;

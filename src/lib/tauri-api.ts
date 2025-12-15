@@ -2174,6 +2174,24 @@ export const aiAPI = {
   /** Generate a commit message using AI */
   generateCommitMessage: (request: GenerateCommitMessageRequest): Promise<AIApiResponse<GenerateResult>> =>
     invoke<AIApiResponse<GenerateResult>>('ai_generate_commit_message', { request }),
+
+  // ============================================================================
+  // Diagnostic
+  // ============================================================================
+
+  /** Manually store an API key for a service (diagnostic) */
+  storeApiKey: (serviceId: string, apiKey: string): Promise<AIApiResponse<string>> =>
+    invoke('ai_store_api_key', { serviceId, apiKey }),
+
+  /** Check API key status for a service (diagnostic) */
+  checkApiKeyStatus: (serviceId: string): Promise<AIApiResponse<{
+    serviceId: string;
+    existsInDb: boolean;
+    canDecrypt: boolean;
+    keyPrefix: string | null;
+    error: string | null;
+  }>> =>
+    invoke('ai_check_api_key_status', { serviceId }),
 };
 
 // ============================================================================

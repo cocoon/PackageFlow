@@ -1,13 +1,11 @@
 // MCP (Model Context Protocol) Server Integration Commands
+// Updated to use SQLite database for storage
 
-use std::fs;
-use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
-
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_store::StoreExt;
+
+use crate::repositories::SettingsRepository;
+use crate::DatabaseState;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct McpServerInfo {
@@ -230,60 +228,39 @@ impl Default for McpServerConfig {
 
 const MCP_CONFIG_KEY: &str = "mcp_server_config";
 
-/// Get MCP server configuration
+/// Get MCP server configuration from SQLite
 #[tauri::command]
-pub fn get_mcp_config(app: AppHandle) -> Result<McpServerConfig, String> {
-    let store = app
-        .store("packageflow.json")
-        .map_err(|e| format!("Failed to open store: {}", e))?;
-
-    match store.get(MCP_CONFIG_KEY) {
-        Some(value) => serde_json::from_value(value.clone())
-            .map_err(|e| format!("Failed to parse MCP config: {}", e)),
-        None => Ok(McpServerConfig::default()),
-    }
+pub fn get_mcp_config(db: tauri::State<'_, DatabaseState>) -> Result<McpServerConfig, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let config: Option<McpServerConfig> = repo.get(MCP_CONFIG_KEY)?;
+    Ok(config.unwrap_or_default())
 }
 
-/// Save MCP server configuration
+/// Save MCP server configuration to SQLite
 ///
-/// Note: This function uses tauri-plugin-store for persistence.
-/// The MCP Server binary uses a separate atomic write mechanism
-/// (via shared_store module) to prevent data corruption when writing
-/// workflow/template data.
-///
-/// Data safety measures:
-/// - tauri-plugin-store handles Tauri app writes
-/// - MCP Server uses atomic writes (temp file + rename)
-/// - MCP Server creates backups before writing
-/// - File locking prevents concurrent write conflicts
+/// Note: This function uses SQLite for persistence.
+/// The MCP Server binary also accesses the same SQLite database
+/// with WAL mode for safe concurrent access.
 #[tauri::command]
-pub fn save_mcp_config(app: AppHandle, config: McpServerConfig) -> Result<(), String> {
-    let store = app
-        .store("packageflow.json")
-        .map_err(|e| format!("Failed to open store: {}", e))?;
-
-    let value = serde_json::to_value(&config)
-        .map_err(|e| format!("Failed to serialize MCP config: {}", e))?;
-
-    store.set(MCP_CONFIG_KEY, value);
-
-    store
-        .save()
-        .map_err(|e| format!("Failed to save store: {}", e))?;
-
-    Ok(())
+pub fn save_mcp_config(
+    db: tauri::State<'_, DatabaseState>,
+    config: McpServerConfig,
+) -> Result<(), String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.set(MCP_CONFIG_KEY, &config)
 }
 
 /// Update specific MCP configuration fields
 #[tauri::command]
 pub fn update_mcp_config(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     is_enabled: Option<bool>,
     permission_mode: Option<McpPermissionMode>,
     allowed_tools: Option<Vec<String>>,
     log_requests: Option<bool>,
 ) -> Result<McpServerConfig, String> {
-    let mut config = get_mcp_config(app.clone())?;
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let mut config: McpServerConfig = repo.get(MCP_CONFIG_KEY)?.unwrap_or_default();
 
     if let Some(enabled) = is_enabled {
         config.is_enabled = enabled;
@@ -298,7 +275,7 @@ pub fn update_mcp_config(
         config.log_requests = log;
     }
 
-    save_mcp_config(app, config.clone())?;
+    repo.set(MCP_CONFIG_KEY, &config)?;
     Ok(config)
 }
 
@@ -323,8 +300,11 @@ pub struct McpToolWithCategory {
 
 /// Get all MCP tools with their permission status based on current config
 #[tauri::command]
-pub fn get_mcp_tools_with_permissions(app: AppHandle) -> Result<Vec<McpToolWithCategory>, String> {
-    let config = get_mcp_config(app)?;
+pub fn get_mcp_tools_with_permissions(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<Vec<McpToolWithCategory>, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    let config: McpServerConfig = repo.get(MCP_CONFIG_KEY)?.unwrap_or_default();
 
     let tools = vec![
         // Read-only tools
@@ -381,31 +361,11 @@ fn is_tool_allowed(tool_name: &str, category: &ToolCategory, config: &McpServerC
 }
 
 // ============================================================================
-// MCP Request Logs
+// MCP Request Logs (SQLite-based)
 // ============================================================================
 
-/// App identifier (must match tauri.conf.json)
-const APP_IDENTIFIER: &str = "com.packageflow.PackageFlow-macOS";
-const MCP_LOG_FILE: &str = "mcp-requests.log";
-
-/// Get the MCP log file path
-fn get_mcp_log_path() -> Result<PathBuf, String> {
-    dirs::data_dir()
-        .map(|p| p.join(APP_IDENTIFIER).join(MCP_LOG_FILE))
-        .ok_or_else(|| "Could not determine application data directory".to_string())
-}
-
-/// MCP request log entry
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct McpLogEntry {
-    pub timestamp: DateTime<Utc>,
-    pub tool: String,
-    pub arguments: serde_json::Value,
-    pub result: String,
-    pub duration_ms: u64,
-    pub error: Option<String>,
-}
+// Re-export McpLogEntry from repository
+pub use crate::repositories::McpLogEntry;
 
 /// MCP logs response
 #[derive(Debug, Clone, Serialize)]
@@ -413,59 +373,31 @@ pub struct McpLogEntry {
 pub struct McpLogsResponse {
     pub entries: Vec<McpLogEntry>,
     pub total_count: usize,
-    pub log_path: String,
 }
 
-/// Get MCP request logs
+/// Get MCP request logs from SQLite database
 #[tauri::command]
-pub fn get_mcp_logs(limit: Option<usize>) -> Result<McpLogsResponse, String> {
-    let log_path = get_mcp_log_path()?;
-    let limit = limit.unwrap_or(100);
+pub fn get_mcp_logs(
+    db: tauri::State<'_, DatabaseState>,
+    limit: Option<usize>,
+) -> Result<McpLogsResponse, String> {
+    use crate::repositories::MCPRepository;
 
-    if !log_path.exists() {
-        return Ok(McpLogsResponse {
-            entries: vec![],
-            total_count: 0,
-            log_path: log_path.to_string_lossy().to_string(),
-        });
-    }
-
-    let file = fs::File::open(&log_path)
-        .map_err(|e| format!("Failed to open log file: {}", e))?;
-
-    let reader = BufReader::new(file);
-    let mut all_entries: Vec<McpLogEntry> = Vec::new();
-
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            if let Ok(entry) = serde_json::from_str::<McpLogEntry>(&line) {
-                all_entries.push(entry);
-            }
-        }
-    }
-
-    let total_count = all_entries.len();
-
-    // Return most recent entries (reverse order, take limit)
-    all_entries.reverse();
-    let entries: Vec<McpLogEntry> = all_entries.into_iter().take(limit).collect();
+    let repo = MCPRepository::new(db.0.as_ref().clone());
+    let entries = repo.get_logs(limit)?;
+    let total_count = repo.get_log_count()?;
 
     Ok(McpLogsResponse {
         entries,
         total_count,
-        log_path: log_path.to_string_lossy().to_string(),
     })
 }
 
-/// Clear MCP request logs
+/// Clear MCP request logs from SQLite database
 #[tauri::command]
-pub fn clear_mcp_logs() -> Result<(), String> {
-    let log_path = get_mcp_log_path()?;
+pub fn clear_mcp_logs(db: tauri::State<'_, DatabaseState>) -> Result<(), String> {
+    use crate::repositories::MCPRepository;
 
-    if log_path.exists() {
-        fs::remove_file(&log_path)
-            .map_err(|e| format!("Failed to delete log file: {}", e))?;
-    }
-
-    Ok(())
+    let repo = MCPRepository::new(db.0.as_ref().clone());
+    repo.clear_logs()
 }

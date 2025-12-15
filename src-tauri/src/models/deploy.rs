@@ -169,6 +169,19 @@ impl DeployAccount {
             expires_at: platform.expires_at,
         }
     }
+
+    /// Convert to legacy ConnectedPlatform for backward compatibility
+    pub fn to_connected_platform(&self) -> ConnectedPlatform {
+        ConnectedPlatform {
+            platform: self.platform.clone(),
+            access_token: self.access_token.clone(),
+            user_id: self.platform_user_id.clone(),
+            username: self.username.clone(),
+            avatar_url: self.avatar_url.clone(),
+            connected_at: self.connected_at,
+            expires_at: self.expires_at,
+        }
+    }
 }
 
 /// T002: Deploy preferences for default account settings

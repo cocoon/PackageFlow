@@ -4,20 +4,38 @@
  */
 
 import { getVersion } from '@tauri-apps/api/app';
-import { save, open, readTextFile, writeTextFile, settingsAPI, worktreeTemplateAPI, stepTemplateAPI, incomingWebhookAPI, shortcutsAPI } from './tauri-api';
+import {
+  save,
+  open,
+  readTextFile,
+  writeTextFile,
+  settingsAPI,
+  worktreeTemplateAPI,
+  stepTemplateAPI,
+  incomingWebhookAPI,
+  shortcutsAPI,
+  aiAPI,
+  mcpAPI,
+  deployAPI,
+} from './tauri-api';
 import type {
   ExportData,
   ExportMetadata,
   ExportResult,
+  ExportCounts,
   ImportPreview,
   ImportFileResult,
   ImportResult,
+  ImportSummaryItem,
   ValidationResult,
   ConflictItem,
   ConflictResolutionStrategy,
   DataType,
   WorkflowExportData,
   NodeExportData,
+  ExportDeployAccount,
+  ExportDeployPreferences,
+  ExportProjectAISettings,
 } from '../types/export-import';
 import {
   EXPORT_FORMAT_VERSION,
@@ -28,6 +46,8 @@ import {
   STEP_FILE_EXTENSION,
 } from '../types/export-import';
 import type { Workflow, WorkflowNode } from '../types/workflow';
+import type { AIServiceConfig, PromptTemplate } from '../types/ai';
+import type { DeploymentConfig } from './tauri-api';
 
 // ============================================================================
 // Helper Functions
@@ -163,6 +183,7 @@ export function validateExportData(data: unknown): ValidationResult {
 
 /**
  * Export all application data
+ * Includes: projects, workflows, templates, settings, AI config, MCP config, deploy config
  */
 export async function exportAllData(): Promise<ExportResult> {
   try {
@@ -175,7 +196,24 @@ export async function exportAllData(): Promise<ExportResult> {
       return { success: false, error: 'USER_CANCELLED' };
     }
 
-    const [projects, workflows, templatesRes, stepTemplatesRes, settings, keyboardShortcuts, appVersion] = await Promise.all([
+    // Load all data in parallel for performance
+    const [
+      projects,
+      workflows,
+      templatesRes,
+      stepTemplatesRes,
+      settings,
+      keyboardShortcuts,
+      appVersion,
+      // AI Integration data
+      aiServicesRes,
+      aiTemplatesRes,
+      // MCP config
+      mcpConfig,
+      // Deploy data (accounts without tokens, preferences)
+      deployAccounts,
+      deployPreferences,
+    ] = await Promise.all([
       settingsAPI.loadProjects(),
       settingsAPI.loadWorkflows(),
       worktreeTemplateAPI.listTemplates(),
@@ -183,10 +221,71 @@ export async function exportAllData(): Promise<ExportResult> {
       settingsAPI.loadSettings(),
       shortcutsAPI.loadSettings(),
       getAppVersion(),
+      // AI
+      aiAPI.listServices(),
+      aiAPI.listTemplates(),
+      // MCP
+      mcpAPI.getConfig(),
+      // Deploy
+      deployAPI.getDeployAccounts(),
+      deployAPI.getDeployPreferences(),
     ]);
 
     const templates = templatesRes.templates ?? [];
     const stepTemplates = stepTemplatesRes.templates ?? [];
+
+    // Extract AI data from response wrappers
+    const aiServices: AIServiceConfig[] = aiServicesRes.data ?? [];
+    const aiTemplates: PromptTemplate[] = aiTemplatesRes.data ?? [];
+
+    // Load project-specific AI settings for each project
+    const projectAiSettings: ExportProjectAISettings[] = [];
+    for (const project of projects) {
+      try {
+        const settingsRes = await aiAPI.getProjectSettings(project.path);
+        if (settingsRes.data && (settingsRes.data.preferredServiceId || settingsRes.data.preferredTemplateId)) {
+          projectAiSettings.push({
+            projectPath: settingsRes.data.projectPath,
+            preferredServiceId: settingsRes.data.preferredServiceId,
+            preferredTemplateId: settingsRes.data.preferredTemplateId,
+          });
+        }
+      } catch {
+        // Skip if project AI settings don't exist
+      }
+    }
+
+    // Load deployment configs for each project
+    const deploymentConfigs: DeploymentConfig[] = [];
+    for (const project of projects) {
+      try {
+        const config = await deployAPI.getDeploymentConfig(project.id);
+        if (config) {
+          deploymentConfigs.push(config);
+        }
+      } catch {
+        // Skip if deployment config doesn't exist
+      }
+    }
+
+    // Convert deploy accounts to export format (strip tokens for security)
+    const exportDeployAccounts: ExportDeployAccount[] = deployAccounts.map((account) => ({
+      id: account.id,
+      platform: account.platform,
+      platformUserId: account.platformUserId,
+      username: account.username,
+      displayName: account.displayName,
+      avatarUrl: account.avatarUrl,
+      connectedAt: account.connectedAt,
+      expiresAt: account.expiresAt,
+    }));
+
+    // Convert deploy preferences to export format
+    const exportDeployPreferences: ExportDeployPreferences = {
+      defaultGithubPagesAccountId: deployPreferences.defaultGithubPagesAccountId ?? undefined,
+      defaultNetlifyAccountId: deployPreferences.defaultNetlifyAccountId ?? undefined,
+      defaultCloudflareAccountId: deployPreferences.defaultCloudflarePagesAccountId ?? undefined,
+    };
 
     const settingsWithShortcuts = {
       ...settings,
@@ -203,11 +302,22 @@ export async function exportAllData(): Promise<ExportResult> {
     const exportData: ExportData = {
       metadata,
       data: {
+        // Core data
         projects,
         workflows,
         worktreeTemplates: templates,
         customStepTemplates: stepTemplates,
         settings: settingsWithShortcuts,
+        // AI Integration
+        aiServices,
+        aiTemplates,
+        projectAiSettings,
+        // MCP
+        mcpConfig,
+        // Deploy (without sensitive tokens)
+        deployAccounts: exportDeployAccounts,
+        deployPreferences: exportDeployPreferences,
+        deploymentConfigs,
       },
     };
 
@@ -219,16 +329,25 @@ export async function exportAllData(): Promise<ExportResult> {
       throw new Error(`Failed to write file: ${writeError instanceof Error ? writeError.message : String(writeError)}`);
     }
 
+    const counts: ExportCounts = {
+      projects: projects.length,
+      workflows: workflows.length,
+      templates: templates.length,
+      stepTemplates: stepTemplates.length,
+      hasSettings: true,
+      aiServices: aiServices.length,
+      aiTemplates: aiTemplates.length,
+      projectAiSettings: projectAiSettings.length,
+      hasMcpConfig: true,
+      deployAccounts: exportDeployAccounts.length,
+      hasDeployPreferences: true,
+      deploymentConfigs: deploymentConfigs.length,
+    };
+
     return {
       success: true,
       filePath,
-      counts: {
-        projects: projects.length,
-        workflows: workflows.length,
-        templates: templates.length,
-        stepTemplates: stepTemplates.length,
-        hasSettings: true,
-      },
+      counts,
     };
   } catch (error) {
     console.error('Export failed:', error);
@@ -292,15 +411,27 @@ export async function selectImportFile(): Promise<ImportFileResult> {
       stepTemplates: existingStepTemplatesRes.templates ?? [],
     });
 
+    const counts: ExportCounts = {
+      projects: data.data.projects?.length ?? 0,
+      workflows: data.data.workflows?.length ?? 0,
+      templates: data.data.worktreeTemplates?.length ?? 0,
+      stepTemplates: data.data.customStepTemplates?.length ?? 0,
+      hasSettings: !!data.data.settings,
+      // AI Integration
+      aiServices: data.data.aiServices?.length ?? 0,
+      aiTemplates: data.data.aiTemplates?.length ?? 0,
+      projectAiSettings: data.data.projectAiSettings?.length ?? 0,
+      // MCP
+      hasMcpConfig: !!data.data.mcpConfig,
+      // Deploy
+      deployAccounts: data.data.deployAccounts?.length ?? 0,
+      hasDeployPreferences: !!data.data.deployPreferences,
+      deploymentConfigs: data.data.deploymentConfigs?.length ?? 0,
+    };
+
     const preview: ImportPreview = {
       metadata: data.metadata,
-      counts: {
-        projects: data.data.projects?.length ?? 0,
-        workflows: data.data.workflows?.length ?? 0,
-        templates: data.data.worktreeTemplates?.length ?? 0,
-        stepTemplates: data.data.customStepTemplates?.length ?? 0,
-        hasSettings: !!data.data.settings,
-      },
+      counts,
       conflicts,
       versionWarning: validation.warnings?.[0],
     };
@@ -326,10 +457,27 @@ export async function executeImport(
   filePath: string,
   strategy: ConflictResolutionStrategy = { defaultAction: 'skip' }
 ): Promise<ImportResult> {
+  const createEmptySummaryItem = (): ImportSummaryItem => ({
+    projects: 0,
+    workflows: 0,
+    templates: 0,
+    stepTemplates: 0,
+    aiServices: 0,
+    aiTemplates: 0,
+    deployAccounts: 0,
+    deploymentConfigs: 0,
+  });
+
   const summary = {
-    imported: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0, settings: false },
-    skipped: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0 },
-    overwritten: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0 },
+    imported: {
+      ...createEmptySummaryItem(),
+      settings: false,
+      mcpConfig: false,
+      deployPreferences: false,
+      projectAiSettings: 0,
+    },
+    skipped: createEmptySummaryItem(),
+    overwritten: createEmptySummaryItem(),
   };
 
   const isReplaceMode = strategy.mode === 'replace';
@@ -391,6 +539,93 @@ export async function executeImport(
         }
         summary.imported.settings = true;
       }
+
+      // Import AI Services (replace mode)
+      if (importData.data.aiServices) {
+        // Delete existing AI services first
+        const existingServicesRes = await aiAPI.listServices();
+        for (const service of existingServicesRes.data ?? []) {
+          await aiAPI.deleteService(service.id);
+        }
+        // Add imported services (note: API keys are not included in export)
+        for (const service of importData.data.aiServices) {
+          await aiAPI.addService({
+            name: service.name,
+            provider: service.provider,
+            endpoint: service.endpoint,
+            model: service.model,
+          });
+        }
+        summary.imported.aiServices = importData.data.aiServices.length;
+      }
+
+      // Import AI Templates (replace mode)
+      if (importData.data.aiTemplates) {
+        // Delete existing non-builtin templates first
+        const existingTemplatesRes = await aiAPI.listTemplates();
+        for (const template of existingTemplatesRes.data ?? []) {
+          if (!template.isBuiltin) {
+            await aiAPI.deleteTemplate(template.id);
+          }
+        }
+        // Add imported templates
+        for (const template of importData.data.aiTemplates) {
+          if (!template.isBuiltin) {
+            await aiAPI.addTemplate({
+              name: template.name,
+              description: template.description,
+              category: template.category,
+              template: template.template,
+              outputFormat: template.outputFormat,
+            });
+          }
+        }
+        summary.imported.aiTemplates = importData.data.aiTemplates.filter((t) => !t.isBuiltin).length;
+      }
+
+      // Import Project AI Settings (replace mode)
+      if (importData.data.projectAiSettings) {
+        for (const settings of importData.data.projectAiSettings) {
+          await aiAPI.updateProjectSettings({
+            projectPath: settings.projectPath,
+            preferredServiceId: settings.preferredServiceId,
+            preferredTemplateId: settings.preferredTemplateId,
+          });
+        }
+        summary.imported.projectAiSettings = importData.data.projectAiSettings.length;
+      }
+
+      // Import MCP Config (replace mode)
+      if (importData.data.mcpConfig) {
+        await mcpAPI.saveConfig(importData.data.mcpConfig);
+        summary.imported.mcpConfig = true;
+      }
+
+      // Import Deploy Preferences (replace mode)
+      if (importData.data.deployPreferences) {
+        const prefs = importData.data.deployPreferences;
+        if (prefs.defaultGithubPagesAccountId) {
+          await deployAPI.setDefaultAccount('github_pages', prefs.defaultGithubPagesAccountId);
+        }
+        if (prefs.defaultNetlifyAccountId) {
+          await deployAPI.setDefaultAccount('netlify', prefs.defaultNetlifyAccountId);
+        }
+        if (prefs.defaultCloudflareAccountId) {
+          await deployAPI.setDefaultAccount('cloudflare_pages', prefs.defaultCloudflareAccountId);
+        }
+        summary.imported.deployPreferences = true;
+      }
+
+      // Import Deployment Configs (replace mode)
+      if (importData.data.deploymentConfigs) {
+        for (const config of importData.data.deploymentConfigs) {
+          await deployAPI.saveDeploymentConfig(config);
+        }
+        summary.imported.deploymentConfigs = importData.data.deploymentConfigs.length;
+      }
+
+      // Note: Deploy accounts are NOT imported in replace mode because they require OAuth re-authentication
+      // Users should use the dedicated encrypted backup/restore feature for deploy accounts
 
       return { success: true, summary };
     }
@@ -475,6 +710,91 @@ export async function executeImport(
 
       summary.imported.settings = true;
     }
+
+    // Import AI Services (merge mode - add new ones only)
+    if (importData.data.aiServices) {
+      const existingServicesRes = await aiAPI.listServices();
+      const existingIds = new Set((existingServicesRes.data ?? []).map((s) => s.id));
+
+      for (const service of importData.data.aiServices) {
+        if (!existingIds.has(service.id)) {
+          await aiAPI.addService({
+            name: service.name,
+            provider: service.provider,
+            endpoint: service.endpoint,
+            model: service.model,
+          });
+          summary.imported.aiServices++;
+        } else {
+          summary.skipped.aiServices++;
+        }
+      }
+    }
+
+    // Import AI Templates (merge mode - add new non-builtin ones only)
+    if (importData.data.aiTemplates) {
+      const existingTemplatesRes = await aiAPI.listTemplates();
+      const existingIds = new Set((existingTemplatesRes.data ?? []).map((t) => t.id));
+
+      for (const template of importData.data.aiTemplates) {
+        if (!template.isBuiltin && !existingIds.has(template.id)) {
+          await aiAPI.addTemplate({
+            name: template.name,
+            description: template.description,
+            category: template.category,
+            template: template.template,
+            outputFormat: template.outputFormat,
+          });
+          summary.imported.aiTemplates++;
+        } else if (!template.isBuiltin) {
+          summary.skipped.aiTemplates++;
+        }
+      }
+    }
+
+    // Import Project AI Settings (merge mode - always update)
+    if (importData.data.projectAiSettings) {
+      for (const settings of importData.data.projectAiSettings) {
+        await aiAPI.updateProjectSettings({
+          projectPath: settings.projectPath,
+          preferredServiceId: settings.preferredServiceId,
+          preferredTemplateId: settings.preferredTemplateId,
+        });
+        summary.imported.projectAiSettings++;
+      }
+    }
+
+    // Import MCP Config (merge mode - always overwrite)
+    if (importData.data.mcpConfig) {
+      await mcpAPI.saveConfig(importData.data.mcpConfig);
+      summary.imported.mcpConfig = true;
+    }
+
+    // Import Deploy Preferences (merge mode - always overwrite)
+    if (importData.data.deployPreferences) {
+      const prefs = importData.data.deployPreferences;
+      if (prefs.defaultGithubPagesAccountId) {
+        await deployAPI.setDefaultAccount('github_pages', prefs.defaultGithubPagesAccountId);
+      }
+      if (prefs.defaultNetlifyAccountId) {
+        await deployAPI.setDefaultAccount('netlify', prefs.defaultNetlifyAccountId);
+      }
+      if (prefs.defaultCloudflareAccountId) {
+        await deployAPI.setDefaultAccount('cloudflare_pages', prefs.defaultCloudflareAccountId);
+      }
+      summary.imported.deployPreferences = true;
+    }
+
+    // Import Deployment Configs (merge mode - update existing or add new)
+    if (importData.data.deploymentConfigs) {
+      for (const config of importData.data.deploymentConfigs) {
+        await deployAPI.saveDeploymentConfig(config);
+        summary.imported.deploymentConfigs++;
+      }
+    }
+
+    // Note: Deploy accounts are NOT imported in merge mode because they require OAuth re-authentication
+    // Users should use the dedicated encrypted backup/restore feature for deploy accounts
 
     return { success: true, summary };
   } catch (error) {

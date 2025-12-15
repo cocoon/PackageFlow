@@ -1,10 +1,26 @@
 // MCP Repository
-// Handles all database operations for MCP server configuration
+// Handles all database operations for MCP server configuration and logs
 
+use chrono::{DateTime, Utc};
 use rusqlite::params;
+use serde::{Deserialize, Serialize};
 
 use crate::models::mcp::{MCPEncryptedSecrets, MCPPermissionMode, MCPServerConfig};
 use crate::utils::database::Database;
+
+/// MCP request log entry
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpLogEntry {
+    pub id: Option<i64>,
+    pub timestamp: DateTime<Utc>,
+    pub tool: String,
+    pub arguments: serde_json::Value,
+    pub result: String,
+    pub duration_ms: u64,
+    pub error: Option<String>,
+    pub source: Option<String>,
+}
 
 /// Repository for MCP configuration data access
 pub struct MCPRepository {
@@ -125,6 +141,116 @@ impl MCPRepository {
             Ok(())
         })
     }
+
+    // ============================================================================
+    // MCP Logs
+    // ============================================================================
+
+    /// Insert a new MCP log entry
+    pub fn insert_log(&self, entry: &McpLogEntry) -> Result<i64, String> {
+        let arguments_json = serde_json::to_string(&entry.arguments)
+            .map_err(|e| format!("Failed to serialize arguments: {}", e))?;
+
+        self.db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                INSERT INTO mcp_logs (timestamp, tool, arguments, result, duration_ms, error, source)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                "#,
+                params![
+                    entry.timestamp.to_rfc3339(),
+                    entry.tool,
+                    arguments_json,
+                    entry.result,
+                    entry.duration_ms as i64,
+                    entry.error,
+                    entry.source.as_deref().unwrap_or("mcp_server"),
+                ],
+            )
+            .map_err(|e| format!("Failed to insert MCP log: {}", e))?;
+
+            Ok(conn.last_insert_rowid())
+        })
+    }
+
+    /// Get MCP logs with optional limit
+    pub fn get_logs(&self, limit: Option<usize>) -> Result<Vec<McpLogEntry>, String> {
+        let limit = limit.unwrap_or(100) as i64;
+
+        self.db.with_connection(|conn| {
+            let mut stmt = conn
+                .prepare(
+                    r#"
+                    SELECT id, timestamp, tool, arguments, result, duration_ms, error, source
+                    FROM mcp_logs
+                    ORDER BY timestamp DESC
+                    LIMIT ?1
+                    "#,
+                )
+                .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+            let rows = stmt
+                .query_map(params![limit], |row| {
+                    Ok(McpLogRow {
+                        id: row.get(0)?,
+                        timestamp: row.get(1)?,
+                        tool: row.get(2)?,
+                        arguments: row.get(3)?,
+                        result: row.get(4)?,
+                        duration_ms: row.get(5)?,
+                        error: row.get(6)?,
+                        source: row.get(7)?,
+                    })
+                })
+                .map_err(|e| format!("Failed to query MCP logs: {}", e))?;
+
+            let mut entries = Vec::new();
+            for row in rows {
+                let row = row.map_err(|e| format!("Failed to read row: {}", e))?;
+                entries.push(row.into_entry()?);
+            }
+
+            Ok(entries)
+        })
+    }
+
+    /// Get total count of MCP logs
+    pub fn get_log_count(&self) -> Result<usize, String> {
+        self.db.with_connection(|conn| {
+            conn.query_row("SELECT COUNT(*) FROM mcp_logs", [], |row| row.get(0))
+                .map_err(|e| format!("Failed to count MCP logs: {}", e))
+        })
+    }
+
+    /// Clear all MCP logs
+    pub fn clear_logs(&self) -> Result<(), String> {
+        self.db.with_connection(|conn| {
+            conn.execute("DELETE FROM mcp_logs", [])
+                .map_err(|e| format!("Failed to clear MCP logs: {}", e))?;
+            Ok(())
+        })
+    }
+
+    /// Delete old logs (keep only the most recent N entries)
+    pub fn prune_logs(&self, keep_count: usize) -> Result<usize, String> {
+        self.db.with_connection(|conn| {
+            let deleted = conn
+                .execute(
+                    r#"
+                    DELETE FROM mcp_logs
+                    WHERE id NOT IN (
+                        SELECT id FROM mcp_logs
+                        ORDER BY timestamp DESC
+                        LIMIT ?1
+                    )
+                    "#,
+                    params![keep_count as i64],
+                )
+                .map_err(|e| format!("Failed to prune MCP logs: {}", e))?;
+
+            Ok(deleted)
+        })
+    }
 }
 
 /// Internal row structure for mapping database rows
@@ -161,6 +287,40 @@ impl MCPConfigRow {
             allowed_tools,
             log_requests: self.log_requests != 0,
             encrypted_secrets,
+        })
+    }
+}
+
+/// Internal row structure for MCP log entries
+struct McpLogRow {
+    id: i64,
+    timestamp: String,
+    tool: String,
+    arguments: String,
+    result: String,
+    duration_ms: i64,
+    error: Option<String>,
+    source: Option<String>,
+}
+
+impl McpLogRow {
+    fn into_entry(self) -> Result<McpLogEntry, String> {
+        let timestamp = DateTime::parse_from_rfc3339(&self.timestamp)
+            .map_err(|e| format!("Failed to parse timestamp: {}", e))?
+            .with_timezone(&Utc);
+
+        let arguments: serde_json::Value = serde_json::from_str(&self.arguments)
+            .unwrap_or(serde_json::json!({}));
+
+        Ok(McpLogEntry {
+            id: Some(self.id),
+            timestamp,
+            tool: self.tool,
+            arguments,
+            result: self.result,
+            duration_ms: self.duration_ms as u64,
+            error: self.error,
+            source: self.source,
         })
     }
 }

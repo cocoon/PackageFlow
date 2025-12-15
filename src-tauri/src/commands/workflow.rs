@@ -1,5 +1,6 @@
 // Workflow automation commands
 // Implements US4: Visual Workflow Automation
+// Updated to use SQLite database for storage
 
 use chrono::Utc;
 use regex::Regex;
@@ -9,7 +10,6 @@ use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_store::StoreExt;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use uuid::Uuid;
 
@@ -18,9 +18,12 @@ use crate::models::webhook::{
     WebhookConfig, WebhookDeliveryPayload, WebhookTrigger, DEFAULT_PAYLOAD_TEMPLATE,
 };
 use crate::models::{Execution, ExecutionStatus, Project, Workflow, WorkflowNode};
+use crate::repositories::{ExecutionRepository, ProjectRepository, WorkflowRepository};
+use crate::services::crypto;
 use crate::services::notification::{send_webhook_notification, WebhookNotificationType};
+use crate::utils::database::Database;
 use crate::utils::path_resolver;
-use crate::utils::store::{EXECUTION_HISTORY_FILE, STORE_FILE};
+use crate::DatabaseState;
 
 // Unix-specific imports for process signal handling
 #[cfg(unix)]
@@ -246,40 +249,39 @@ pub struct ChildExecutionCompletedPayload {
 
 // Note: load_workflows is in settings.rs to avoid duplication
 
-/// Save a workflow to store
+/// Save a workflow to SQLite database
 #[tauri::command]
-pub async fn save_workflow(app: AppHandle, workflow: Workflow) -> Result<(), String> {
+pub async fn save_workflow(
+    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+    workflow: Workflow,
+) -> Result<(), String> {
     println!(
         "[workflow] save_workflow called: id={}, name={}",
         workflow.id, workflow.name
     );
-    let store = app.store(STORE_FILE).map_err(|e| {
-        println!("[workflow] Failed to open store: {}", e);
-        e.to_string()
-    })?;
 
-    // Reload from disk to get latest changes (e.g., from MCP Server)
-    let _ = store.reload();
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
 
-    let mut workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    // Handle incoming webhook token encryption
+    let mut workflow_to_save = workflow.clone();
+    if let Some(ref incoming_webhook) = workflow.incoming_webhook {
+        if !incoming_webhook.token.is_empty() {
+            // Encrypt and store token separately
+            let encrypted = crypto::encrypt(&incoming_webhook.token)
+                .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
+            repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
 
-    // Update or add workflow
-    if let Some(idx) = workflows.iter().position(|w| w.id == workflow.id) {
-        workflows[idx] = workflow;
-    } else {
-        workflows.push(workflow);
+            // Clear token from workflow before saving to main table
+            if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
+                iw.token = String::new();
+            }
+        }
     }
 
-    store.set(
-        "workflows",
-        serde_json::to_value(&workflows).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    repo.save(&workflow_to_save)?;
 
-    println!("[workflow] Saved {} workflows to store", workflows.len());
+    println!("[workflow] Saved workflow to database: {}", workflow.name);
 
     // Sync incoming webhook server state
     if let Err(e) = crate::commands::incoming_webhook::sync_incoming_webhook_server(&app).await {
@@ -289,40 +291,29 @@ pub async fn save_workflow(app: AppHandle, workflow: Workflow) -> Result<(), Str
     Ok(())
 }
 
-/// Delete a workflow from store
+/// Delete a workflow from SQLite database
 #[tauri::command]
-pub async fn delete_workflow(app: AppHandle, workflow_id: String) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Reload from disk to get latest changes (e.g., from MCP Server)
-    let _ = store.reload();
-
-    let mut workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    workflows.retain(|w| w.id != workflow_id);
-
-    store.set(
-        "workflows",
-        serde_json::to_value(&workflows).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
-    // Sync incoming webhook server state
-    if let Err(e) = crate::commands::incoming_webhook::sync_incoming_webhook_server(&app).await {
-        log::warn!("[workflow] Failed to sync incoming webhook server: {}", e);
-    }
-
-    Ok(())
-}
-
-/// Execute a workflow
-/// Feature 013: Extended to support parent-child execution tracking
-#[tauri::command]
-pub async fn execute_workflow(
+pub async fn delete_workflow(
     app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+    workflow_id: String,
+) -> Result<(), String> {
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
+    repo.delete(&workflow_id)?;
+
+    // Sync incoming webhook server state
+    if let Err(e) = crate::commands::incoming_webhook::sync_incoming_webhook_server(&app).await {
+        log::warn!("[workflow] Failed to sync incoming webhook server: {}", e);
+    }
+
+    Ok(())
+}
+
+/// Execute a workflow (internal implementation)
+/// Takes Database directly for use from non-command contexts (e.g., incoming webhooks)
+pub async fn execute_workflow_internal(
+    app: AppHandle,
+    db: Database,
     workflow_id: String,
     parent_execution_id: Option<String>,
     parent_node_id: Option<String>,
@@ -332,21 +323,12 @@ pub async fn execute_workflow(
         workflow_id, parent_execution_id
     );
 
-    // Load workflow (reload from disk to get latest changes from MCP Server)
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let _ = store.reload();
+    // Load workflow from database
+    let workflow_repo = WorkflowRepository::new(db.clone());
+    let project_repo = ProjectRepository::new(db.clone());
 
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    println!("[workflow] Found {} workflows in store", workflows.len());
-
-    let workflow = workflows
-        .iter()
-        .find(|w| w.id == workflow_id)
-        .cloned()
+    let workflow = workflow_repo
+        .get(&workflow_id)?
         .ok_or_else(|| {
             println!("[workflow] Workflow not found: {}", workflow_id);
             "Workflow not found".to_string()
@@ -385,15 +367,7 @@ pub async fn execute_workflow(
 
     // Get project path if workflow is associated with a project
     let project_path: Option<String> = if let Some(ref project_id) = workflow.project_id {
-        let projects: Vec<Project> = store
-            .get("projects")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default();
-
-        projects
-            .iter()
-            .find(|p| &p.id == project_id)
-            .map(|p| p.path.clone())
+        project_repo.get(project_id)?.map(|p| p.path)
     } else {
         None
     };
@@ -444,11 +418,8 @@ pub async fn execute_workflow(
     // Feature 013: Create execution context with pre-loaded data
     // T043: Initialize execution_chain with the starting workflow ID
     let ctx = WorkflowExecutionContext {
-        workflows,
-        projects: store
-            .get("projects")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
+        workflows: workflow_repo.list()?,
+        projects: project_repo.list()?,
         execution_chain: vec![workflow_id.clone()],
     };
 
@@ -473,6 +444,26 @@ pub async fn execute_workflow(
     });
 
     Ok(execution_id)
+}
+
+/// Execute a workflow (Tauri command wrapper)
+/// Feature 013: Extended to support parent-child execution tracking
+#[tauri::command]
+pub async fn execute_workflow(
+    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+    workflow_id: String,
+    parent_execution_id: Option<String>,
+    parent_node_id: Option<String>,
+) -> Result<String, String> {
+    execute_workflow_internal(
+        app,
+        db.0.as_ref().clone(),
+        workflow_id,
+        parent_execution_id,
+        parent_node_id,
+    )
+    .await
 }
 
 /// Execute workflow nodes sequentially with pre-loaded context
@@ -1644,7 +1635,11 @@ pub async fn cancel_execution(
 
 /// Continue a paused execution
 #[tauri::command]
-pub async fn continue_execution(app: AppHandle, execution_id: String) -> Result<(), String> {
+pub async fn continue_execution(
+    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+    execution_id: String,
+) -> Result<(), String> {
     let (workflow, start_index, project_id, workflow_id, parent_execution_id, parent_node_id) = {
         let state = app.state::<WorkflowExecutionState>();
         let mut executions = state.executions.lock().unwrap();
@@ -1672,18 +1667,13 @@ pub async fn continue_execution(app: AppHandle, execution_id: String) -> Result<
         }
     };
 
-    // Load context from store
+    // Load context from database
     // T043: Initialize execution_chain with the continuing workflow ID
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let project_repo = ProjectRepository::new(db.0.as_ref().clone());
     let ctx = WorkflowExecutionContext {
-        workflows: store
-            .get("workflows")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-        projects: store
-            .get("projects")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
+        workflows: workflow_repo.list()?,
+        projects: project_repo.list()?,
         execution_chain: vec![workflow_id],
     };
 
@@ -1782,24 +1772,19 @@ pub async fn get_workflow_output(
 
 /// Restore running executions (placeholder - executions don't persist across restarts)
 #[tauri::command]
-pub async fn restore_running_executions(app: AppHandle) -> Result<(), String> {
-    // Load running executions from store if any were saved
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    let running: Vec<Execution> = store
-        .get("runningExecutions")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+pub async fn restore_running_executions(
+    _app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<(), String> {
+    // Load running executions from database if any were saved
+    let repo = ExecutionRepository::new(db.0.as_ref().clone());
+    let running = repo.list_running()?;
 
     // For now, just mark them as failed since we can't restore actual process state
     // In a real implementation, you might want to offer to restart them
     if !running.is_empty() {
         // Clear the stored running executions
-        store.set(
-            "runningExecutions",
-            serde_json::to_value::<Vec<Execution>>(vec![]).unwrap(),
-        );
-        store.save().map_err(|e| e.to_string())?;
+        repo.clear_running()?;
     }
 
     Ok(())
@@ -2063,22 +2048,15 @@ pub struct AvailableWorkflowInfo {
 /// Get available workflows for trigger selection (excludes the current workflow)
 #[tauri::command]
 pub async fn get_available_workflows(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     exclude_workflow_id: String,
 ) -> Result<Vec<AvailableWorkflowInfo>, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let project_repo = ProjectRepository::new(db.0.as_ref().clone());
 
-    // Load workflows
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    // Load projects for name lookup
-    let projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    // Load workflows and projects
+    let workflows = workflow_repo.list()?;
+    let projects = project_repo.list()?;
 
     // Build project name lookup map
     let project_map: HashMap<String, String> =
@@ -2129,17 +2107,14 @@ pub struct CycleDetectionResult {
 /// Returns true if adding target_workflow_id as a trigger in source_workflow_id would create a cycle
 #[tauri::command]
 pub async fn detect_workflow_cycle(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     source_workflow_id: String,
     target_workflow_id: String,
 ) -> Result<CycleDetectionResult, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
 
     // Load all workflows
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let workflows = workflow_repo.list()?;
 
     // Build adjacency list (workflow_id -> list of triggered workflow_ids)
     let mut adjacency: HashMap<String, Vec<String>> = HashMap::new();
@@ -2332,67 +2307,55 @@ pub struct ExecutionHistoryStore {
     pub settings: Option<ExecutionHistorySettings>,
 }
 
-const HISTORY_STORE_KEY: &str = "executionHistory";
+/// Settings key for execution history
+const EXECUTION_HISTORY_SETTINGS_KEY: &str = "execution_history_settings";
 
 /// Load execution history for a workflow
 #[tauri::command]
 pub async fn load_execution_history(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     workflow_id: String,
 ) -> Result<Vec<ExecutionHistoryItem>, String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
-
-    let history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let items = history_store
-        .histories
-        .get(&workflow_id)
-        .cloned()
-        .unwrap_or_default();
-    Ok(items)
+    let repo = ExecutionRepository::new(db.0.as_ref().clone());
+    repo.list_history_by_workflow(&workflow_id, None)
 }
 
 /// Load all execution history
 #[tauri::command]
-pub async fn load_all_execution_history(app: AppHandle) -> Result<ExecutionHistoryStore, String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
+pub async fn load_all_execution_history(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<ExecutionHistoryStore, String> {
+    use crate::repositories::SettingsRepository;
 
-    let history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    let execution_repo = ExecutionRepository::new(db.0.as_ref().clone());
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
 
-    Ok(history_store)
+    let histories = execution_repo.list_all_history_grouped()?;
+    let settings: Option<ExecutionHistorySettings> =
+        settings_repo.get(EXECUTION_HISTORY_SETTINGS_KEY)?;
+
+    Ok(ExecutionHistoryStore {
+        version: "3.0".to_string(),
+        histories,
+        settings,
+    })
 }
 
 /// Save a new execution history item
 #[tauri::command]
 pub async fn save_execution_history(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     item: ExecutionHistoryItem,
 ) -> Result<(), String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
+    use crate::repositories::SettingsRepository;
 
-    let mut history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_else(|| ExecutionHistoryStore {
-            version: "1.0".to_string(),
-            histories: HashMap::new(),
-            settings: Some(ExecutionHistorySettings::default()),
-        });
+    let execution_repo = ExecutionRepository::new(db.0.as_ref().clone());
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
 
-    let settings = history_store.settings.clone().unwrap_or_default();
-    let workflow_id = item.workflow_id.clone();
+    // Get settings for trimming
+    let settings: ExecutionHistorySettings = settings_repo
+        .get(EXECUTION_HISTORY_SETTINGS_KEY)?
+        .unwrap_or_default();
 
     // Trim output if needed
     let mut trimmed_item = item;
@@ -2408,27 +2371,11 @@ pub async fn save_execution_history(
             .collect();
     }
 
-    // Get or create history list for this workflow
-    let items = history_store
-        .histories
-        .entry(workflow_id)
-        .or_insert_with(Vec::new);
+    // Save history item
+    execution_repo.save_history(&trimmed_item)?;
 
-    // Add new item
-    items.push(trimmed_item);
-
-    // Enforce max limit
-    if items.len() > settings.max_history_per_workflow {
-        let excess = items.len() - settings.max_history_per_workflow;
-        items.drain(0..excess);
-    }
-
-    // Save back to store
-    store.set(
-        HISTORY_STORE_KEY,
-        serde_json::to_value(&history_store).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    // Prune old history (enforce max limit per workflow)
+    execution_repo.prune_history(settings.max_history_per_workflow)?;
 
     Ok(())
 }
@@ -2436,88 +2383,35 @@ pub async fn save_execution_history(
 /// Delete a specific history item
 #[tauri::command]
 pub async fn delete_execution_history(
-    app: AppHandle,
-    workflow_id: String,
+    db: tauri::State<'_, DatabaseState>,
+    _workflow_id: String,
     history_id: String,
 ) -> Result<(), String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
-
-    let mut history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    if let Some(items) = history_store.histories.get_mut(&workflow_id) {
-        items.retain(|item| item.id != history_id);
-
-        // Remove empty lists
-        if items.is_empty() {
-            history_store.histories.remove(&workflow_id);
-        }
-    }
-
-    // Save back to store
-    store.set(
-        HISTORY_STORE_KEY,
-        serde_json::to_value(&history_store).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
+    let repo = ExecutionRepository::new(db.0.as_ref().clone());
+    repo.delete_history(&history_id)?;
     Ok(())
 }
 
 /// Clear all history for a workflow
 #[tauri::command]
 pub async fn clear_workflow_execution_history(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     workflow_id: String,
 ) -> Result<(), String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
-
-    let mut history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    history_store.histories.remove(&workflow_id);
-
-    // Save back to store
-    store.set(
-        HISTORY_STORE_KEY,
-        serde_json::to_value(&history_store).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
+    let repo = ExecutionRepository::new(db.0.as_ref().clone());
+    repo.clear_workflow_history(&workflow_id)?;
     Ok(())
 }
 
 /// Update execution history settings
 #[tauri::command]
 pub async fn update_execution_history_settings(
-    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
     settings: ExecutionHistorySettings,
 ) -> Result<(), String> {
-    let store = app
-        .store(EXECUTION_HISTORY_FILE)
-        .map_err(|e| e.to_string())?;
+    use crate::repositories::SettingsRepository;
 
-    let mut history_store: ExecutionHistoryStore = store
-        .get(HISTORY_STORE_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    history_store.settings = Some(settings);
-
-    // Save back to store
-    store.set(
-        HISTORY_STORE_KEY,
-        serde_json::to_value(&history_store).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
+    settings_repo.set(EXECUTION_HISTORY_SETTINGS_KEY, &settings)?;
     Ok(())
 }

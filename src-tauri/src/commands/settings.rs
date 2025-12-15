@@ -1,22 +1,13 @@
 // Settings commands for data persistence
 // Implements US7: Data Persistence Across Sessions
+// Updated to use SQLite database for storage
 
 use crate::models::{Project, Workflow};
-use crate::utils::store::{AppSettings, StoreData, STORE_FILE};
-use std::path::PathBuf;
-use std::sync::Mutex;
-use tauri::Manager;
-use tauri_plugin_store::StoreExt;
-
-/// Config file name for storing custom store path
-const STORE_CONFIG_FILE: &str = "store-config.json";
-
-/// Store path configuration
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct StoreConfig {
-    pub custom_store_path: Option<String>,
-}
+use crate::repositories::{ProjectRepository, SettingsRepository, WorkflowRepository};
+use crate::services::crypto;
+use crate::utils::database::get_database_path;
+use crate::utils::store::{AppSettings, StoreData};
+use crate::DatabaseState;
 
 /// Response for get_store_path command
 #[derive(Debug, Clone, serde::Serialize)]
@@ -27,236 +18,165 @@ pub struct StorePathInfo {
     pub is_custom: bool,
 }
 
-/// Get the default store directory path
-fn get_default_store_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))
+/// Load settings from SQLite database
+#[tauri::command]
+pub async fn load_settings(db: tauri::State<'_, DatabaseState>) -> Result<AppSettings, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.get_app_settings()
 }
 
-/// Load store config from the fixed config file location
-fn load_store_config(app: &tauri::AppHandle) -> Result<StoreConfig, String> {
-    let config_store = app.store(STORE_CONFIG_FILE).map_err(|e| e.to_string())?;
-
-    let config: StoreConfig = config_store
-        .get("config")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    Ok(config)
+/// Save settings to SQLite database
+#[tauri::command]
+pub async fn save_settings(
+    db: tauri::State<'_, DatabaseState>,
+    settings: AppSettings,
+) -> Result<(), String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.save_app_settings(&settings)
 }
 
-/// Save store config to the fixed config file location
-fn save_store_config(app: &tauri::AppHandle, config: &StoreConfig) -> Result<(), String> {
-    let config_store = app.store(STORE_CONFIG_FILE).map_err(|e| e.to_string())?;
+/// Load all projects from SQLite database
+#[tauri::command]
+pub async fn load_projects(db: tauri::State<'_, DatabaseState>) -> Result<Vec<Project>, String> {
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
+    repo.list()
+}
 
-    config_store.set(
-        "config",
-        serde_json::to_value(config).map_err(|e| e.to_string())?,
-    );
-    config_store.save().map_err(|e| e.to_string())?;
+/// Save projects to SQLite database
+/// Note: This replaces ALL projects - use save_project for single project updates
+#[tauri::command]
+pub async fn save_projects(
+    db: tauri::State<'_, DatabaseState>,
+    projects: Vec<Project>,
+) -> Result<(), String> {
+    let repo = ProjectRepository::new(db.0.as_ref().clone());
+
+    // Get existing projects to determine which ones to delete
+    let existing = repo.list()?;
+    let new_ids: std::collections::HashSet<_> = projects.iter().map(|p| p.id.as_str()).collect();
+
+    // Delete projects that are no longer in the new list
+    for existing_project in &existing {
+        if !new_ids.contains(existing_project.id.as_str()) {
+            repo.delete(&existing_project.id)?;
+        }
+    }
+
+    // Save all projects (insert or update)
+    for project in &projects {
+        repo.save(project)?;
+    }
 
     Ok(())
 }
 
-/// Get the actual store file path (custom or default)
-fn get_actual_store_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let config = load_store_config(app)?;
+/// Load all workflows from SQLite database
+/// Decrypts webhook tokens from separate encrypted storage
+#[tauri::command]
+pub async fn load_workflows(db: tauri::State<'_, DatabaseState>) -> Result<Vec<Workflow>, String> {
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let mut workflows = repo.list()?;
 
-    if let Some(custom_path) = config.custom_store_path {
-        let path = PathBuf::from(&custom_path);
-        // Verify the custom path exists and is a file
-        if path.exists() && path.is_file() {
-            return Ok(path);
-        }
-        // If custom path doesn't exist yet but parent dir exists, allow it
-        if let Some(parent) = path.parent() {
-            if parent.exists() {
-                return Ok(path);
+    // Decrypt webhook tokens for each workflow
+    for workflow in &mut workflows {
+        if let Some(ref mut incoming_webhook) = workflow.incoming_webhook {
+            // Try to get encrypted token
+            if let Ok(Some((ciphertext, nonce))) = repo.get_webhook_token(&workflow.id) {
+                let encrypted = crypto::EncryptedData { ciphertext, nonce };
+                if let Ok(decrypted) = crypto::decrypt(&encrypted) {
+                    incoming_webhook.token = decrypted;
+                }
+            } else if !incoming_webhook.token.is_empty() {
+                // Legacy: token is still in plaintext in JSON, migrate it
+                log::info!(
+                    "Migrating webhook token for workflow {} to encrypted storage",
+                    workflow.id
+                );
+                if let Ok(encrypted) = crypto::encrypt(&incoming_webhook.token) {
+                    let _ = repo.store_webhook_token(
+                        &workflow.id,
+                        &encrypted.ciphertext,
+                        &encrypted.nonce,
+                    );
+                    // Note: We keep the token in the workflow for this load,
+                    // it will be cleared on next save
+                }
             }
         }
-        // Fall back to default if custom path is invalid
-        log::warn!(
-            "Custom store path invalid, falling back to default: {}",
-            custom_path
-        );
     }
-
-    let default_dir = get_default_store_dir(app)?;
-    Ok(default_dir.join(STORE_FILE))
-}
-
-/// Read store data from file (custom or default)
-fn read_store_data_from_path(path: &PathBuf) -> Result<StoreData, String> {
-    if !path.exists() {
-        return Ok(StoreData::default());
-    }
-
-    let content =
-        std::fs::read_to_string(path).map_err(|e| format!("Failed to read store file: {}", e))?;
-
-    serde_json::from_str(&content).map_err(|e| format!("Failed to parse store data: {}", e))
-}
-
-/// Write store data to file
-fn write_store_data_to_path(path: &PathBuf, data: &StoreData) -> Result<(), String> {
-    // Ensure parent directory exists
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
-    }
-
-    let content = serde_json::to_string_pretty(data)
-        .map_err(|e| format!("Failed to serialize store data: {}", e))?;
-
-    std::fs::write(path, content).map_err(|e| format!("Failed to write store file: {}", e))?;
-
-    Ok(())
-}
-
-/// Application state for caching settings
-pub struct SettingsState {
-    pub settings: Mutex<AppSettings>,
-}
-
-impl Default for SettingsState {
-    fn default() -> Self {
-        Self {
-            settings: Mutex::new(AppSettings::default()),
-        }
-    }
-}
-
-/// Load settings from store
-#[tauri::command]
-pub async fn load_settings(app: tauri::AppHandle) -> Result<AppSettings, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Try to load settings from store
-    let settings: AppSettings = store
-        .get("settings")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    Ok(settings)
-}
-
-/// Save settings to store
-#[tauri::command]
-pub async fn save_settings(app: tauri::AppHandle, settings: AppSettings) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Save to store
-    store.set(
-        "settings",
-        serde_json::to_value(&settings).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-/// Load all projects from store
-#[tauri::command]
-pub async fn load_projects(app: tauri::AppHandle) -> Result<Vec<Project>, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Reload from disk to get latest changes (e.g., from MCP Server)
-    let _ = store.reload();
-
-    let projects: Vec<Project> = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    Ok(projects)
-}
-
-/// Save projects to store
-#[tauri::command]
-pub async fn save_projects(app: tauri::AppHandle, projects: Vec<Project>) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    store.set(
-        "projects",
-        serde_json::to_value(&projects).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-
-    Ok(())
-}
-
-/// Load all workflows from store
-#[tauri::command]
-pub async fn load_workflows(app: tauri::AppHandle) -> Result<Vec<Workflow>, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Reload from disk to get latest changes (e.g., from MCP Server)
-    let _ = store.reload();
-
-    let workflows: Vec<Workflow> = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
 
     Ok(workflows)
 }
 
-/// Save workflows to store
+/// Save workflows to SQLite database
+/// Note: This replaces ALL workflows - use save_workflow for single workflow updates
+/// Encrypts webhook tokens to separate storage
 #[tauri::command]
-pub async fn save_workflows(app: tauri::AppHandle, workflows: Vec<Workflow>) -> Result<(), String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+pub async fn save_workflows(
+    db: tauri::State<'_, DatabaseState>,
+    workflows: Vec<Workflow>,
+) -> Result<(), String> {
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
 
-    store.set(
-        "workflows",
-        serde_json::to_value(&workflows).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
+    // Get existing workflows to determine which ones to delete
+    let existing = repo.list()?;
+    let new_ids: std::collections::HashSet<_> = workflows.iter().map(|w| w.id.as_str()).collect();
+
+    // Delete workflows that are no longer in the new list
+    for existing_workflow in &existing {
+        if !new_ids.contains(existing_workflow.id.as_str()) {
+            repo.delete(&existing_workflow.id)?;
+            // Also delete the webhook token
+            let _ = repo.delete_webhook_token(&existing_workflow.id);
+        }
+    }
+
+    // Save all workflows (insert or update) with token encryption
+    for workflow in &workflows {
+        let mut workflow_to_save = workflow.clone();
+
+        // Handle incoming webhook token encryption
+        if let Some(ref incoming_webhook) = workflow.incoming_webhook {
+            if !incoming_webhook.token.is_empty() {
+                // Encrypt and store token separately
+                let encrypted = crypto::encrypt(&incoming_webhook.token)
+                    .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
+                repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
+
+                // Clear token from workflow before saving to main table
+                if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
+                    iw.token = String::new();
+                }
+            }
+        }
+
+        repo.save(&workflow_to_save)?;
+    }
 
     Ok(())
 }
 
-/// Load complete store data
+/// Load complete store data from SQLite database
+/// Used for data export and backup functionality
 #[tauri::command]
-pub async fn load_store_data(app: tauri::AppHandle) -> Result<StoreData, String> {
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+pub async fn load_store_data(db: tauri::State<'_, DatabaseState>) -> Result<StoreData, String> {
+    use crate::repositories::{ExecutionRepository, SecurityRepository};
 
-    // Reload from disk to get latest changes (e.g., from MCP Server)
-    let _ = store.reload();
+    let project_repo = ProjectRepository::new(db.0.as_ref().clone());
+    let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
+    let security_repo = SecurityRepository::new(db.0.as_ref().clone());
+    let execution_repo = ExecutionRepository::new(db.0.as_ref().clone());
 
-    // Load each field separately for flexibility
-    let version: String = store
-        .get("version")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_else(|| String::from("2.0.0"));
-
-    let settings: AppSettings = store
-        .get("settings")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let projects = store
-        .get("projects")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let workflows = store
-        .get("workflows")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let running_executions = store
-        .get("runningExecutions")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
-
-    let security_scans = store
-        .get("securityScans")
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default();
+    // Load all data from repositories
+    let projects = project_repo.list()?;
+    let workflows = workflow_repo.list()?;
+    let settings = settings_repo.get_app_settings()?;
+    let security_scans = security_repo.list_all()?;
+    let running_executions = execution_repo.list_running_as_map()?;
 
     Ok(StoreData {
-        version,
+        version: String::from("3.0.0"), // SQLite version
         projects,
         workflows,
         running_executions,
@@ -267,172 +187,62 @@ pub async fn load_store_data(app: tauri::AppHandle) -> Result<StoreData, String>
 
 // ============================================================================
 // Store Path Management Commands
+// Note: These commands now report SQLite database location.
+// Custom path functionality is deprecated with SQLite storage.
 // ============================================================================
 
 /// Get current store path information
+/// Returns the SQLite database file path
 #[tauri::command]
-pub async fn get_store_path(app: tauri::AppHandle) -> Result<StorePathInfo, String> {
-    let config = load_store_config(&app)?;
-    let default_dir = get_default_store_dir(&app)?;
-    let default_path = default_dir.join(STORE_FILE);
-
-    let (current_path, is_custom) = if let Some(custom_path) = &config.custom_store_path {
-        let path = PathBuf::from(custom_path);
-        // Verify the path is valid
-        if path.exists() || path.parent().map(|p| p.exists()).unwrap_or(false) {
-            (custom_path.clone(), true)
-        } else {
-            (default_path.to_string_lossy().to_string(), false)
-        }
-    } else {
-        (default_path.to_string_lossy().to_string(), false)
-    };
+pub async fn get_store_path(_app: tauri::AppHandle) -> Result<StorePathInfo, String> {
+    let db_path = get_database_path()?;
+    let path_str = db_path.to_string_lossy().to_string();
 
     Ok(StorePathInfo {
-        current_path,
-        default_path: default_path.to_string_lossy().to_string(),
-        is_custom,
+        current_path: path_str.clone(),
+        default_path: path_str,
+        is_custom: false, // SQLite always uses fixed location
     })
 }
 
-/// Set custom store path and migrate data
+/// Set custom store path
+/// Deprecated: SQLite databases use a fixed location for WAL mode compatibility
 #[tauri::command]
 pub async fn set_store_path(
-    app: tauri::AppHandle,
-    new_path: String,
+    _app: tauri::AppHandle,
+    _new_path: String,
 ) -> Result<StorePathInfo, String> {
-    let new_path_buf = PathBuf::from(&new_path);
-
-    // Validate the new path
-    if let Some(parent) = new_path_buf.parent() {
-        if !parent.exists() {
-            return Err(format!("Directory does not exist: {}", parent.display()));
-        }
-    } else {
-        return Err("Invalid path".to_string());
-    }
-
-    // Get current store data from default location (tauri-plugin-store)
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-
-    // Build current store data
-    let current_data = StoreData {
-        version: store
-            .get("version")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_else(|| String::from("2.0.0")),
-        settings: store
-            .get("settings")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-        projects: store
-            .get("projects")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-        workflows: store
-            .get("workflows")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-        running_executions: store
-            .get("runningExecutions")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-        security_scans: store
-            .get("securityScans")
-            .and_then(|v| serde_json::from_value(v).ok())
-            .unwrap_or_default(),
-    };
-
-    // Write data to new location
-    write_store_data_to_path(&new_path_buf, &current_data)?;
-
-    // Update config to point to new path
-    let config = StoreConfig {
-        custom_store_path: Some(new_path.clone()),
-    };
-    save_store_config(&app, &config)?;
-
-    let default_dir = get_default_store_dir(&app)?;
-    let default_path = default_dir.join(STORE_FILE);
-
-    Ok(StorePathInfo {
-        current_path: new_path,
-        default_path: default_path.to_string_lossy().to_string(),
-        is_custom: true,
-    })
+    Err("Custom storage path is not supported with SQLite database. \
+         The database uses a fixed location for optimal performance and WAL mode compatibility."
+        .to_string())
 }
 
 /// Reset to default store path
+/// No-op with SQLite: database already uses default location
 #[tauri::command]
-pub async fn reset_store_path(app: tauri::AppHandle) -> Result<StorePathInfo, String> {
-    let config = load_store_config(&app)?;
-    let default_dir = get_default_store_dir(&app)?;
-    let default_path = default_dir.join(STORE_FILE);
-
-    // If there's custom data, migrate it back to default location
-    if let Some(custom_path) = &config.custom_store_path {
-        let custom_path_buf = PathBuf::from(custom_path);
-        if custom_path_buf.exists() {
-            // Read custom data
-            let custom_data = read_store_data_from_path(&custom_path_buf)?;
-
-            // Write to default location using tauri-plugin-store
-            let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-            store.set(
-                "version",
-                serde_json::to_value(&custom_data.version).map_err(|e| e.to_string())?,
-            );
-            store.set(
-                "settings",
-                serde_json::to_value(&custom_data.settings).map_err(|e| e.to_string())?,
-            );
-            store.set(
-                "projects",
-                serde_json::to_value(&custom_data.projects).map_err(|e| e.to_string())?,
-            );
-            store.set(
-                "workflows",
-                serde_json::to_value(&custom_data.workflows).map_err(|e| e.to_string())?,
-            );
-            store.set(
-                "runningExecutions",
-                serde_json::to_value(&custom_data.running_executions).map_err(|e| e.to_string())?,
-            );
-            store.set(
-                "securityScans",
-                serde_json::to_value(&custom_data.security_scans).map_err(|e| e.to_string())?,
-            );
-            store.save().map_err(|e| e.to_string())?;
-        }
-    }
-
-    // Clear custom path from config
-    let new_config = StoreConfig {
-        custom_store_path: None,
-    };
-    save_store_config(&app, &new_config)?;
-
-    let current_path = default_path.to_string_lossy().to_string();
+pub async fn reset_store_path(_app: tauri::AppHandle) -> Result<StorePathInfo, String> {
+    let db_path = get_database_path()?;
+    let path_str = db_path.to_string_lossy().to_string();
 
     Ok(StorePathInfo {
-        current_path: current_path.clone(),
-        default_path: current_path,
+        current_path: path_str.clone(),
+        default_path: path_str,
         is_custom: false,
     })
 }
 
 /// Open store file location in file explorer
+/// Opens the SQLite database file location
 #[tauri::command]
-pub async fn open_store_location(app: tauri::AppHandle) -> Result<(), String> {
-    let path_info = get_store_path(app.clone()).await?;
-    let path = PathBuf::from(&path_info.current_path);
+pub async fn open_store_location(_app: tauri::AppHandle) -> Result<(), String> {
+    let db_path = get_database_path()?;
 
     // reveal_item_in_dir expects the file path, not directory
     // It will open Finder and highlight the file
-    if path.exists() {
-        tauri_plugin_opener::reveal_item_in_dir(&path)
+    if db_path.exists() {
+        tauri_plugin_opener::reveal_item_in_dir(&db_path)
             .map_err(|e| format!("Failed to open folder: {}", e))?;
-    } else if let Some(parent) = path.parent() {
+    } else if let Some(parent) = db_path.parent() {
         // Ensure the parent directory exists before opening
         if !parent.exists() {
             std::fs::create_dir_all(parent)
@@ -444,4 +254,108 @@ pub async fn open_store_location(app: tauri::AppHandle) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+// ============================================================================
+// Template Preferences Commands
+// Manages favorites, recently used, collapsed categories, and view mode
+// ============================================================================
+
+use crate::repositories::{TemplatePreferences, TemplateViewMode};
+
+/// Get template preferences
+#[tauri::command]
+pub async fn get_template_preferences(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.get_template_preferences()
+}
+
+/// Toggle a template favorite (add if not exists, remove if exists)
+#[tauri::command]
+pub async fn toggle_template_favorite(
+    db: tauri::State<'_, DatabaseState>,
+    template_id: String,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.toggle_template_favorite(&template_id)
+}
+
+/// Add a template to favorites
+#[tauri::command]
+pub async fn add_template_favorite(
+    db: tauri::State<'_, DatabaseState>,
+    template_id: String,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.add_template_favorite(&template_id)
+}
+
+/// Remove a template from favorites
+#[tauri::command]
+pub async fn remove_template_favorite(
+    db: tauri::State<'_, DatabaseState>,
+    template_id: String,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.remove_template_favorite(&template_id)
+}
+
+/// Record template usage (adds to recently used list)
+#[tauri::command]
+pub async fn record_template_usage(
+    db: tauri::State<'_, DatabaseState>,
+    template_id: String,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.record_template_usage(&template_id)
+}
+
+/// Clear recently used templates
+#[tauri::command]
+pub async fn clear_recently_used_templates(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.clear_recently_used_templates()
+}
+
+/// Toggle category collapse state
+#[tauri::command]
+pub async fn toggle_template_category_collapse(
+    db: tauri::State<'_, DatabaseState>,
+    category_id: String,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.toggle_template_category_collapse(&category_id)
+}
+
+/// Expand all categories
+#[tauri::command]
+pub async fn expand_all_template_categories(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.expand_all_template_categories()
+}
+
+/// Collapse specific categories
+#[tauri::command]
+pub async fn collapse_template_categories(
+    db: tauri::State<'_, DatabaseState>,
+    category_ids: Vec<String>,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.collapse_template_categories(category_ids)
+}
+
+/// Set preferred view mode
+#[tauri::command]
+pub async fn set_template_preferred_view(
+    db: tauri::State<'_, DatabaseState>,
+    view: TemplateViewMode,
+) -> Result<TemplatePreferences, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.set_template_preferred_view(view)
 }

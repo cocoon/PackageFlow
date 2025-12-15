@@ -112,7 +112,7 @@ mod tests {
     #[test]
     fn test_ai_error_message() {
         let err = AIError::NoStagedChanges;
-        assert!(err.to_string().contains("暫存"));
+        assert!(err.to_string().contains("staged"));
     }
 
     #[test]

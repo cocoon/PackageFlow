@@ -1,11 +1,13 @@
 //! Desktop notification service
 //! Provides system-level notifications for webhook events
+//! Now uses SQLite for settings storage.
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
-use tauri_plugin_store::StoreExt;
 
-use crate::utils::store::STORE_FILE;
+use crate::repositories::SettingsRepository;
+use crate::utils::database::Database;
+use crate::DatabaseState;
 
 /// Notification types for webhook events
 pub enum WebhookNotificationType {
@@ -20,22 +22,20 @@ pub enum WebhookNotificationType {
     },
 }
 
+/// Get Database from AppHandle
+fn get_db(app: &AppHandle) -> Database {
+    let db_state = app.state::<DatabaseState>();
+    db_state.0.as_ref().clone()
+}
+
 /// Check if webhook notifications are enabled in settings
 fn are_notifications_enabled(app: &AppHandle) -> bool {
-    let store = match app.store(STORE_FILE) {
-        Ok(s) => s,
-        Err(_) => return true, // Default to enabled if store fails
-    };
+    let repo = SettingsRepository::new(get_db(app));
 
-    let settings = match store.get("settings") {
-        Some(v) => v,
-        None => return true, // Default to enabled if no settings
-    };
-
-    settings
-        .get("webhookNotificationsEnabled")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true) // Default to enabled
+    match repo.get_app_settings() {
+        Ok(settings) => settings.webhook_notifications_enabled,
+        Err(_) => true, // Default to enabled if settings fail to load
+    }
 }
 
 /// Truncate URL for display (show domain only)

@@ -7,7 +7,14 @@ import { ShortcutsProvider } from './contexts/ShortcutsContext';
 import { WorkflowExecutionProvider } from './contexts/WorkflowExecutionContext';
 import { ExecutionHistoryProvider } from './contexts/ExecutionHistoryContext';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { tauriAPI, aiAPI } from './lib/tauri-api';
 import './styles.css';
+
+// Expose APIs for debugging in development
+if (import.meta.env.DEV) {
+  (window as unknown as { tauriAPI: typeof tauriAPI; aiAPI: typeof aiAPI }).tauriAPI = tauriAPI;
+  (window as unknown as { tauriAPI: typeof tauriAPI; aiAPI: typeof aiAPI }).aiAPI = aiAPI;
+}
 
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
