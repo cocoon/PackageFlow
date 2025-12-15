@@ -77,6 +77,9 @@ pub fn run() {
             // Settings commands (US7)
             settings::load_settings,
             settings::save_settings,
+            // Notification settings commands
+            settings::load_notification_settings,
+            settings::save_notification_settings,
             settings::load_projects,
             settings::save_projects,
             settings::load_workflows,
@@ -335,6 +338,8 @@ pub fn run() {
             ai::ai_generate_commit_message,
             ai::ai_generate_code_review,
             ai::ai_generate_staged_review,
+            ai::ai_generate_security_analysis,
+            ai::ai_generate_security_summary,
             ai::ai_store_api_key,
             ai::ai_check_api_key_status,
             // MCP Server Integration
@@ -384,11 +389,66 @@ fn initialize_database() -> Result<Database, String> {
             .map_err(|e| format!("Failed to create database directory: {}", e))?;
     }
 
-    log::info!("[PackageFlow] Initializing database at: {:?}", db_path);
+    println!("[PackageFlow] Initializing database at: {:?}", db_path);
 
     // Create or open database (this also runs migrations internally)
     let db = Database::new(db_path.clone())?;
-    log::info!("[PackageFlow] Database schema migrations complete");
+    println!("[PackageFlow] Database schema migrations complete");
+
+    // ============================================================
+    // CRITICAL DEBUG: Verify actual database file and state
+    // ============================================================
+    let _ = db.with_connection(|conn| {
+        // 1. PRAGMA database_list - 這是 SQLite 真正在用的檔案路徑（權威）
+        println!("=== [STARTUP] PRAGMA database_list (SQLite actual file) ===");
+        match conn.prepare("PRAGMA database_list;") {
+            Ok(mut stmt) => {
+                let rows: Vec<(i64, String, String)> = stmt
+                    .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+                    .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                    .unwrap_or_default();
+                for (seq, name, file) in &rows {
+                    println!("[STARTUP] DB seq={}, name={}, file={}", seq, name, file);
+                }
+            }
+            Err(e) => println!("[STARTUP] PRAGMA database_list failed: {}", e),
+        }
+
+        // 2. journal_mode and foreign_keys
+        let journal: String = conn
+            .query_row("PRAGMA journal_mode;", [], |r| r.get(0))
+            .unwrap_or_else(|_| "unknown".to_string());
+        let fk: i64 = conn
+            .query_row("PRAGMA foreign_keys;", [], |r| r.get(0))
+            .unwrap_or(-1);
+        println!("[STARTUP] journal_mode={}, foreign_keys={}", journal, fk);
+
+        // 3. Row counts - 驗證資料是否存在
+        let projects_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM projects;", [], |r| r.get(0))
+            .unwrap_or(-1);
+        let configs_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM deployment_configs;", [], |r| r.get(0))
+            .unwrap_or(-1);
+        println!("[STARTUP] rowcounts: projects={}, deployment_configs={}", projects_count, configs_count);
+
+        // 4. List deployment_configs if any
+        if configs_count > 0 {
+            println!("[STARTUP] deployment_configs contents:");
+            if let Ok(mut stmt) = conn.prepare("SELECT project_id, platform, account_id FROM deployment_configs") {
+                let rows: Vec<(String, String, Option<String>)> = stmt
+                    .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+                    .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                    .unwrap_or_default();
+                for (pid, plat, aid) in &rows {
+                    println!("  - project_id={}, platform={}, account_id={:?}", pid, plat, aid);
+                }
+            }
+        }
+
+        println!("=== [STARTUP] Database diagnostics complete ===");
+        Ok(())
+    });
 
     Ok(db)
 }

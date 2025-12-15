@@ -12,8 +12,10 @@ use crate::models::deploy::{
 use crate::repositories::DeployRepository;
 use crate::services::crypto;
 use crate::services::crypto::EncryptedData;
+use crate::services::notification::{send_notification, NotificationType};
 use crate::utils::database::Database;
 use crate::DatabaseState;
+use std::path::Path;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
@@ -410,12 +412,29 @@ fn save_config_to_store(app: &AppHandle, config: &DeploymentConfig) -> Result<()
         config.platform,
         config.account_id
     );
+
+    let db = get_db(app);
+
+    // CRITICAL DEBUG: Print PRAGMA database_list to verify we're using the same DB
+    let _ = db.with_connection(|conn| {
+        println!("=== [SAVE] PRAGMA database_list (SQLite actual file) ===");
+        if let Ok(mut stmt) = conn.prepare("PRAGMA database_list;") {
+            let rows: Vec<(i64, String, String)> = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+                .map(|iter| iter.filter_map(|r| r.ok()).collect())
+                .unwrap_or_default();
+            for (seq, name, file) in &rows {
+                println!("[SAVE] DB seq={}, name={}, file={}", seq, name, file);
+            }
+        }
+        Ok(())
+    });
+
     let repo = get_deploy_repo(app);
     let result = repo.save_config(config);
 
     // Force WAL checkpoint to ensure data is persisted
     if result.is_ok() {
-        let db = get_db(app);
         if let Err(e) = db.with_connection(|conn| {
             conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
                 .map_err(|e| format!("WAL checkpoint failed: {}", e))
@@ -423,6 +442,25 @@ fn save_config_to_store(app: &AppHandle, config: &DeploymentConfig) -> Result<()
             println!("[save_config_to_store] WAL checkpoint warning: {}", e);
         }
         println!("[save_config_to_store] SUCCESS for project_id={}", config.project_id);
+
+        // DEBUG: Verify by querying back with same connection
+        let _ = db.with_connection(|conn| {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM deployment_configs WHERE project_id = ?1",
+                    [&config.project_id],
+                    |r| r.get(0),
+                )
+                .unwrap_or(-1);
+            println!("[save_config_to_store] VERIFY: config exists in DB = {}", count > 0);
+
+            // List all configs
+            let total: i64 = conn
+                .query_row("SELECT COUNT(*) FROM deployment_configs", [], |r| r.get(0))
+                .unwrap_or(-1);
+            println!("[save_config_to_store] TOTAL deployment_configs in DB: {}", total);
+            Ok(())
+        });
     } else {
         println!("[save_config_to_store] FAILED: {:?}", result);
     }
@@ -741,6 +779,14 @@ pub async fn start_deployment(
         )
         .await;
 
+        // Extract project name for notifications
+        let project_name = Path::new(&project_path_clone)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Unknown")
+            .to_string();
+        let platform = config_clone.platform.to_string();
+
         // Update deployment status based on result using repository
         let repo = get_deploy_repo(&app_clone);
         if let Ok(Some(mut dep)) = repo.get_deployment(&deployment_id) {
@@ -766,6 +812,15 @@ pub async fn start_deployment(
                             error_message: None,
                         },
                     );
+
+                    // Send desktop notification for deployment success
+                    let _ = send_notification(
+                        &app_clone,
+                        NotificationType::DeploymentSuccess {
+                            project_name: project_name.clone(),
+                            platform: platform.clone(),
+                        },
+                    );
                 }
                 Err(error) => {
                     dep.status = DeploymentStatus::Failed;
@@ -779,7 +834,17 @@ pub async fn start_deployment(
                             deployment_id: deployment_id.clone(),
                             status: DeploymentStatus::Failed,
                             url: None,
-                            error_message: Some(error),
+                            error_message: Some(error.clone()),
+                        },
+                    );
+
+                    // Send desktop notification for deployment failure
+                    let _ = send_notification(
+                        &app_clone,
+                        NotificationType::DeploymentFailed {
+                            project_name,
+                            platform,
+                            error,
                         },
                     );
                 }

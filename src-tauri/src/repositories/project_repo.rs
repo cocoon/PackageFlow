@@ -154,6 +154,9 @@ impl ProjectRepository {
     }
 
     /// Save a project (insert or update)
+    /// IMPORTANT: Uses ON CONFLICT DO UPDATE instead of INSERT OR REPLACE
+    /// to avoid triggering ON DELETE CASCADE on dependent tables like deployment_configs.
+    /// INSERT OR REPLACE internally does DELETE + INSERT which triggers cascades.
     pub fn save(&self, project: &Project) -> Result<(), String> {
         let scripts_json = serde_json::to_string(&project.scripts)
             .map_err(|e| format!("Failed to serialize scripts: {}", e))?;
@@ -164,11 +167,24 @@ impl ProjectRepository {
         self.db.with_connection(|conn| {
             conn.execute(
                 r#"
-                INSERT OR REPLACE INTO projects
+                INSERT INTO projects
                 (id, name, path, version, description, is_monorepo, package_manager,
                  scripts, worktree_sessions, created_at, last_opened_at,
                  monorepo_tool, framework, ui_framework)
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    path = excluded.path,
+                    version = excluded.version,
+                    description = excluded.description,
+                    is_monorepo = excluded.is_monorepo,
+                    package_manager = excluded.package_manager,
+                    scripts = excluded.scripts,
+                    worktree_sessions = excluded.worktree_sessions,
+                    last_opened_at = excluded.last_opened_at,
+                    monorepo_tool = excluded.monorepo_tool,
+                    framework = excluded.framework,
+                    ui_framework = excluded.ui_framework
                 "#,
                 params![
                     project.id,

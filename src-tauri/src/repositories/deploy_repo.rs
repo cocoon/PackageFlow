@@ -149,6 +149,9 @@ impl DeployRepository {
     }
 
     /// Save a deploy account
+    /// IMPORTANT: Uses ON CONFLICT DO UPDATE instead of INSERT OR REPLACE
+    /// to avoid triggering ON DELETE CASCADE on deploy_account_tokens table.
+    /// INSERT OR REPLACE internally does DELETE + INSERT which triggers cascades.
     pub fn save_account(&self, account: &DeployAccount) -> Result<(), String> {
         let platform_str = platform_to_string(&account.platform);
         let connected_at_str = account.connected_at.to_rfc3339();
@@ -157,10 +160,19 @@ impl DeployRepository {
         self.db.with_connection(|conn| {
             conn.execute(
                 r#"
-                INSERT OR REPLACE INTO deploy_accounts
+                INSERT INTO deploy_accounts
                 (id, platform, platform_user_id, username, display_name,
                  avatar_url, access_token, connected_at, expires_at)
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                ON CONFLICT(id) DO UPDATE SET
+                    platform = excluded.platform,
+                    platform_user_id = excluded.platform_user_id,
+                    username = excluded.username,
+                    display_name = excluded.display_name,
+                    avatar_url = excluded.avatar_url,
+                    access_token = excluded.access_token,
+                    connected_at = excluded.connected_at,
+                    expires_at = excluded.expires_at
                 "#,
                 params![
                     account.id,

@@ -139,6 +139,15 @@ impl WorkflowRepository {
 
     /// Save a workflow (insert or update)
     pub fn save(&self, workflow: &Workflow) -> Result<(), String> {
+        // DEBUG: Track ALL save operations
+        println!("=== [WorkflowRepository::save] CALLED ===");
+        println!("[WorkflowRepository::save] id={}, name={}, project_id={:?}",
+            workflow.id, workflow.name, workflow.project_id);
+        // Print backtrace to find caller
+        println!("[WorkflowRepository::save] Backtrace:");
+        let bt = std::backtrace::Backtrace::capture();
+        println!("{}", bt);
+
         let nodes_json = serde_json::to_string(&workflow.nodes)
             .map_err(|e| format!("Failed to serialize nodes: {}", e))?;
 
@@ -154,13 +163,25 @@ impl WorkflowRepository {
             .map(|w| serde_json::to_string(w).ok())
             .flatten();
 
+        // IMPORTANT: Uses ON CONFLICT DO UPDATE instead of INSERT OR REPLACE
+        // to avoid triggering ON DELETE CASCADE on webhook_tokens table.
+        // INSERT OR REPLACE internally does DELETE + INSERT which triggers cascades.
         self.db.with_connection(|conn| {
             conn.execute(
                 r#"
-                INSERT OR REPLACE INTO workflows
+                INSERT INTO workflows
                 (id, name, description, project_id, nodes, webhook, incoming_webhook,
                  created_at, updated_at, last_executed_at)
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    project_id = excluded.project_id,
+                    nodes = excluded.nodes,
+                    webhook = excluded.webhook,
+                    incoming_webhook = excluded.incoming_webhook,
+                    updated_at = excluded.updated_at,
+                    last_executed_at = excluded.last_executed_at
                 "#,
                 params![
                     workflow.id,
@@ -176,6 +197,16 @@ impl WorkflowRepository {
                 ],
             )
             .map_err(|e| format!("Failed to save workflow: {}", e))?;
+
+            // DEBUG: Verify what was actually saved
+            let saved: Option<String> = conn
+                .query_row(
+                    "SELECT project_id FROM workflows WHERE id = ?1",
+                    [&workflow.id],
+                    |row| row.get(0),
+                )
+                .ok();
+            println!("[WorkflowRepository::save] VERIFIED in DB: project_id={:?}", saved);
 
             Ok(())
         })
