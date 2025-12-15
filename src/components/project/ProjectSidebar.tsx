@@ -166,6 +166,7 @@ export function ProjectSidebar({
   const [contextMenu, setContextMenu] = useState<{ projectId: string; x: number; y: number } | null>(null);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sortButtonRef = useRef<HTMLButtonElement>(null);
@@ -361,45 +362,26 @@ export function ProjectSidebar({
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      {/* Header */}
-      <div className="p-3 border-b border-border flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Projects</h2>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onAddProject}
-            className="p-1.5 rounded hover:bg-accent transition-colors"
-            title="Add project"
-          >
-            <Plus className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded hover:bg-accent transition-colors"
-            title="Collapse sidebar"
-          >
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
+      {/* Search and actions */}
+      <div className="p-2 border-b border-border h-[44px] flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="w-full pl-8 pr-3 py-1.5 bg-secondary border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500 transition-all duration-200"
+          />
         </div>
-      </div>
-
-      {/* Search and sort */}
-      <div className="p-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search projects..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
-              className="w-full pl-8 pr-3 py-1.5 bg-secondary border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500"
-            />
-          </div>
+        <div className={`flex items-center gap-1 flex-shrink-0 transition-all duration-200 ${isSearchFocused ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {/* Sort button */}
           <div className="relative">
             <button
@@ -441,6 +423,20 @@ export function ProjectSidebar({
               </>
             )}
           </div>
+          <button
+            onClick={onAddProject}
+            className="p-1.5 rounded hover:bg-accent transition-colors"
+            title="Add project"
+          >
+            <Plus className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded hover:bg-accent transition-colors"
+            title="Collapse sidebar"
+          >
+            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </div>
 

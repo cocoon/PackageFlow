@@ -3,8 +3,8 @@
  * @see specs/001-expo-workflow-automation/spec.md - US3
  */
 
-import { useState, useMemo, useCallback } from 'react';
-import { Workflow as WorkflowIcon, MoreVertical, Trash2, Copy, ArrowUpFromLine, ArrowDownToLine, ArrowUpDown, Check, GripVertical, Loader2, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { Workflow as WorkflowIcon, MoreVertical, Trash2, Copy, ArrowUpFromLine, ArrowDownToLine, ArrowUpDown, Check, GripVertical, Loader2, CheckCircle, XCircle, MinusCircle, Search } from 'lucide-react';
 import type { ExecutionStatus } from '../../types/workflow';
 import {
   DndContext,
@@ -192,6 +192,9 @@ export function WorkflowSidebar({
   const [deleteTarget, setDeleteTarget] = useState<Workflow | null>(null);
   const [contextMenu, setContextMenu] = useState<{ workflowId: string; x: number; y: number } | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -205,20 +208,31 @@ export function WorkflowSidebar({
   );
 
   const sortedWorkflows = useMemo(() => {
-    const sorted = [...workflows];
+    let filtered = [...workflows];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(w =>
+        (w.name || '').toLowerCase().includes(query) ||
+        (w.description || '').toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
     switch (sortMode) {
       case 'name':
-        return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        return filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       case 'updated':
-        return sorted.sort((a, b) =>
+        return filtered.sort((a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
       case 'created':
-        return sorted.sort((a, b) =>
+        return filtered.sort((a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       case 'custom':
-        return sorted.sort((a, b) => {
+        return filtered.sort((a, b) => {
           const aIndex = workflowOrder.indexOf(a.id);
           const bIndex = workflowOrder.indexOf(b.id);
           if (aIndex === -1 && bIndex === -1) return (a.name || '').localeCompare(b.name || '');
@@ -227,11 +241,11 @@ export function WorkflowSidebar({
           return aIndex - bIndex;
         });
       default:
-        return sorted.sort((a, b) =>
+        return filtered.sort((a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
     }
-  }, [workflows, sortMode, workflowOrder]);
+  }, [workflows, sortMode, workflowOrder, searchQuery]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
@@ -279,64 +293,78 @@ export function WorkflowSidebar({
 
   return (
     <div className="flex flex-col h-full bg-background" onClick={closeContextMenu}>
-      {/* Header and add button */}
-      <div className="p-3 border-b border-border">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Workflows</h2>
-          <div className="flex items-center gap-1">
-            {/* Sort button */}
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSortMenu(!showSortMenu);
-                }}
-                className={`p-1.5 rounded hover:bg-accent transition-colors ${
-                  showSortMenu ? 'bg-accent' : ''
-                }`}
-                title="Sort by"
-              >
-                <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-              </button>
-              {/* Sort menu */}
-              {showSortMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowSortMenu(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] whitespace-nowrap">
-                    {SORT_OPTIONS.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          onSortModeChange(option.value);
-                          setShowSortMenu(false);
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
-                      >
-                        <Check
-                          className={`w-4 h-4 ${
-                            sortMode === option.value ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        />
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+      {/* Search and actions */}
+      <div className="p-2 border-b border-border h-[44px] flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="w-full pl-8 pr-3 py-1.5 bg-secondary border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500 transition-all duration-200"
+          />
+        </div>
+        <div className={`flex items-center gap-1 flex-shrink-0 transition-all duration-200 ${isSearchFocused ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+          {/* Sort button */}
+          <div className="relative">
             <button
-              onClick={onCreateWorkflow}
-              className="p-1.5 rounded hover:bg-accent transition-colors"
-              title="Create workflow"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSortMenu(!showSortMenu);
+              }}
+              className={`p-1.5 rounded hover:bg-accent transition-colors ${
+                showSortMenu ? 'bg-accent' : ''
+              }`}
+              title="Sort by"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
             </button>
+            {/* Sort menu */}
+            {showSortMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowSortMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] whitespace-nowrap">
+                  {SORT_OPTIONS.map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        onSortModeChange(option.value);
+                        setShowSortMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                    >
+                      <Check
+                        className={`w-4 h-4 ${
+                          sortMode === option.value ? 'opacity-100' : 'opacity-0'
+                        }`}
+                      />
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
+          <button
+            onClick={onCreateWorkflow}
+            className="p-1.5 rounded hover:bg-accent transition-colors"
+            title="Create workflow"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -344,7 +372,7 @@ export function WorkflowSidebar({
       <div className="flex-1 overflow-y-auto">
         {sortedWorkflows.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground text-sm">
-            No workflows yet
+            {searchQuery ? 'No matching workflows' : 'No workflows yet'}
           </div>
         ) : (
           <DndContext

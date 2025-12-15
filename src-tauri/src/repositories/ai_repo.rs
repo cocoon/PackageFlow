@@ -232,7 +232,7 @@ impl AIRepository {
         &self,
         category: TemplateCategory,
     ) -> Result<Vec<PromptTemplate>, String> {
-        let category_str = format!("{:?}", category).to_lowercase();
+        let category_str = template_category_to_string(&category);
 
         self.db.with_connection(|conn| {
             let mut stmt = conn
@@ -276,7 +276,7 @@ impl AIRepository {
 
     /// Save an AI template
     pub fn save_template(&self, template: &PromptTemplate) -> Result<(), String> {
-        let category_str = format!("{:?}", template.category).to_lowercase();
+        let category_str = template_category_to_string(&template.category);
         let now = Utc::now().to_rfc3339();
         let output_format_str = template.output_format.as_ref().map(commit_format_to_string);
 
@@ -477,7 +477,7 @@ impl AIRepository {
     ) -> Result<Option<PromptTemplate>, String> {
         self.db.with_connection(|conn| {
             let result = if let Some(cat) = category {
-                let category_str = format!("{:?}", cat).to_lowercase();
+                let category_str = template_category_to_string(cat);
                 conn.query_row(
                     r#"
                     SELECT id, name, description, category, template, output_format,
@@ -789,5 +789,17 @@ fn string_to_commit_format(s: &str) -> CommitFormat {
         "simple" => CommitFormat::Simple,
         "custom" => CommitFormat::Custom,
         _ => CommitFormat::ConventionalCommits,
+    }
+}
+
+/// Convert TemplateCategory to database string (snake_case)
+fn template_category_to_string(category: &TemplateCategory) -> &'static str {
+    match category {
+        TemplateCategory::GitCommit => "git_commit",
+        TemplateCategory::PullRequest => "pull_request",
+        TemplateCategory::CodeReview => "code_review",
+        TemplateCategory::Documentation => "documentation",
+        TemplateCategory::ReleaseNotes => "release_notes",
+        TemplateCategory::Custom => "custom",
     }
 }

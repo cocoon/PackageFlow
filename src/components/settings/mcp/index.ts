@@ -1,0 +1,9 @@
+/**
+ * MCP Settings Components
+ * Modular components for the MCP Integration settings panel
+ */
+
+export { ServerStatusCard } from './ServerStatusCard';
+export { PermissionQuickModeSelector } from './PermissionQuickModeSelector';
+export { ToolPermissionMatrix } from './ToolPermissionMatrix';
+export { QuickSetupSection } from './QuickSetupSection';

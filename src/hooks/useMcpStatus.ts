@@ -22,13 +22,21 @@ export function useMcpStatus() {
   useEffect(() => {
     fetchConfig();
 
-    const unlistenPromise = listen('mcp:database-changed', (event) => {
+    // Listen for database changes (file watcher)
+    const unlistenDbPromise = listen('mcp:database-changed', (event) => {
       console.log('MCP database changed, refetching config:', event.payload);
       fetchConfig();
     });
 
+    // Listen for config changes (from update_mcp_config command)
+    const unlistenConfigPromise = listen<McpServerConfig>('mcp:config-changed', (event) => {
+      console.log('MCP config changed:', event.payload);
+      setConfig(event.payload);
+    });
+
     return () => {
-      unlistenPromise.then(unlisten => unlisten());
+      unlistenDbPromise.then(unlisten => unlisten());
+      unlistenConfigPromise.then(unlisten => unlisten());
     };
   }, [fetchConfig]);
 

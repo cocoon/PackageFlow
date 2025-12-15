@@ -2,7 +2,7 @@
 // Updated to use SQLite database for storage
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::repositories::SettingsRepository;
 use crate::DatabaseState;
@@ -259,6 +259,7 @@ pub fn save_mcp_config(
 /// Update specific MCP configuration fields
 #[tauri::command]
 pub fn update_mcp_config(
+    app: AppHandle,
     db: tauri::State<'_, DatabaseState>,
     is_enabled: Option<bool>,
     permission_mode: Option<McpPermissionMode>,
@@ -282,6 +283,10 @@ pub fn update_mcp_config(
     }
 
     repo.set(MCP_CONFIG_KEY, &config)?;
+
+    // Emit event to notify frontend of config change
+    let _ = app.emit("mcp:config-changed", &config);
+
     Ok(config)
 }
 

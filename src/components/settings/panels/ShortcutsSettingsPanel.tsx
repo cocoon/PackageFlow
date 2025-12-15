@@ -183,9 +183,9 @@ export const ShortcutsSettingsPanel: React.FC = () => {
   const customizedCount = Object.keys(settings.customBindings).length;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div>
+      <div className="shrink-0 pb-6">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
           <Keyboard className="w-5 h-5" />
           Keyboard Shortcuts
@@ -197,14 +197,14 @@ export const ShortcutsSettingsPanel: React.FC = () => {
 
       {/* Error display */}
       {error && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-900/30 border border-red-500/30 rounded-lg text-sm text-red-300">
+        <div className="shrink-0 flex items-center gap-2 px-3 py-2 mb-6 bg-red-900/30 border border-red-500/30 rounded-lg text-sm text-red-300">
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
       )}
 
       {/* Global shortcut section */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-3">
+      <div className="shrink-0 p-4 bg-card rounded-lg border border-border space-y-3 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
@@ -288,7 +288,7 @@ export const ShortcutsSettingsPanel: React.FC = () => {
       </div>
 
       {/* Search and filter */}
-      <div className="flex gap-2">
+      <div className="shrink-0 flex gap-2 mb-6">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -322,7 +322,7 @@ export const ShortcutsSettingsPanel: React.FC = () => {
 
       {/* Category tabs */}
       {categories.length > 1 && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="shrink-0 flex gap-2 flex-wrap mb-6">
           <CategoryTab
             label="All"
             count={shortcuts.length}
@@ -344,8 +344,8 @@ export const ShortcutsSettingsPanel: React.FC = () => {
         </div>
       )}
 
-      {/* Shortcuts list */}
-      <div className="space-y-4">
+      {/* Shortcuts list - scrollable area */}
+      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2">
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>
         ) : filteredShortcuts.length === 0 ? (
@@ -409,7 +409,7 @@ export const ShortcutsSettingsPanel: React.FC = () => {
       </div>
 
       {/* Footer info */}
-      <div className="text-xs text-muted-foreground flex items-center justify-between pt-4 border-t border-border">
+      <div className="shrink-0 text-xs text-muted-foreground flex items-center justify-between pt-4 mt-4 border-t border-border">
         <span>
           {customizedCount > 0 ? `${customizedCount} customized` : 'Using defaults'}
         </span>

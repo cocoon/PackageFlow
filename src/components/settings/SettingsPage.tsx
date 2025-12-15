@@ -1,18 +1,44 @@
 /**
  * Settings Page Component
- * Full-page settings interface with sidebar navigation and quick settings
+ * Discord-style two-column layout with search in sidebar
  * Desktop-optimized with focus management and keyboard navigation
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Sun, Moon, FolderTree } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
+import { X, Loader2, Search, HardDrive, Users, Bot, FileText, Server, Palette, Keyboard, ArrowLeftRight, Sun, Moon } from 'lucide-react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { cn } from '../../lib/utils';
 import type { SettingsSection } from '../../types/settings';
-import { SettingsSidebar } from './SettingsSidebar';
-import { SettingsContent } from './SettingsContent';
-import { Toggle } from '../ui/Toggle';
-import { useSettings } from '../../contexts/SettingsContext';
+import { SETTINGS_SEARCH_INDEX, type SettingsCategory } from '../../types/settings-search';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { Toggle } from '../ui/Toggle';
+
+// Lazy load panel components
+const StorageSettingsPanel = lazy(() =>
+  import('./panels/StorageSettingsPanel').then((m) => ({ default: m.StorageSettingsPanel }))
+);
+const DeployAccountsPanel = lazy(() =>
+  import('./panels/DeployAccountsPanel').then((m) => ({ default: m.DeployAccountsPanel }))
+);
+const AppearanceSettingsPanel = lazy(() =>
+  import('./panels/AppearanceSettingsPanel').then((m) => ({ default: m.AppearanceSettingsPanel }))
+);
+const ShortcutsSettingsPanel = lazy(() =>
+  import('./panels/ShortcutsSettingsPanel').then((m) => ({ default: m.ShortcutsSettingsPanel }))
+);
+const AIServiceSettingsPanel = lazy(() =>
+  import('./panels/AIServiceSettingsPanel').then((m) => ({ default: m.AIServiceSettingsPanel }))
+);
+const PromptTemplatePanel = lazy(() =>
+  import('./panels/PromptTemplatePanel').then((m) => ({ default: m.PromptTemplatePanel }))
+);
+const McpSettingsFullPanel = lazy(() =>
+  import('./panels/McpSettingsFullPanel').then((m) => ({ default: m.McpSettingsFullPanel }))
+);
+const DataSettingsPanel = lazy(() =>
+  import('./panels/DataSettingsPanel').then((m) => ({ default: m.DataSettingsPanel }))
+);
 
 interface SettingsPageProps {
   isOpen: boolean;
@@ -22,6 +48,92 @@ interface SettingsPageProps {
   onImport?: () => void;
 }
 
+// Icon mapping
+const SECTION_ICONS: Record<SettingsSection, React.ElementType> = {
+  storage: HardDrive,
+  'deploy-accounts': Users,
+  'ai-services': Bot,
+  prompts: FileText,
+  mcp: Server,
+  appearance: Palette,
+  shortcuts: Keyboard,
+  data: ArrowLeftRight,
+};
+
+// Panel components mapping
+const SECTION_PANELS: Record<SettingsSection, React.LazyExoticComponent<React.ComponentType<{ onExport?: () => void; onImport?: () => void }>>> = {
+  storage: StorageSettingsPanel,
+  'deploy-accounts': DeployAccountsPanel,
+  'ai-services': AIServiceSettingsPanel,
+  prompts: PromptTemplatePanel,
+  mcp: McpSettingsFullPanel,
+  appearance: AppearanceSettingsPanel,
+  shortcuts: ShortcutsSettingsPanel,
+  data: DataSettingsPanel,
+};
+
+// Sidebar categories structure (Discord-style grouping)
+const SIDEBAR_CATEGORIES: { id: SettingsCategory; label: string; sections: SettingsSection[] }[] = [
+  {
+    id: 'project',
+    label: 'Project',
+    sections: ['storage', 'deploy-accounts'],
+  },
+  {
+    id: 'ai',
+    label: 'AI & Automation',
+    sections: ['ai-services', 'prompts', 'mcp'],
+  },
+  {
+    id: 'preferences',
+    label: 'Preferences',
+    sections: ['appearance', 'shortcuts'],
+  },
+  {
+    id: 'data',
+    label: 'Data',
+    sections: ['data'],
+  },
+];
+
+// Get section info
+function getSectionInfo(sectionId: SettingsSection) {
+  return SETTINGS_SEARCH_INDEX.find((item) => item.id === sectionId);
+}
+
+// Simple fuzzy search
+function searchSections(query: string): SettingsSection[] {
+  if (!query.trim()) return [];
+
+  const normalizedQuery = query.toLowerCase().trim();
+  const results: { section: SettingsSection; score: number }[] = [];
+
+  for (const item of SETTINGS_SEARCH_INDEX) {
+    let score = 0;
+
+    if (item.title.toLowerCase().includes(normalizedQuery)) {
+      score = 100;
+    } else if (item.description.toLowerCase().includes(normalizedQuery)) {
+      score = 50;
+    } else if (item.keywords.some(k => k.toLowerCase().includes(normalizedQuery))) {
+      score = 30;
+    }
+
+    if (score > 0) {
+      results.push({ section: item.id, score });
+    }
+  }
+
+  return results.sort((a, b) => b.score - a.score).map(r => r.section);
+}
+
+// Loading fallback
+const PanelLoadingFallback: React.FC = () => (
+  <div className="flex items-center justify-center py-12">
+    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   isOpen,
   onClose,
@@ -29,26 +141,50 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onExport,
   onImport,
 }) => {
-  const [activeSection, setActiveSection] =
-    useState<SettingsSection>(initialSection);
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isClosing, setIsClosing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Settings context for path display format
-  const { pathDisplayFormat, setPathDisplayFormat } = useSettings();
   const { theme, setTheme } = useTheme();
+  const { pathDisplayFormat, setPathDisplayFormat } = useSettings();
 
-  // Toggle path display format
-  const togglePathFormat = useCallback(async () => {
-    try {
-      await setPathDisplayFormat(
-        pathDisplayFormat === 'short' ? 'full' : 'short'
-      );
-    } catch (error) {
-      console.error('Failed to change path format:', error);
+  // Search results
+  const searchResults = searchQuery ? searchSections(searchQuery) : [];
+  const hasSearchQuery = searchQuery.trim().length > 0;
+
+  // Detect fullscreen mode
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    let unlisten: (() => void) | undefined;
+
+    const checkFullscreen = async () => {
+      const fullscreen = await appWindow.isFullscreen();
+      setIsFullscreen(fullscreen);
+    };
+
+    const setupListener = async () => {
+      checkFullscreen();
+      unlisten = await appWindow.onResized(() => {
+        checkFullscreen();
+      });
+    };
+
+    setupListener();
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
+  // Update active section when initialSection changes
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
     }
-  }, [pathDisplayFormat, setPathDisplayFormat]);
+  }, [initialSection]);
 
   // Close with animation
   const handleClose = useCallback(() => {
@@ -59,24 +195,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }, 150);
   }, [onClose]);
 
-  const handleSectionChange = useCallback((section: SettingsSection) => {
-    setActiveSection(section);
-  }, []);
-
-  // Update active section when initialSection changes
-  useEffect(() => {
-    if (initialSection) {
-      setActiveSection(initialSection);
-    }
-  }, [initialSection]);
-
-  // Focus management - save previous focus and restore on close
+  // Focus management
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement;
-      // Focus the close button after a short delay to allow animation
       setTimeout(() => {
-        closeButtonRef.current?.focus();
+        searchInputRef.current?.focus();
       }, 100);
     } else if (previousFocusRef.current) {
       previousFocusRef.current.focus();
@@ -84,21 +208,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     }
   }, [isOpen]);
 
-  // Handle Escape key to close
+  // Handle Escape key
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleClose();
+        if (hasSearchQuery) {
+          setSearchQuery('');
+        } else {
+          handleClose();
+        }
+      }
+      // Cmd+F to focus search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose]);
+  }, [isOpen, hasSearchQuery, handleClose]);
 
-  // Prevent body scroll when open
+  // Prevent body scroll
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -110,7 +243,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     };
   }, [isOpen]);
 
+  // Reset search when closing
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('');
+    }
+  }, [isOpen]);
+
   if (!isOpen && !isClosing) return null;
+
+  const ActivePanelComponent = SECTION_PANELS[activeSection];
 
   return (
     <div
@@ -118,6 +260,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         'fixed inset-0 z-50',
         'bg-background',
         'transition-opacity duration-150',
+        'flex flex-col',
         isClosing
           ? 'opacity-0'
           : 'opacity-100 animate-in fade-in-0 duration-200'
@@ -126,93 +269,206 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       aria-modal="true"
       aria-labelledby="settings-title"
     >
-      {/* Header */}
-      <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
-        <h1
-          id="settings-title"
-          className="text-lg font-semibold text-foreground"
+      {/* Header - Drag region with close button */}
+      <header
+        data-tauri-drag-region
+        className={cn(
+          'h-10 shrink-0 flex items-center justify-end pr-3',
+          isFullscreen ? '' : 'pl-[72px]'
+        )}
+      >
+        <button
+          ref={closeButtonRef}
+          onClick={handleClose}
+          className={cn(
+            'p-1.5 rounded-md',
+            'text-muted-foreground hover:text-foreground',
+            'hover:bg-accent transition-colors',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          )}
+          aria-label="Close settings (Escape)"
         >
-          Settings
-        </h1>
-
-        {/* Quick Settings */}
-        <div className="flex items-center gap-6">
-          {/* Theme Toggle */}
-          <div className="flex items-center gap-2">
-            <Sun
-              className={cn(
-                'w-4 h-4 transition-colors',
-                theme === 'light' ? 'text-amber-500' : 'text-muted-foreground'
-              )}
-            />
-            <Toggle
-              checked={theme === 'dark'}
-              onChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              size="sm"
-              aria-label="Toggle dark mode"
-            />
-            <Moon
-              className={cn(
-                'w-4 h-4 transition-colors',
-                theme === 'dark' ? 'text-blue-400' : 'text-muted-foreground'
-              )}
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="w-px h-5 bg-border" />
-
-          {/* Compact Paths Toggle */}
-          <div className="flex items-center gap-2">
-            <FolderTree className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Compact</span>
-            <Toggle
-              checked={pathDisplayFormat === 'short'}
-              onChange={togglePathFormat}
-              size="sm"
-              aria-label="Toggle compact paths"
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="w-px h-5 bg-border" />
-
-          {/* Close Button */}
-          <button
-            ref={closeButtonRef}
-            onClick={handleClose}
-            className={cn(
-              'p-1 rounded-lg',
-              'text-muted-foreground hover:text-foreground',
-              'hover:bg-accent transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
-            aria-label="Close settings (Escape)"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          <X className="w-4 h-4" />
+        </button>
       </header>
 
-      {/* Main Content */}
-      <div className="flex h-[calc(100vh-56px)]">
+      {/* Main Content - Two Column Layout */}
+      <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <SettingsSidebar
-          activeSection={activeSection}
-          onSectionChange={handleSectionChange}
-        />
+        <aside className="w-60 shrink-0 border-r border-border flex flex-col bg-card/50">
+          {/* Sidebar Header */}
+          <div className="px-4 py-3">
+            <h1 id="settings-title" className="text-lg font-semibold text-foreground">
+              Settings
+            </h1>
+          </div>
+
+          {/* Search */}
+          <div className="px-3 pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search"
+                className={cn(
+                  'w-full pl-9 pr-3 py-2 rounded-md',
+                  'bg-muted/50 border border-transparent',
+                  'text-sm placeholder:text-muted-foreground',
+                  'focus:outline-none focus:bg-background focus:border-border',
+                  'transition-colors'
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Quick Settings - Gradient Card */}
+          <div className="px-3 pb-3">
+            <div className={cn(
+              'p-3 rounded-lg space-y-3',
+              'bg-gradient-to-r from-primary/5 to-purple-500/5',
+              'border border-primary/10'
+            )}>
+              {/* Theme Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Theme</span>
+                <div className="flex gap-0.5 p-0.5 bg-muted/80 rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
+                      'transition-all duration-200',
+                      theme === 'light'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Sun className="w-3 h-3" />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={cn(
+                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
+                      'transition-all duration-200',
+                      theme === 'dark'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <Moon className="w-3 h-3" />
+                    <span>Dark</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Compact Paths Toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Compact Paths</span>
+                <Toggle
+                  checked={pathDisplayFormat === 'short'}
+                  onChange={() => setPathDisplayFormat(pathDisplayFormat === 'short' ? 'full' : 'short')}
+                  size="sm"
+                  aria-label="Toggle compact paths"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-2 pb-4">
+            {hasSearchQuery ? (
+              // Search Results
+              <div className="space-y-1">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Search Results
+                </div>
+                {searchResults.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No results found
+                  </div>
+                ) : (
+                  searchResults.map((sectionId) => {
+                    const info = getSectionInfo(sectionId);
+                    const Icon = SECTION_ICONS[sectionId];
+                    if (!info) return null;
+
+                    return (
+                      <button
+                        key={sectionId}
+                        onClick={() => {
+                          setActiveSection(sectionId);
+                          setSearchQuery('');
+                        }}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm',
+                          'transition-colors',
+                          activeSection === sectionId
+                            ? 'bg-accent text-foreground'
+                            : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{info.title}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              // Category Groups
+              SIDEBAR_CATEGORIES.map((category) => (
+                <div key={category.id} className="mb-4">
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {category.label}
+                  </div>
+                  <div className="space-y-0.5">
+                    {category.sections.map((sectionId) => {
+                      const info = getSectionInfo(sectionId);
+                      const Icon = SECTION_ICONS[sectionId];
+                      if (!info) return null;
+
+                      return (
+                        <button
+                          key={sectionId}
+                          onClick={() => setActiveSection(sectionId)}
+                          className={cn(
+                            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm',
+                            'transition-colors',
+                            activeSection === sectionId
+                              ? 'bg-accent text-foreground'
+                              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                          )}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{info.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </nav>
+        </aside>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="max-w-4xl mx-auto p-6">
-            <SettingsContent
-              section={activeSection}
-              onExport={onExport}
-              onImport={onImport}
-            />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 max-w-3xl w-full mx-auto p-6 overflow-hidden flex flex-col">
+            <Suspense fallback={<PanelLoadingFallback />}>
+              <ActivePanelComponent
+                onExport={activeSection === 'data' ? onExport : undefined}
+                onImport={activeSection === 'data' ? onImport : undefined}
+              />
+            </Suspense>
           </div>
         </main>
       </div>
+
     </div>
   );
 };

@@ -388,13 +388,22 @@ pub async fn ai_list_templates(
         Err(e) => return Ok(ApiResponse::error(e)),
     };
 
-    // Ensure built-in templates exist
+    // Ensure built-in templates exist in database
     let builtins = PromptTemplate::all_builtins();
     for builtin in builtins {
         if !templates.iter().any(|t| t.id == builtin.id) {
             // Save built-in template to database
-            let _ = repo.save_template(&builtin);
-            templates.insert(0, builtin);
+            match repo.save_template(&builtin) {
+                Ok(()) => {
+                    templates.insert(0, builtin);
+                }
+                Err(e) => {
+                    // Log error but don't fail the entire operation
+                    eprintln!("Warning: Failed to save built-in template '{}': {}", builtin.name, e);
+                    // Still add to list for display (will be in memory only)
+                    templates.insert(0, builtin);
+                }
+            }
         }
     }
 

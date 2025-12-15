@@ -448,7 +448,7 @@ function App() {
   useKeyboardShortcuts(shortcuts);
 
   return (
-    <div className="h-screen flex flex-col bg-background rounded-lg overflow-hidden">
+    <div className="h-screen flex flex-col bg-background rounded-lg overflow-hidden select-none">
       <header data-tauri-drag-region className="flex items-center justify-between border-b border-border bg-card h-10 flex-shrink-0">
         <div data-tauri-drag-region className="flex-1 h-full pl-20" />
         <div className="flex items-center gap-1 px-2">
@@ -458,24 +458,24 @@ function App() {
               disabled={isKilling || runningProcessInfo.count === 0}
               className={`p-1.5 rounded transition-colors relative ${
                 killSuccess
-                  ? 'bg-green-600/50'
+                  ? 'bg-gradient-to-r from-green-500/20 to-blue-500/20'
                   : isKilling
-                  ? 'bg-yellow-900/30 cursor-wait'
+                  ? 'bg-amber-500/20 cursor-wait'
                   : runningProcessInfo.count > 0
-                  ? 'hover:bg-red-900/50'
+                  ? 'hover:bg-red-500/20'
                   : 'opacity-50 cursor-not-allowed'
               }`}
               aria-label="Stop all running processes"
             >
               {killSuccess ? (
-                <Check className="w-4 h-4 text-green-400" />
+                <Check className="w-4 h-4 text-green-500" />
               ) : isKilling ? (
-                <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+                <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
               ) : (
                 <Cable className={`w-4 h-4 ${runningProcessInfo.count > 0 ? 'text-blue-400' : 'text-muted-foreground'}`} />
               )}
               {runningProcessInfo.count > 0 && !killSuccess && !isKilling && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[10px] leading-[14px] rounded-full flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] leading-[14px] rounded-full flex items-center justify-center shadow-sm">
                   {runningProcessInfo.count}
                 </span>
               )}
@@ -527,72 +527,93 @@ function App() {
               </div>
             )}
           </div>
-          {mcpStatus.isEnabled && (
-            <div className="relative group mr-1">
-              <McpIcon className="w-4 h-4 text-gray" />
-              <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg text-sm text-foreground whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div className="font-medium text-green-400 mb-1">MCP Server Enabled</div>
-                <div className="text-xs text-muted-foreground">
-                  AI tools can access PackageFlow
-                </div>
-                <div className="absolute -top-1 right-4 w-2 h-2 bg-background border-l border-t border-border transform rotate-45" />
-              </div>
+          <button
+            onClick={() => openSettings('mcp')}
+            className="relative group mr-1 p-1 rounded hover:bg-muted transition-colors"
+          >
+            <McpIcon
+              className={`w-4 h-4 ${!mcpStatus.isEnabled ? 'text-muted-foreground' : ''}`}
+              gradient={mcpStatus.isEnabled}
+              gradientColors={['#22c55e', '#3b82f6']}
+            />
+            <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg text-sm text-foreground whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              {mcpStatus.isEnabled ? (
+                <>
+                  <div className="font-medium text-green-400 mb-1">MCP Server Enabled</div>
+                  <div className="text-xs text-muted-foreground">
+                    AI tools can access PackageFlow
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="font-medium text-muted-foreground mb-1">MCP Server Disabled</div>
+                  <div className="text-xs text-muted-foreground">
+                    Click to configure
+                  </div>
+                </>
+              )}
+              <div className="absolute -top-1 right-4 w-2 h-2 bg-background border-l border-t border-border transform rotate-45" />
             </div>
-          )}
+          </button>
           <div className="w-px h-5 bg-border mx-1" />
           <SettingsButton onClick={() => openSettings()} />
         </div>
       </header>
 
-      <div className="flex-1 flex flex-row overflow-hidden">
-        <div className='flex items-center'>
+      <main className="flex-1 flex flex-col overflow-hidden bg-background">
+        <nav className="flex items-center gap-6 px-4 border-b border-border bg-card">
           <button
-                onClick={() => setActiveTab('project-manager')}
-                className={`w-full px-4 py-2 text-left text-sm font-medium transition-colors rounded-md ${
-                activeTab === 'project-manager'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                }`}
-            >
-                Projects
-            </button>
-            <button
-                onClick={() => setActiveTab('workflow')}
-                className={`w-full px-4 py-2 text-left text-sm font-medium transition-colors rounded-md ${
-                activeTab === 'workflow'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                }`}
-            >
-                Workflows
-            </button>
-        </div>
-        <main className="flex-1 flex flex-col overflow-hidden bg-background">
-            {activeTab === 'workflow' && (
-              <div className="flex-1 overflow-hidden">
-                <WorkflowPage
-                  initialWorkflow={workflowNavState?.workflow}
-                  defaultCwd={workflowNavState?.projectPath}
-                  onClearNavState={handleClearWorkflowNavState}
-                  dataVersion={dataVersion}
-                />
-              </div>
-            )}
-
+            onClick={() => setActiveTab('project-manager')}
+            className={`relative py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'project-manager'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Projects
             {activeTab === 'project-manager' && (
-              <div className="flex-1 overflow-hidden">
-                <ProjectManagerPage
-                  onNavigateToWorkflow={handleNavigateToWorkflow}
-                  dataVersion={dataVersion}
-                  ptyTerminalRef={ptyTerminalRef}
-                  isTerminalCollapsed={isTerminalCollapsed}
-                  onToggleTerminalCollapse={() => setIsTerminalCollapsed(!isTerminalCollapsed)}
-                  onOpenSettings={openSettings}
-                />
-              </div>
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
             )}
-        </main>
-      </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('workflow')}
+            className={`relative py-2.5 text-sm font-medium transition-colors ${
+              activeTab === 'workflow'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Workflows
+            {activeTab === 'workflow' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+            )}
+          </button>
+        </nav>
+
+        {activeTab === 'workflow' && (
+          <div className="flex-1 overflow-hidden">
+            <WorkflowPage
+              initialWorkflow={workflowNavState?.workflow}
+              defaultCwd={workflowNavState?.projectPath}
+              onClearNavState={handleClearWorkflowNavState}
+              dataVersion={dataVersion}
+            />
+          </div>
+        )}
+
+        {activeTab === 'project-manager' && (
+          <div className="flex-1 overflow-hidden">
+            <ProjectManagerPage
+              onNavigateToWorkflow={handleNavigateToWorkflow}
+              dataVersion={dataVersion}
+              ptyTerminalRef={ptyTerminalRef}
+              isTerminalCollapsed={isTerminalCollapsed}
+              onToggleTerminalCollapse={() => setIsTerminalCollapsed(!isTerminalCollapsed)}
+              onOpenSettings={openSettings}
+            />
+          </div>
+        )}
+      </main>
 
 
       <TerminalPortal container={terminalPortalContainer}>

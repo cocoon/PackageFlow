@@ -369,3 +369,211 @@ export function getDefaultAllowedTools(mode: MCPPermissionMode): string[] {
     .filter((t) => allowedCategories.includes(t.category))
     .map((t) => t.name);
 }
+
+// ============================================================================
+// Per-Tool Permission Types (New UI Design)
+// ============================================================================
+
+/** Permission types that can be assigned to each tool */
+export type PermissionType = 'read' | 'execute' | 'write';
+
+/** Permission flags for a single tool */
+export interface ToolPermissionFlags {
+  /** Whether AI can discover/query this tool */
+  read: boolean;
+  /** Whether AI can invoke/execute this tool */
+  execute: boolean;
+  /** Whether this tool can modify data */
+  write: boolean;
+}
+
+/** Tool permission entry with metadata */
+export interface ToolPermissionEntry {
+  /** Tool name */
+  name: string;
+  /** Human-readable description */
+  description: string;
+  /** Current permission flags */
+  permissions: ToolPermissionFlags;
+  /** Which permissions are applicable for this tool (others should be disabled) */
+  applicablePermissions: PermissionType[];
+  /** Tool's primary category */
+  category: ToolCategory;
+}
+
+/** Quick mode presets for permission configuration */
+export type PermissionQuickMode = 'read_only' | 'standard' | 'full_access' | 'custom';
+
+/** Tool permission matrix - maps tool names to permission flags */
+export type ToolPermissionMatrix = Record<string, ToolPermissionFlags>;
+
+/** Quick mode configuration */
+export interface QuickModeConfig {
+  id: PermissionQuickMode;
+  name: string;
+  description: string;
+  icon: 'eye' | 'play' | 'shield' | 'settings';
+  colorScheme: 'blue' | 'yellow' | 'red' | 'gray';
+}
+
+/** Quick mode display configurations */
+export const QUICK_MODE_CONFIGS: QuickModeConfig[] = [
+  {
+    id: 'read_only',
+    name: 'Read Only',
+    description: 'AI can only view information',
+    icon: 'eye',
+    colorScheme: 'blue',
+  },
+  {
+    id: 'standard',
+    name: 'Standard',
+    description: 'Read + execute workflows',
+    icon: 'play',
+    colorScheme: 'yellow',
+  },
+  {
+    id: 'full_access',
+    name: 'Full Access',
+    description: 'Complete control',
+    icon: 'shield',
+    colorScheme: 'red',
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    description: 'Per-tool settings',
+    icon: 'settings',
+    colorScheme: 'gray',
+  },
+];
+
+/** Tool definitions with applicable permissions */
+export interface ToolDefinitionWithPermissions {
+  name: string;
+  description: string;
+  category: ToolCategory;
+  /** Which permission types are applicable for this tool */
+  applicablePermissions: PermissionType[];
+}
+
+/** Complete tool definitions with applicable permissions */
+export const TOOL_DEFINITIONS_WITH_PERMISSIONS: ToolDefinitionWithPermissions[] = [
+  // Read-only tools - only 'read' permission is applicable
+  { name: 'list_projects', description: 'List all registered projects', category: 'read', applicablePermissions: ['read'] },
+  { name: 'get_project', description: 'Get project details', category: 'read', applicablePermissions: ['read'] },
+  { name: 'list_worktrees', description: 'List all Git worktrees', category: 'read', applicablePermissions: ['read'] },
+  { name: 'get_worktree_status', description: 'Get Git status', category: 'read', applicablePermissions: ['read'] },
+  { name: 'get_git_diff', description: 'Get staged changes diff', category: 'read', applicablePermissions: ['read'] },
+  { name: 'list_workflows', description: 'List all workflows', category: 'read', applicablePermissions: ['read'] },
+  { name: 'get_workflow', description: 'Get workflow details', category: 'read', applicablePermissions: ['read'] },
+  { name: 'list_step_templates', description: 'List step templates', category: 'read', applicablePermissions: ['read'] },
+
+  // Execute tools - 'read' and 'execute' permissions are applicable
+  { name: 'run_workflow', description: 'Execute a workflow', category: 'execute', applicablePermissions: ['read', 'execute'] },
+
+  // Write tools - 'read' and 'write' permissions are applicable
+  { name: 'create_workflow', description: 'Create a new workflow', category: 'write', applicablePermissions: ['read', 'write'] },
+  { name: 'add_workflow_step', description: 'Add step to workflow', category: 'write', applicablePermissions: ['read', 'write'] },
+  { name: 'create_step_template', description: 'Create step template', category: 'write', applicablePermissions: ['read', 'write'] },
+];
+
+/** Default permission flags (all disabled) */
+export const DEFAULT_PERMISSION_FLAGS: ToolPermissionFlags = {
+  read: false,
+  execute: false,
+  write: false,
+};
+
+/** Get default permission matrix for a quick mode */
+export function getDefaultPermissionMatrix(mode: PermissionQuickMode): ToolPermissionMatrix {
+  const matrix: ToolPermissionMatrix = {};
+
+  for (const tool of TOOL_DEFINITIONS_WITH_PERMISSIONS) {
+    const flags: ToolPermissionFlags = { read: false, execute: false, write: false };
+
+    switch (mode) {
+      case 'read_only':
+        // Only enable read for all tools
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        break;
+
+      case 'standard':
+        // Enable read for all, execute for execute tools
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        if (tool.applicablePermissions.includes('execute')) {
+          flags.execute = true;
+        }
+        break;
+
+      case 'full_access':
+        // Enable all applicable permissions
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        if (tool.applicablePermissions.includes('execute')) {
+          flags.execute = true;
+        }
+        if (tool.applicablePermissions.includes('write')) {
+          flags.write = true;
+        }
+        break;
+
+      case 'custom':
+        // Custom mode starts with read_only as base
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        break;
+    }
+
+    matrix[tool.name] = flags;
+  }
+
+  return matrix;
+}
+
+/** Convert permission matrix to allowed tools array (for backward compatibility) */
+export function matrixToAllowedTools(matrix: ToolPermissionMatrix): string[] {
+  return Object.entries(matrix)
+    .filter(([, flags]) => flags.read || flags.execute || flags.write)
+    .map(([name]) => name);
+}
+
+/** Detect current quick mode from permission matrix */
+export function detectQuickMode(matrix: ToolPermissionMatrix): PermissionQuickMode {
+  const readOnlyMatrix = getDefaultPermissionMatrix('read_only');
+  const standardMatrix = getDefaultPermissionMatrix('standard');
+  const fullAccessMatrix = getDefaultPermissionMatrix('full_access');
+
+  const isEqual = (a: ToolPermissionMatrix, b: ToolPermissionMatrix): boolean => {
+    const keysA = Object.keys(a).sort();
+    const keysB = Object.keys(b).sort();
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) =>
+      a[key].read === b[key].read &&
+      a[key].execute === b[key].execute &&
+      a[key].write === b[key].write
+    );
+  };
+
+  if (isEqual(matrix, readOnlyMatrix)) return 'read_only';
+  if (isEqual(matrix, standardMatrix)) return 'standard';
+  if (isEqual(matrix, fullAccessMatrix)) return 'full_access';
+  return 'custom';
+}
+
+/** Build tool permission entries from matrix */
+export function buildToolPermissionEntries(matrix: ToolPermissionMatrix): ToolPermissionEntry[] {
+  return TOOL_DEFINITIONS_WITH_PERMISSIONS.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    permissions: matrix[tool.name] || { ...DEFAULT_PERMISSION_FLAGS },
+    applicablePermissions: tool.applicablePermissions,
+    category: tool.category,
+  }));
+}

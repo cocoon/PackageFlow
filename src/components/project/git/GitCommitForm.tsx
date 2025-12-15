@@ -54,7 +54,7 @@ export function GitCommitForm({
   const aiCommit = useAICommitMessage({ projectPath });
 
   // Check if AI service is configured
-  const { defaultService, isLoadingServices, loadServices } = useAIService({ autoLoad: true });
+  const { defaultService, isLoadingServices } = useAIService({ autoLoad: true });
 
   // Handle AI commit message generation
   const handleAIGenerate = useCallback(async () => {

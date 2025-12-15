@@ -1,9 +1,10 @@
 /**
  * AI Service Settings Panel
- * Embedded version of AIServiceSettingsDialog for the Settings page
+ * Redesigned with tabbed navigation matching MCP Settings style
+ * Features: Service status card, tabbed content (Overview/Services/Add Service)
  */
 
-import { useState, useCallback, useId, useMemo } from 'react';
+import React, { useState, useCallback, useId, useMemo, useEffect, useRef } from 'react';
 import {
   Bot,
   Plus,
@@ -20,10 +21,17 @@ import {
   Shield,
   Cloud,
   Server,
+  CheckCircle2,
+  XCircle,
+  Settings2,
+  Sparkles,
 } from 'lucide-react';
 import { useAIService } from '../../../hooks/useAIService';
 import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
 import { Select, type SelectOption } from '../../ui/Select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
+import { Skeleton } from '../../ui/Skeleton';
+import { AIProviderIcon, getProviderColorScheme } from '../../ui/AIProviderIcon';
 import type {
   AIProvider,
   AIServiceConfig,
@@ -33,6 +41,941 @@ import type {
 } from '../../../types/ai';
 import { AI_PROVIDERS, getProviderInfo, providerRequiresApiKey } from '../../../types/ai';
 import { cn } from '../../../lib/utils';
+
+// ============================================================================
+// Loading & Error States
+// ============================================================================
+
+const LoadingSkeleton: React.FC = () => (
+  <div className="space-y-4">
+    <Skeleton className="w-full h-20 rounded-xl" />
+    <Skeleton className="w-full h-10 rounded-lg" />
+    <Skeleton className="w-full h-64 rounded-lg" />
+  </div>
+);
+
+const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
+  <div className="flex flex-col items-center justify-center py-12 text-center">
+    <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+    <p className="text-sm text-muted-foreground mb-4">{message}</p>
+    <button
+      onClick={onRetry}
+      className={cn(
+        'px-4 py-2 rounded-lg text-sm font-medium',
+        'bg-primary text-primary-foreground',
+        'hover:bg-primary/90 transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      )}
+    >
+      Retry
+    </button>
+  </div>
+);
+
+// ============================================================================
+// AI Status Card Component (similar to ServerStatusCard)
+// ============================================================================
+
+interface AIStatusCardProps {
+  totalServices: number;
+  localServices: number;
+  cloudServices: number;
+  defaultService: AIServiceConfig | undefined;
+  hasEnabledServices: boolean;
+  className?: string;
+}
+
+const AIStatusCard: React.FC<AIStatusCardProps> = ({
+  totalServices,
+  localServices,
+  cloudServices,
+  defaultService,
+  hasEnabledServices,
+  className,
+}) => {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-4 p-4 rounded-xl',
+        'bg-gradient-to-r',
+        hasEnabledServices
+          ? 'from-primary/5 via-primary/3 to-transparent border border-primary/10'
+          : 'from-muted/50 via-muted/30 to-transparent border border-border',
+        'transition-all duration-300',
+        className
+      )}
+    >
+      {/* Icon */}
+      <div
+        className={cn(
+          'w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
+          'transition-all duration-300',
+          hasEnabledServices
+            ? 'bg-primary/10 text-primary'
+            : 'bg-muted text-muted-foreground'
+        )}
+      >
+        <Bot className="w-6 h-6" />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground">AI Services</span>
+          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+            {totalServices} configured
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {defaultService
+            ? `Default: ${defaultService.name} (${getProviderInfo(defaultService.provider)?.name})`
+            : 'No default service selected'}
+        </p>
+      </div>
+
+      {/* Status & Stats */}
+      <div className="flex items-center gap-4 shrink-0">
+        {/* Stats badges */}
+        <div className="hidden sm:flex items-center gap-2">
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+              'bg-green-500/10 text-green-600 dark:text-green-400'
+            )}
+          >
+            <Server className="w-3 h-3" />
+            <span>{localServices} Local</span>
+          </div>
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+              'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+            )}
+          >
+            <Cloud className="w-3 h-3" />
+            <span>{cloudServices} Cloud</span>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <div
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+            'transition-all duration-300',
+            hasEnabledServices
+              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+              : 'bg-muted text-muted-foreground'
+          )}
+        >
+          {hasEnabledServices ? (
+            <>
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Ready</span>
+            </>
+          ) : (
+            <>
+              <XCircle className="w-3 h-3" />
+              <span>No Services</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Provider Selector Component (similar to PermissionQuickModeSelector)
+// ============================================================================
+
+interface ProviderSelectorProps {
+  value: AIProvider;
+  onChange: (provider: AIProvider) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+const ProviderSelector: React.FC<ProviderSelectorProps> = ({
+  value,
+  onChange,
+  disabled = false,
+  className,
+}) => {
+  // Group providers by type
+  const localProviders = AI_PROVIDERS.filter((p) => !p.requiresApiKey);
+  const cloudProviders = AI_PROVIDERS.filter((p) => p.requiresApiKey);
+
+  const renderProviderButton = (provider: typeof AI_PROVIDERS[0]) => {
+    const isSelected = value === provider.id;
+    const isLocal = !provider.requiresApiKey;
+    const colorScheme = getProviderColorScheme(provider.id);
+
+    return (
+      <button
+        key={provider.id}
+        type="button"
+        onClick={() => onChange(provider.id)}
+        disabled={disabled}
+        className={cn(
+          'flex flex-col items-center gap-2 p-3 rounded-xl',
+          'border-2 transition-all duration-200',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+          isSelected
+            ? colorScheme.selected
+            : 'border-border bg-card/50 text-muted-foreground',
+          !isSelected && !disabled && colorScheme.unselected,
+          disabled && 'opacity-50 cursor-not-allowed'
+        )}
+      >
+        {/* Icon */}
+        <span
+          className={cn(
+            'w-10 h-10 rounded-lg flex items-center justify-center',
+            'transition-colors duration-200',
+            isSelected ? colorScheme.iconBg : 'bg-muted text-muted-foreground'
+          )}
+        >
+          <AIProviderIcon provider={provider.id} size={20} />
+        </span>
+
+        {/* Label */}
+        <span className="text-sm font-medium">{provider.name}</span>
+
+        {/* Description - hidden on mobile */}
+        <span
+          className={cn(
+            'text-[10px] text-center leading-tight hidden sm:block',
+            isSelected ? 'opacity-80' : 'text-muted-foreground'
+          )}
+        >
+          {isLocal ? 'Local' : 'Cloud'}
+        </span>
+      </button>
+    );
+  };
+
+  return (
+    <div className={cn('space-y-4', className)}>
+      {/* Local Providers */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Server className="w-3.5 h-3.5 text-green-500" />
+          <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+            Local (Privacy-First)
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {localProviders.map(renderProviderButton)}
+        </div>
+      </div>
+
+      {/* Cloud Providers */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Cloud className="w-3.5 h-3.5 text-blue-500" />
+          <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+            Cloud Providers
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {cloudProviders.map(renderProviderButton)}
+        </div>
+      </div>
+
+      {/* Info text for selected provider */}
+      <div
+        className={cn(
+          'p-3 rounded-lg text-sm',
+          'bg-muted/50 border border-border'
+        )}
+      >
+        {value === 'ollama' && (
+          <p>Ollama runs AI models locally on your machine. Great for privacy and offline use.</p>
+        )}
+        {value === 'lm_studio' && (
+          <p>LM Studio provides a local inference server with a simple UI for managing models.</p>
+        )}
+        {value === 'openai' && (
+          <p>OpenAI provides GPT-4o and GPT-4o-mini models. Requires an API key from OpenAI.</p>
+        )}
+        {value === 'anthropic' && (
+          <p>Anthropic provides Claude models known for helpful and harmless responses.</p>
+        )}
+        {value === 'gemini' && (
+          <p>Google Gemini offers multimodal AI capabilities with fast response times.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Service Card Component (improved design)
+// ============================================================================
+
+interface ServiceCardProps {
+  service: AIServiceConfig;
+  testResult?: TestConnectionResult;
+  isTesting: boolean;
+  isLoadingModels: boolean;
+  availableModels?: ModelInfo[];
+  onEdit: () => void;
+  onDelete: () => void;
+  onSetDefault: () => void;
+  onTest: () => void;
+  onLoadModels: () => void;
+}
+
+const ServiceCard: React.FC<ServiceCardProps> = ({
+  service,
+  testResult,
+  isTesting,
+  isLoadingModels,
+  availableModels,
+  onEdit,
+  onDelete,
+  onSetDefault,
+  onTest,
+  onLoadModels,
+}) => {
+  const providerInfo = getProviderInfo(service.provider);
+  const colorScheme = getProviderColorScheme(service.provider);
+  const isLocal = !providerRequiresApiKey(service.provider);
+
+  return (
+    <div
+      className={cn(
+        'p-4 rounded-xl border-2 transition-all duration-200',
+        'hover:shadow-sm',
+        colorScheme.selected
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          {/* Icon with provider branding */}
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+              'transition-colors',
+              colorScheme.iconBg
+            )}
+          >
+            <AIProviderIcon provider={service.provider} size={20} />
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-foreground">{service.name}</span>
+              {service.isDefault && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded text-xs font-medium">
+                  <Star className="w-3 h-3" />
+                  Default
+                </span>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+              <span className="font-medium">{providerInfo?.name}</span>
+              <span className="text-muted-foreground/50">|</span>
+              <code className="px-1.5 py-0.5 bg-muted rounded text-[11px]">{service.model}</code>
+            </div>
+            {testResult && (
+              <div
+                className={cn(
+                  'text-xs mt-2 flex items-center gap-1.5',
+                  testResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                )}
+              >
+                {testResult.success ? (
+                  <>
+                    <Wifi className="w-3 h-3" />
+                    <span>Connected ({testResult.latencyMs}ms)</span>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-3 h-3" />
+                    <span className="truncate max-w-[200px]">{testResult.error || 'Connection failed'}</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onTest}
+            disabled={isTesting}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              'text-muted-foreground hover:text-foreground hover:bg-accent',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+            title="Test connection"
+          >
+            {isTesting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Wifi className="w-4 h-4" />
+            )}
+          </button>
+          {isLocal && (
+            <button
+              onClick={onLoadModels}
+              disabled={isLoadingModels}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                'text-muted-foreground hover:text-foreground hover:bg-accent',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              )}
+              title="Load available models"
+            >
+              {isLoadingModels ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+            </button>
+          )}
+          {!service.isDefault && (
+            <button
+              onClick={onSetDefault}
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                'text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-accent',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              )}
+              title="Set as default"
+            >
+              <Star className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={onEdit}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              'text-muted-foreground hover:text-foreground hover:bg-accent',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+            title="Edit service"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onDelete}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              'text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-accent',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+            title="Delete service"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Available models (for local services) */}
+      {availableModels && availableModels.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="text-xs font-medium text-muted-foreground mb-2">
+            Available Models ({availableModels.length})
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {availableModels.slice(0, 10).map((model) => (
+              <span
+                key={model.name}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs',
+                  model.name === service.model
+                    ? 'bg-primary/10 text-primary border border-primary/20'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {model.name}
+              </span>
+            ))}
+            {availableModels.length > 10 && (
+              <span className="px-2 py-0.5 text-muted-foreground text-xs">
+                +{availableModels.length - 10} more
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// Overview Tab Content
+// ============================================================================
+
+interface OverviewTabProps {
+  services: AIServiceConfig[];
+  localServices: AIServiceConfig[];
+  cloudServices: AIServiceConfig[];
+  defaultService: AIServiceConfig | undefined;
+}
+
+const OverviewTab: React.FC<OverviewTabProps> = ({
+  services,
+  localServices,
+  cloudServices,
+  defaultService,
+}) => {
+  return (
+    <div className="space-y-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
+            <Server className="w-4 h-4" />
+            <span className="text-xs font-medium">Local Services</span>
+          </div>
+          <span className="text-lg font-semibold text-foreground">{localServices.length}</span>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Privacy-first, runs locally</p>
+        </div>
+        <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+          <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+            <Cloud className="w-4 h-4" />
+            <span className="text-xs font-medium">Cloud Services</span>
+          </div>
+          <span className="text-lg font-semibold text-foreground">{cloudServices.length}</span>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Powered by API providers</p>
+        </div>
+        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
+            <Star className="w-4 h-4" />
+            <span className="text-xs font-medium">Default Service</span>
+          </div>
+          <span className="text-lg font-semibold text-foreground truncate block">
+            {defaultService?.name || 'None'}
+          </span>
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {defaultService ? getProviderInfo(defaultService.provider)?.name : 'Not configured'}
+          </p>
+        </div>
+      </div>
+
+      {/* Usage Info Card */}
+      <div className="p-4 rounded-lg border border-border bg-card/50">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-foreground">AI Features</h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              AI services power intelligent features like commit message generation,
+              code review suggestions, and workflow automation. Configure a default
+              service to get started.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      {services.length === 0 && (
+        <div className="p-6 border border-dashed border-border rounded-lg bg-muted/20 text-center">
+          <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <h4 className="text-sm font-medium text-foreground mb-1">No Services Configured</h4>
+          <p className="text-xs text-muted-foreground mb-4">
+            Add an AI service to enable intelligent features. We recommend starting with
+            Ollama for local, privacy-first AI.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// Services Tab Content
+// ============================================================================
+
+interface ServicesTabProps {
+  localServices: AIServiceConfig[];
+  cloudServices: AIServiceConfig[];
+  testResult: Record<string, TestConnectionResult>;
+  testingServiceId: string | null;
+  loadingModels: string | null;
+  availableModels: Record<string, ModelInfo[]>;
+  onEdit: (service: AIServiceConfig) => void;
+  onDelete: (service: AIServiceConfig) => void;
+  onSetDefault: (serviceId: string) => void;
+  onTest: (service: AIServiceConfig) => void;
+  onLoadModels: (service: AIServiceConfig) => void;
+}
+
+const ServicesTab: React.FC<ServicesTabProps> = ({
+  localServices,
+  cloudServices,
+  testResult,
+  testingServiceId,
+  loadingModels,
+  availableModels,
+  onEdit,
+  onDelete,
+  onSetDefault,
+  onTest,
+  onLoadModels,
+}) => {
+  if (localServices.length === 0 && cloudServices.length === 0) {
+    return (
+      <div className="p-8 border border-dashed border-border rounded-lg bg-muted/20 text-center">
+        <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+        <h4 className="text-sm font-medium text-foreground mb-1">No Services Yet</h4>
+        <p className="text-xs text-muted-foreground">
+          Go to the "Add Service" tab to configure your first AI service.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Local Services */}
+      {localServices.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <div className="w-6 h-6 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <Server className="w-3.5 h-3.5 text-green-500" />
+            </div>
+            <span className="text-sm font-medium text-foreground">Local Services</span>
+            <span className="text-xs text-muted-foreground">({localServices.length})</span>
+          </div>
+          <div className="space-y-2">
+            {localServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                testResult={testResult[service.id]}
+                isTesting={testingServiceId === service.id}
+                isLoadingModels={loadingModels === service.id}
+                availableModels={availableModels[service.id]}
+                onEdit={() => onEdit(service)}
+                onDelete={() => onDelete(service)}
+                onSetDefault={() => onSetDefault(service.id)}
+                onTest={() => onTest(service)}
+                onLoadModels={() => onLoadModels(service)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cloud Services */}
+      {cloudServices.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-1">
+            <div className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center">
+              <Cloud className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <span className="text-sm font-medium text-foreground">Cloud Services</span>
+            <span className="text-xs text-muted-foreground">({cloudServices.length})</span>
+          </div>
+          <div className="space-y-2">
+            {cloudServices.map((service) => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                testResult={testResult[service.id]}
+                isTesting={testingServiceId === service.id}
+                isLoadingModels={loadingModels === service.id}
+                availableModels={availableModels[service.id]}
+                onEdit={() => onEdit(service)}
+                onDelete={() => onDelete(service)}
+                onSetDefault={() => onSetDefault(service.id)}
+                onTest={() => onTest(service)}
+                onLoadModels={() => onLoadModels(service)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================================================
+// Add/Edit Service Tab Content
+// ============================================================================
+
+interface AddServiceTabProps {
+  editingService: AIServiceConfig | null;
+  formData: AddServiceRequest;
+  formError: string | null;
+  isSubmitting: boolean;
+  showApiKey: boolean;
+  formModels: ModelInfo[];
+  isProbingModels: boolean;
+  probeError: string | null;
+  formId: string;
+  onFormDataChange: (data: Partial<AddServiceRequest>) => void;
+  onProviderChange: (provider: AIProvider) => void;
+  onProbeModels: () => void;
+  onToggleShowApiKey: () => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}
+
+const AddServiceTab: React.FC<AddServiceTabProps> = ({
+  editingService,
+  formData,
+  formError,
+  isSubmitting,
+  showApiKey,
+  formModels,
+  isProbingModels,
+  probeError,
+  formId,
+  onFormDataChange,
+  onProviderChange,
+  onProbeModels,
+  onToggleShowApiKey,
+  onSubmit,
+  onCancel,
+}) => {
+  const currentProviderInfo = getProviderInfo(formData.provider);
+  const requiresApiKey = providerRequiresApiKey(formData.provider);
+
+  const modelOptions = useMemo<SelectOption[]>(() => {
+    const values = new Map<string, SelectOption>();
+    formModels.forEach((model) => {
+      values.set(model.name, {
+        value: model.name,
+        label: model.name,
+        description: model.modifiedAt ? `Updated ${model.modifiedAt}` : undefined,
+      });
+    });
+    if (formData.model && !values.has(formData.model)) {
+      values.set(formData.model, { value: formData.model, label: formData.model });
+    }
+    return Array.from(values.values());
+  }, [formModels, formData.model]);
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Scrollable Form Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pr-1 pb-10">
+        {/* Form Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium text-foreground">
+              {editingService ? 'Edit Service' : 'Add New Service'}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {editingService
+                ? 'Update the service configuration below'
+                : 'Configure a new AI service provider'}
+            </p>
+          </div>
+          {editingService && (
+            <button
+              onClick={onCancel}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancel editing
+            </button>
+          )}
+        </div>
+
+        {/* Error */}
+        {formError && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {formError}
+          </div>
+        )}
+
+        {/* Provider Selection */}
+        {!editingService && (
+          <ProviderSelector
+            value={formData.provider}
+            onChange={onProviderChange}
+            disabled={isSubmitting}
+          />
+        )}
+
+      {/* Service Details Form */}
+      <div className="p-4 border border-border rounded-xl bg-card/50 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Settings2 className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Service Configuration</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* Name */}
+          <div>
+            <label htmlFor={`${formId}-name`} className="block text-xs font-medium text-muted-foreground mb-1.5">
+              Service Name
+            </label>
+            <input
+              id={`${formId}-name`}
+              type="text"
+              value={formData.name}
+              onChange={(e) => onFormDataChange({ name: e.target.value })}
+              placeholder={`My ${currentProviderInfo?.name || 'AI'} Service`}
+              className={cn(
+                'w-full px-3 py-2 rounded-lg text-sm',
+                'bg-background border border-border',
+                'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                'placeholder:text-muted-foreground/50'
+              )}
+            />
+          </div>
+
+          {/* Model */}
+          <div>
+            <div className="flex items-center justify-between gap-2 mb-1.5">
+              <label htmlFor={`${formId}-model`} className="block text-xs font-medium text-muted-foreground">
+                Model
+              </label>
+              <button
+                type="button"
+                onClick={onProbeModels}
+                disabled={isProbingModels || (requiresApiKey && !formData.apiKey)}
+                className={cn(
+                  'text-xs px-2 py-0.5 rounded transition-colors',
+                  'border border-border',
+                  'hover:border-primary hover:text-primary',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {isProbingModels ? 'Loading...' : 'Fetch models'}
+              </button>
+            </div>
+
+            {modelOptions.length > 0 ? (
+              <Select
+                value={formData.model}
+                onValueChange={(val) => onFormDataChange({ model: val })}
+                options={modelOptions}
+                placeholder="Choose a model"
+                aria-label="Model"
+              />
+            ) : (
+              <input
+                id={`${formId}-model`}
+                type="text"
+                value={formData.model}
+                onChange={(e) => onFormDataChange({ model: e.target.value })}
+                placeholder={currentProviderInfo?.defaultModel || 'model-name'}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm',
+                  'bg-background border border-border',
+                  'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                  'placeholder:text-muted-foreground/50'
+                )}
+              />
+            )}
+
+            {probeError && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                {probeError}
+              </p>
+            )}
+          </div>
+
+          {/* Endpoint */}
+          <div className="col-span-2">
+            <label htmlFor={`${formId}-endpoint`} className="block text-xs font-medium text-muted-foreground mb-1.5">
+              API Endpoint
+            </label>
+            <input
+              id={`${formId}-endpoint`}
+              type="text"
+              value={formData.endpoint}
+              onChange={(e) => onFormDataChange({ endpoint: e.target.value })}
+              placeholder={currentProviderInfo?.defaultEndpoint || 'https://api.example.com'}
+              className={cn(
+                'w-full px-3 py-2 rounded-lg text-sm font-mono',
+                'bg-background border border-border',
+                'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                'placeholder:text-muted-foreground/50'
+              )}
+            />
+          </div>
+
+          {/* API Key (for cloud providers) */}
+          {requiresApiKey && (
+            <div className="col-span-2">
+              <label htmlFor={`${formId}-apikey`} className="block text-xs font-medium text-muted-foreground mb-1.5">
+                API Key {editingService && <span className="text-muted-foreground/70">(leave empty to keep current)</span>}
+              </label>
+              <div className="relative">
+                <input
+                  id={`${formId}-apikey`}
+                  type={showApiKey ? 'text' : 'password'}
+                  value={formData.apiKey || ''}
+                  onChange={(e) => onFormDataChange({ apiKey: e.target.value })}
+                  placeholder={editingService ? '********' : 'sk-...'}
+                  className={cn(
+                    'w-full px-3 py-2 pr-10 rounded-lg text-sm font-mono',
+                    'bg-background border border-border',
+                    'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                    'placeholder:text-muted-foreground/50'
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={onToggleShowApiKey}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Stored securely in system keychain
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+      </div>
+
+      {/* Submit Button - Fixed at bottom */}
+      <div className="shrink-0 pt-4 mt-4 border-t border-border bg-background sticky bottom-0">
+        <div className="flex justify-end gap-2">
+          {editingService && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-medium',
+                'text-muted-foreground hover:text-foreground',
+                'transition-colors'
+              )}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
+              'bg-primary text-primary-foreground',
+              'hover:bg-primary/90 transition-colors',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+            )}
+          >
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {editingService ? 'Update Service' : 'Add Service'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export function AIServiceSettingsPanel() {
   const {
@@ -46,10 +989,13 @@ export function AIServiceSettingsPanel() {
     testConnection,
     listModels,
     probeModels,
+    loadServices,
   } = useAIService({ autoLoad: true });
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<string>('overview');
+
   // UI state
-  const [showAddForm, setShowAddForm] = useState(false);
   const [editingService, setEditingService] = useState<AIServiceConfig | null>(null);
   const [testingServiceId, setTestingServiceId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<Record<string, TestConnectionResult>>({});
@@ -77,6 +1023,48 @@ export function AIServiceSettingsPanel() {
 
   const formId = useId();
 
+  // Computed values
+  const localServices = useMemo(() => services.filter((s) => !providerRequiresApiKey(s.provider)), [services]);
+  const cloudServices = useMemo(() => services.filter((s) => providerRequiresApiKey(s.provider)), [services]);
+  const defaultService = useMemo(() => services.find((s) => s.isDefault), [services]);
+
+  // Track if we've tested connections for this tab visit
+  const hasTestedRef = useRef<boolean>(false);
+
+  // Auto test connections when switching to Services tab
+  useEffect(() => {
+    if (activeTab === 'services' && services.length > 0 && !hasTestedRef.current) {
+      hasTestedRef.current = true;
+      // Test all services in parallel
+      const testAllServices = async () => {
+        for (const service of services) {
+          // Skip if already testing
+          if (testingServiceId === service.id) continue;
+          // Skip if already have recent result
+          if (testResult[service.id]) continue;
+
+          setTestingServiceId(service.id);
+          try {
+            const result = await testConnection(service.id);
+            if (result) {
+              setTestResult((prev) => ({ ...prev, [service.id]: result }));
+            }
+          } catch {
+            // Error handling in hook
+          } finally {
+            setTestingServiceId(null);
+          }
+        }
+      };
+      testAllServices();
+    }
+
+    // Reset when leaving services tab
+    if (activeTab !== 'services') {
+      hasTestedRef.current = false;
+    }
+  }, [activeTab, services, testConnection, testingServiceId, testResult]);
+
   // Handle provider change - update defaults
   const handleProviderChange = useCallback((provider: AIProvider) => {
     const info = getProviderInfo(provider);
@@ -94,15 +1082,14 @@ export function AIServiceSettingsPanel() {
     setProbeError(null);
   }, []);
 
-  // Start adding new service
-  const handleStartAdd = useCallback(() => {
-    setShowAddForm(true);
-    setEditingService(null);
-    setFormError(null);
-    setShowApiKey(false);
-    setFormModels([]);
-    setProbeError(null);
-    const defaultProvider = AI_PROVIDERS[3]; // Ollama - local first for privacy
+  // Handle form data change
+  const handleFormDataChange = useCallback((data: Partial<AddServiceRequest>) => {
+    setFormData((prev) => ({ ...prev, ...data }));
+  }, []);
+
+  // Reset form
+  const resetForm = useCallback(() => {
+    const defaultProvider = AI_PROVIDERS[3]; // Ollama
     setFormData({
       name: '',
       provider: defaultProvider.id,
@@ -110,12 +1097,16 @@ export function AIServiceSettingsPanel() {
       model: defaultProvider.defaultModel,
       apiKey: '',
     });
+    setEditingService(null);
+    setFormError(null);
+    setShowApiKey(false);
+    setFormModels([]);
+    setProbeError(null);
   }, []);
 
   // Start editing service
   const handleStartEdit = useCallback((service: AIServiceConfig) => {
     setEditingService(service);
-    setShowAddForm(false);
     setFormError(null);
     setShowApiKey(false);
     setFormModels([]);
@@ -127,17 +1118,14 @@ export function AIServiceSettingsPanel() {
       model: service.model,
       apiKey: '',
     });
+    setActiveTab('add');
   }, []);
 
   // Cancel form
   const handleCancelForm = useCallback(() => {
-    setShowAddForm(false);
-    setEditingService(null);
-    setFormError(null);
-    setShowApiKey(false);
-    setFormModels([]);
-    setProbeError(null);
-  }, []);
+    resetForm();
+    setActiveTab('services');
+  }, [resetForm]);
 
   // Submit form (add or update)
   const handleSubmit = useCallback(async () => {
@@ -171,12 +1159,14 @@ export function AIServiceSettingsPanel() {
           apiKey: formData.apiKey || undefined,
         });
         if (result) {
-          setEditingService(null);
+          resetForm();
+          setActiveTab('services');
         }
       } else {
         const result = await addService(formData);
         if (result) {
-          setShowAddForm(false);
+          resetForm();
+          setActiveTab('services');
         }
       }
     } catch (err) {
@@ -184,7 +1174,7 @@ export function AIServiceSettingsPanel() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, editingService, addService, updateService]);
+  }, [formData, editingService, addService, updateService, resetForm]);
 
   // Test connection
   const handleTestConnection = useCallback(async (service: AIServiceConfig) => {
@@ -216,7 +1206,7 @@ export function AIServiceSettingsPanel() {
     }
   }, [listModels]);
 
-  // Probe models for current form (used before saving local services)
+  // Probe models for current form
   const handleProbeModels = useCallback(async () => {
     setProbeError(null);
     setIsProbingModels(true);
@@ -263,32 +1253,10 @@ export function AIServiceSettingsPanel() {
     }
   }, [deleteTarget, deleteService]);
 
-  // Group services by type (local vs cloud)
-  const localServices = services.filter((s) => !providerRequiresApiKey(s.provider));
-  const cloudServices = services.filter((s) => providerRequiresApiKey(s.provider));
-
-  const isFormOpen = showAddForm || editingService !== null;
-  const currentProviderInfo = getProviderInfo(formData.provider);
-  const requiresApiKey = providerRequiresApiKey(formData.provider);
-  const modelOptions = useMemo<SelectOption[]>(() => {
-    const values = new Map<string, SelectOption>();
-    formModels.forEach((model) => {
-      values.set(model.name, {
-        value: model.name,
-        label: model.name,
-        description: model.modifiedAt ? `Updated ${model.modifiedAt}` : undefined,
-      });
-    });
-    if (formData.model && !values.has(formData.model)) {
-      values.set(formData.model, { value: formData.model, label: formData.model });
-    }
-    return Array.from(values.values());
-  }, [formModels, formData.model]);
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+  // Render
+  if (isLoadingServices) {
+    return (
+      <div className="space-y-4">
         <div>
           <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Bot className="w-5 h-5" />
@@ -298,274 +1266,117 @@ export function AIServiceSettingsPanel() {
             Configure AI providers for code review, commit messages, and more
           </p>
         </div>
-        {!isFormOpen && (
-          <button
-            onClick={handleStartAdd}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Service
-          </button>
-        )}
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (servicesError) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <Bot className="w-5 h-5" />
+            AI Services
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure AI providers for code review, commit messages, and more
+          </p>
+        </div>
+        <ErrorState message={servicesError} onRetry={loadServices} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+          <Bot className="w-5 h-5" />
+          AI Services
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Configure AI providers for code review, commit messages, and more
+        </p>
       </div>
 
-      {/* Error display */}
-      {servicesError && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-900/30 border border-red-500/30 rounded-lg text-sm text-red-300">
-          <AlertCircle className="w-4 h-4" />
-          {servicesError}
-        </div>
-      )}
+      {/* Status Card */}
+      <AIStatusCard
+        totalServices={services.length}
+        localServices={localServices.length}
+        cloudServices={cloudServices.length}
+        defaultService={defaultService}
+        hasEnabledServices={services.length > 0}
+      />
 
-      {/* Add/Edit Form */}
-      {isFormOpen && (
-        <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-          <h3 className="text-sm font-medium text-foreground">
-            {editingService ? 'Edit Service' : 'Add New Service'}
-          </h3>
-
-          {formError && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-900/30 border border-red-500/30 rounded text-xs text-red-300">
-              <AlertCircle className="w-3.5 h-3.5" />
-              {formError}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Provider */}
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Provider
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {AI_PROVIDERS.map((provider) => (
-                  <button
-                    key={provider.id}
-                    type="button"
-                    onClick={() => handleProviderChange(provider.id)}
-                    disabled={editingService !== null}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
-                      formData.provider === provider.id
-                        ? 'border-primary bg-primary/10 text-foreground'
-                        : 'border-border bg-background text-muted-foreground hover:border-primary/50',
-                      editingService && 'opacity-50 cursor-not-allowed'
-                    )}
-                  >
-                    {!provider.requiresApiKey ? (
-                      <Server className="w-4 h-4" />
-                    ) : (
-                      <Cloud className="w-4 h-4" />
-                    )}
-                    <span>{provider.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Name */}
-            <div>
-              <label htmlFor={`${formId}-name`} className="block text-xs font-medium text-muted-foreground mb-2.5">
-                Service Name
-              </label>
-              <input
-                id={`${formId}-name`}
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder={`My ${currentProviderInfo?.name || 'AI'} Service`}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            {/* Model */}
-            <div>
-              <div className="flex items-center justify-between gap-2 relative">
-                <label htmlFor={`${formId}-model`} className="block text-xs font-medium text-muted-foreground mb-1">
-                  Model
-                </label>
-                <button
-                  type="button"
-                  onClick={handleProbeModels}
-                  disabled={isProbingModels || (requiresApiKey && !formData.apiKey)}
-                  className="text-xs px-2 py-1 border border-border rounded hover:border-primary hover:text-primary disabled:opacity-50 -translate-y-2"
-                >
-                  {isProbingModels ? 'Loading…' : 'Load installed models'}
-                </button>
-              </div>
-
-              {isProbingModels || modelOptions.length > 0 ? (
-                <div className="space-y-1">
-                  <Select
-                    value={formData.model}
-                    onValueChange={(val) => setFormData((prev) => ({ ...prev, model: val }))}
-                    options={modelOptions}
-                    placeholder="Choose an installed model"
-                    aria-label="Installed model"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Pick from models discovered at the endpoint.
-                  </p>
-                </div>
-              ): 
-                <div className="space-y-1">
-                  <input
-                    id={`${formId}-model`}
-                    type="text"
-                    value={formData.model}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, model: e.target.value }))}
-                    placeholder={currentProviderInfo?.defaultModel || 'model-name'}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-primary"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Enter the model name (or load installed models).
-                  </p>
-                </div>
-              }
-
-              {probeError && (
-                <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  {probeError}
-                </p>
-              )}
-            </div>
-
-            {/* Endpoint */}
-            <div className="col-span-2">
-              <label htmlFor={`${formId}-endpoint`} className="block text-xs font-medium text-muted-foreground mb-1">
-                API Endpoint
-              </label>
-              <input
-                id={`${formId}-endpoint`}
-                type="text"
-                value={formData.endpoint}
-                onChange={(e) => setFormData((prev) => ({ ...prev, endpoint: e.target.value }))}
-                placeholder={currentProviderInfo?.defaultEndpoint || 'https://api.example.com'}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            {/* API Key (for cloud providers) */}
-            {requiresApiKey && (
-              <div className="col-span-2">
-                <label htmlFor={`${formId}-apikey`} className="block text-xs font-medium text-muted-foreground mb-1">
-                  API Key {editingService && <span className="text-muted-foreground">(leave empty to keep current)</span>}
-                </label>
-                <div className="relative">
-                  <input
-                    id={`${formId}-apikey`}
-                    type={showApiKey ? 'text' : 'password'}
-                    value={formData.apiKey || ''}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, apiKey: e.target.value }))}
-                    placeholder={editingService ? '••••••••' : 'sk-...'}
-                    className="w-full px-3 py-2 pr-10 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:border-primary"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                  >
-                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                  <Shield className="w-3 h-3" />
-                  Stored securely in system keychain
-                </p>
-              </div>
+      {/* Tabbed Content */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="overview" className="flex items-center gap-1.5">
+            <Settings2 className="w-3.5 h-3.5" />
+            <span>Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="services" className="flex items-center gap-1.5">
+            <Server className="w-3.5 h-3.5" />
+            <span>Services</span>
+            {services.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-muted rounded-full">
+                {services.length}
+              </span>
             )}
-          </div>
+          </TabsTrigger>
+          <TabsTrigger value="add" className="flex items-center gap-1.5">
+            <Plus className="w-3.5 h-3.5" />
+            <span>{editingService ? 'Edit' : 'Add'}</span>
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Form Actions */}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={handleCancelForm}
-              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {editingService ? 'Update' : 'Add Service'}
-            </button>
-          </div>
-        </div>
-      )}
+        <TabsContent value="overview" className="max-h-[calc(100vh-280px)] overflow-y-auto">
+          <OverviewTab
+            services={services}
+            localServices={localServices}
+            cloudServices={cloudServices}
+            defaultService={defaultService}
+          />
+        </TabsContent>
 
-      {/* Services List */}
-      {isLoadingServices ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : services.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <Bot className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No AI services configured</p>
-          <p className="text-sm">Add a service to get started</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Local Services */}
-          {localServices.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Server className="w-3.5 h-3.5" />
-                Local Services (Privacy-First)
-              </h3>
-              <div className="space-y-2">
-                {localServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    testResult={testResult[service.id]}
-                    isTesting={testingServiceId === service.id}
-                    isLoadingModels={loadingModels === service.id}
-                    availableModels={availableModels[service.id]}
-                    onEdit={() => handleStartEdit(service)}
-                    onDelete={() => setDeleteTarget(service)}
-                    onSetDefault={() => setDefaultService(service.id)}
-                    onTest={() => handleTestConnection(service)}
-                    onLoadModels={() => handleLoadModels(service)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+        <TabsContent value="services" className="max-h-[calc(100vh-280px)] overflow-y-auto">
+          <ServicesTab
+            localServices={localServices}
+            cloudServices={cloudServices}
+            testResult={testResult}
+            testingServiceId={testingServiceId}
+            loadingModels={loadingModels}
+            availableModels={availableModels}
+            onEdit={handleStartEdit}
+            onDelete={setDeleteTarget}
+            onSetDefault={setDefaultService}
+            onTest={handleTestConnection}
+            onLoadModels={handleLoadModels}
+          />
+        </TabsContent>
 
-          {/* Cloud Services */}
-          {cloudServices.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Cloud className="w-3.5 h-3.5" />
-                Cloud Services
-              </h3>
-              <div className="space-y-2">
-                {cloudServices.map((service) => (
-                  <ServiceCard
-                    key={service.id}
-                    service={service}
-                    testResult={testResult[service.id]}
-                    isTesting={testingServiceId === service.id}
-                    isLoadingModels={loadingModels === service.id}
-                    availableModels={availableModels[service.id]}
-                    onEdit={() => handleStartEdit(service)}
-                    onDelete={() => setDeleteTarget(service)}
-                    onSetDefault={() => setDefaultService(service.id)}
-                    onTest={() => handleTestConnection(service)}
-                    onLoadModels={() => handleLoadModels(service)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        <TabsContent value="add" className="h-[calc(100vh-280px)]">
+          <AddServiceTab
+            editingService={editingService}
+            formData={formData}
+            formError={formError}
+            isSubmitting={isSubmitting}
+            showApiKey={showApiKey}
+            formModels={formModels}
+            isProbingModels={isProbingModels}
+            probeError={probeError}
+            formId={formId}
+            onFormDataChange={handleFormDataChange}
+            onProviderChange={handleProviderChange}
+            onProbeModels={handleProbeModels}
+            onToggleShowApiKey={() => setShowApiKey(!showApiKey)}
+            onSubmit={handleSubmit}
+            onCancel={handleCancelForm}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog
@@ -576,166 +1387,6 @@ export function AIServiceSettingsPanel() {
         itemName={deleteTarget?.name || ''}
         isLoading={isDeleting}
       />
-    </div>
-  );
-}
-
-interface ServiceCardProps {
-  service: AIServiceConfig;
-  testResult?: TestConnectionResult;
-  isTesting: boolean;
-  isLoadingModels: boolean;
-  availableModels?: ModelInfo[];
-  onEdit: () => void;
-  onDelete: () => void;
-  onSetDefault: () => void;
-  onTest: () => void;
-  onLoadModels: () => void;
-}
-
-function ServiceCard({
-  service,
-  testResult,
-  isTesting,
-  isLoadingModels,
-  availableModels,
-  onEdit,
-  onDelete,
-  onSetDefault,
-  onTest,
-  onLoadModels,
-}: ServiceCardProps) {
-  const providerInfo = getProviderInfo(service.provider);
-  const isLocal = !providerRequiresApiKey(service.provider);
-
-  return (
-    <div className="p-4 bg-card rounded-lg border border-border">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-3">
-          {/* Status indicator */}
-          <div
-            className={cn(
-              'w-2 h-2 rounded-full mt-2',
-              testResult?.success === true
-                ? 'bg-green-400'
-                : testResult?.success === false
-                ? 'bg-red-400'
-                : 'bg-muted-foreground/30'
-            )}
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-foreground">{service.name}</span>
-              {service.isDefault && (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">
-                  <Star className="w-3 h-3" />
-                  Default
-                </span>
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {providerInfo?.name} • {service.model}
-            </div>
-            {testResult && (
-              <div
-                className={cn(
-                  'text-xs mt-1',
-                  testResult.success ? 'text-green-400' : 'text-red-400'
-                )}
-              >
-                {testResult.success ? (
-                  <span className="flex items-center gap-1">
-                    <Wifi className="w-3 h-3" />
-                    Connected ({testResult.latencyMs}ms)
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <WifiOff className="w-3 h-3" />
-                    {testResult.error || 'Connection failed'}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onTest}
-            disabled={isTesting}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
-            title="Test connection"
-          >
-            {isTesting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Wifi className="w-4 h-4" />
-            )}
-          </button>
-          {isLocal && (
-            <button
-              onClick={onLoadModels}
-              disabled={isLoadingModels}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
-              title="Load available models"
-            >
-              {isLoadingModels ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-            </button>
-          )}
-          {!service.isDefault && (
-            <button
-              onClick={onSetDefault}
-              className="p-2 text-muted-foreground hover:text-yellow-400 hover:bg-accent rounded transition-colors"
-              title="Set as default"
-            >
-              <Star className="w-4 h-4" />
-            </button>
-          )}
-          <button
-            onClick={onEdit}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
-            title="Edit service"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-2 text-muted-foreground hover:text-red-400 hover:bg-accent rounded transition-colors"
-            title="Delete service"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Available models (for local services) */}
-      {availableModels && availableModels.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border">
-          <div className="text-xs font-medium text-muted-foreground mb-2">
-            Available Models ({availableModels.length})
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {availableModels.slice(0, 10).map((model) => (
-              <span
-                key={model.name}
-                className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-xs"
-              >
-                {model.name}
-              </span>
-            ))}
-            {availableModels.length > 10 && (
-              <span className="px-2 py-0.5 text-muted-foreground text-xs">
-                +{availableModels.length - 10} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -333,13 +333,13 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
         await loadTemplates();
         return true;
       } else {
-        setTemplatesError(response.error || 'Failed to set default template');
+        // Log the error but don't set templatesError to avoid showing error state for the whole list
+        console.error('Set default template error:', response.error);
         return false;
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error setting default template';
-      setTemplatesError(message);
-      console.error('Set default template error:', err);
+      console.error('Set default template error:', message);
       return false;
     }
   }, [loadTemplates]);
