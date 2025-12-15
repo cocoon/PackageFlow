@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark bg-background">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/image.png" />
@@ -7,13 +7,55 @@
     <title>PackageFlow</title>
     <script>
       // Initialize theme before page renders to prevent flash
+      // MUST match ThemeContext.tsx storage keys and logic
       (function() {
-        const saved = localStorage.getItem('theme');
-        if (saved === 'light') {
-          document.documentElement.classList.remove('dark');
-        } else if (!saved && !window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        const THEME_MODE_KEY = 'theme-mode';
+        const LEGACY_THEME_KEY = 'theme';
+
+        // Background colors matching styles.css CSS variables.
+        // IMPORTANT: These values MUST be kept in sync with --background in :root and .dark in styles.css.
+        // Failure to do so will result in incorrect initial background colors.
+        const DARK_BG = 'hsl(0, 0%, 12%)';   // --background in .dark
+        const LIGHT_BG = 'hsl(0, 0%, 100%)'; // --background in :root
+
+        // Determine theme mode (matches ThemeContext logic)
+        let mode;
+        try {
+          mode = localStorage.getItem(THEME_MODE_KEY);
+        } catch (e) {
+          mode = 'system';
+        }
+
+        if (!mode || !['light', 'dark', 'system'].includes(mode)) {
+          // Check legacy key for backward compatibility
+          let legacy;
+          try {
+            legacy = localStorage.getItem(LEGACY_THEME_KEY);
+          } catch (e) {
+            // localStorage inaccessible, legacy remains undefined
+          }
+
+          if (legacy && ['light', 'dark'].includes(legacy)) {
+            mode = legacy;
+          } else {
+            mode = 'system';
+          }
+        }
+
+        // Resolve to actual theme
+        const isDark = (mode === 'system')
+          ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          : (mode === 'dark');
+
+        // Apply theme class
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        } else {
           document.documentElement.classList.remove('dark');
         }
+
+        // Set background color immediately to prevent white flash
+        document.documentElement.style.backgroundColor = isDark ? DARK_BG : LIGHT_BG;
       })();
     </script>
   </head>
