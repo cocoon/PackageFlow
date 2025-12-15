@@ -260,12 +260,13 @@ export function SecurityScanCard({
 
           {/* View Details Link */}
           {onViewDetails && scanResult.summary.total > 0 && (
-            <button
+            <Button
+              variant="ghost"
               onClick={onViewDetails}
-              className="mt-3 w-full py-2 text-sm text-blue-400 hover:text-blue-300 text-center"
+              className="mt-3 w-full py-2 text-sm text-blue-400 hover:text-blue-300 h-auto"
             >
               View {scanResult.summary.total} vulnerabilities
-            </button>
+            </Button>
           )}
         </>
       ) : (
@@ -364,14 +365,16 @@ export function SecurityStatusBar({
         <span className={cn('text-xs', status.colorClass)}>{status.label}</span>
       )}
       {onScan && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onScan}
           disabled={isScanning}
-          className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-50"
+          className="h-auto w-auto p-1"
           title={isScanning ? 'Scanning...' : 'Run security scan'}
         >
           <RefreshCw className={cn('w-3.5 h-3.5', isScanning && 'animate-spin')} aria-hidden="true" />
-        </button>
+        </Button>
       )}
     </div>
   );

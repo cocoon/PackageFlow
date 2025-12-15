@@ -243,20 +243,15 @@ export function NodePanel({
           )}
         >
           {/* Close button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className={cn(
-              'absolute right-4 top-4',
-              'p-2 rounded-lg',
-              'text-muted-foreground hover:text-foreground',
-              'hover:bg-accent/50',
-              'transition-colors duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-ring'
-            )}
+            className="absolute right-4 top-4 h-8 w-8"
             aria-label="Close panel"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
 
           <div className="flex items-center gap-4 pr-10">
             {/* Icon badge */}

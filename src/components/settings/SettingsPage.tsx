@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
-import { X, Loader2, Search, HardDrive, Users, Bot, FileText, Server, Palette, Keyboard, ArrowLeftRight, Sun, Moon, Wrench } from 'lucide-react';
+import { X, Loader2, Search, HardDrive, Users, Bot, FileText, Server, Palette, Keyboard, ArrowLeftRight, Sun, Moon, Wrench, Bell } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { cn } from '../../lib/utils';
 import type { SettingsSection } from '../../types/settings';
@@ -43,6 +43,9 @@ const McpSettingsFullPanel = lazy(() =>
 const ToolchainPreferencesPanel = lazy(() =>
   import('./panels/ToolchainPreferencesPanel').then((m) => ({ default: m.ToolchainPreferencesPanel }))
 );
+const NotificationSettingsPanel = lazy(() =>
+  import('./panels/NotificationSettingsPanel').then((m) => ({ default: m.NotificationSettingsPanel }))
+);
 const DataSettingsPanel = lazy(() =>
   import('./panels/DataSettingsPanel').then((m) => ({ default: m.DataSettingsPanel }))
 );
@@ -62,6 +65,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ElementType> = {
   prompts: FileText,
   mcp: Server,
   appearance: Palette,
+  notifications: Bell,
   shortcuts: Keyboard,
   toolchain: Wrench,
   data: ArrowLeftRight,
@@ -75,6 +79,7 @@ const SECTION_PANELS: Record<SettingsSection, React.LazyExoticComponent<React.Co
   prompts: PromptTemplatePanel,
   mcp: McpSettingsFullPanel,
   appearance: AppearanceSettingsPanel,
+  notifications: NotificationSettingsPanel,
   shortcuts: ShortcutsSettingsPanel,
   toolchain: ToolchainPreferencesPanel,
   data: DataSettingsPanel,
@@ -95,7 +100,7 @@ const SIDEBAR_CATEGORIES: { id: SettingsCategory; label: string; sections: Setti
   {
     id: 'preferences',
     label: 'Preferences',
-    sections: ['appearance', 'shortcuts', 'toolchain'],
+    sections: ['appearance', 'notifications', 'shortcuts', 'toolchain'],
   },
   {
     id: 'data',
@@ -374,12 +379,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Theme</span>
                 <div className="flex gap-0.5 p-0.5 bg-muted/80 rounded-md">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setTheme('light')}
                     className={cn(
-                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
-                      'transition-all duration-200',
+                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs h-auto',
                       theme === 'light'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
@@ -387,13 +392,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   >
                     <Sun className="w-3 h-3" />
                     <span>Light</span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={() => setTheme('dark')}
                     className={cn(
-                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
-                      'transition-all duration-200',
+                      'flex items-center gap-1.5 px-2 py-1 rounded text-xs h-auto',
                       theme === 'dark'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
@@ -401,7 +406,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   >
                     <Moon className="w-3 h-3" />
                     <span>Dark</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -437,15 +442,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     if (!info) return null;
 
                     return (
-                      <button
+                      <Button
                         key={sectionId}
+                        variant="ghost"
                         onClick={() => {
                           setActiveSection(sectionId);
                           setSearchQuery('');
                         }}
                         className={cn(
-                          'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm',
-                          'transition-colors',
+                          'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm h-auto justify-start',
                           activeSection === sectionId
                             ? 'bg-accent text-foreground'
                             : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
@@ -453,7 +458,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       >
                         <Icon className="w-4 h-4" />
                         <span>{info.title}</span>
-                      </button>
+                      </Button>
                     );
                   })
                 )}
@@ -472,12 +477,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                       if (!info) return null;
 
                       return (
-                        <button
+                        <Button
                           key={sectionId}
+                          variant="ghost"
                           onClick={() => setActiveSection(sectionId)}
                           className={cn(
-                            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm',
-                            'transition-colors',
+                            'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm h-auto justify-start',
                             activeSection === sectionId
                               ? 'bg-accent text-foreground'
                               : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
@@ -485,7 +490,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         >
                           <Icon className="w-4 h-4" />
                           <span>{info.title}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>

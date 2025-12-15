@@ -223,56 +223,62 @@ export function GitDiffViewer({
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}
             <div className="flex items-center bg-muted rounded-md p-0.5">
-              <button
+              <Button
                 onClick={() => handleViewModeToggle('unified')}
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  'p-1.5 rounded transition-colors',
+                  'h-auto w-auto p-1.5',
                   viewMode === 'unified'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Unified view (v)"
               >
                 <AlignJustify className="w-4 h-4" />
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleViewModeToggle('split')}
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  'p-1.5 rounded transition-colors',
+                  'h-auto w-auto p-1.5',
                   viewMode === 'split'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
                 title="Split view (v)"
               >
                 <Columns2 className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
 
             {/* Diff Type Toggle */}
             <div className="flex items-center bg-muted rounded-md p-0.5">
-              <button
+              <Button
                 onClick={() => setDiffType('unstaged')}
+                variant="ghost"
                 className={cn(
-                  'px-3 py-1 text-xs rounded transition-colors',
+                  'h-auto px-3 py-1 text-xs',
                   diffType === 'unstaged'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 Unstaged
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setDiffType('staged')}
+                variant="ghost"
                 className={cn(
-                  'px-3 py-1 text-xs rounded transition-colors',
+                  'h-auto px-3 py-1 text-xs',
                   diffType === 'staged'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white hover:bg-blue-600 hover:text-white'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 Staged
-              </button>
+              </Button>
             </div>
 
             {/* AI Review Button - Gentle glow effect */}
@@ -301,29 +307,33 @@ export function GitDiffViewer({
 
             {/* Refresh Button */}
             <div className="flex items-center gap-1">
-              <button
+              <Button
                 onClick={handleRefresh}
                 disabled={isLoading}
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  'p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors disabled:opacity-50',
+                  'h-auto w-auto p-2',
                   isRefreshing && 'text-blue-400'
                 )}
                 title={lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()} (R)` : 'Refresh (R)'}
               >
                 <RefreshCw className={cn('w-4 h-4', (isLoading || isRefreshing) && 'animate-spin')} />
-              </button>
+              </Button>
               {/* Auto-refresh indicator */}
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Auto-refreshing every 5s" />
             </div>
 
             {/* Close Button */}
-            <button
+            <Button
               onClick={onClose}
-              className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+              variant="ghost"
+              size="icon"
+              className="h-auto w-auto p-2"
               title="Close (Esc)"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -384,12 +394,13 @@ export function GitDiffViewer({
         {reviewError && (
           <div className="fixed bottom-4 right-4 bg-background border border-red-500/30 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
             <span className="text-sm text-red-500 dark:text-red-400">{reviewError}</span>
-            <button
+            <Button
               onClick={clearReviewError}
-              className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-accent transition-colors"
+              variant="ghost"
+              className="h-auto text-sm px-2 py-1"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         )}
       </div>

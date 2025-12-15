@@ -261,18 +261,22 @@ function EditDisplayNameInput({
           if (e.key === 'Escape') onCancel();
         }}
       />
-      <button
+      <Button
+        variant="link"
+        size="sm"
         onClick={() => onSave(value)}
-        className="px-3 py-1.5 text-sm font-medium text-primary hover:underline"
+        className="h-auto px-3 py-1.5"
       >
         Save
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="link"
+        size="sm"
         onClick={onCancel}
-        className="px-3 py-1.5 text-sm text-muted-foreground hover:underline"
+        className="h-auto px-3 py-1.5 text-muted-foreground"
       >
         Cancel
-      </button>
+      </Button>
     </div>
   );
 }
@@ -431,16 +435,14 @@ export function PlatformAccountSection({
 
       {/* Add Account Button */}
       {canAddMore && (
-        <button
+        <Button
+          variant="ghost"
           onClick={onAddAccount}
           disabled={isAdding}
           className={cn(
-            'flex w-full items-center justify-center gap-2',
-            'rounded-lg border border-dashed border-border',
-            'px-4 py-2.5 text-sm font-medium',
-            'text-muted-foreground transition-colors',
-            'hover:border-primary/50 hover:bg-accent/50 hover:text-foreground',
-            'disabled:cursor-not-allowed disabled:opacity-50'
+            'w-full justify-center gap-2',
+            'h-auto rounded-lg border border-dashed border-border px-4 py-2.5',
+            'hover:border-primary/50 hover:bg-accent/50'
           )}
         >
           {isAdding ? (
@@ -454,7 +456,7 @@ export function PlatformAccountSection({
               <span>Add {platform.name} Account</span>
             </>
           )}
-        </button>
+        </Button>
       )}
 
       {/* Remove Confirmation Dialog */}

@@ -4,6 +4,7 @@
 
 import { useState, useMemo } from 'react';
 import { ChevronDown, User, Star, Check, Loader2 } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import type { PlatformType, DeployAccount, DeployPreferences } from '../../../types/deploy';
 
 interface AccountSelectorProps {
@@ -78,15 +79,11 @@ export function AccountSelector({
 
   return (
     <div className={`relative ${className}`}>
-      <button
-        type="button"
+      <Button
+        variant="outline"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled || isLoading}
-        className={`flex w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm transition-colors ${
-          disabled || isLoading
-            ? 'cursor-not-allowed opacity-50'
-            : 'hover:bg-accent'
-        }`}
+        className="w-full justify-between gap-2"
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {isLoading ? (
@@ -106,7 +103,7 @@ export function AccountSelector({
           )}
         </div>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+      </Button>
 
       {isOpen && (
         <>
@@ -119,10 +116,10 @@ export function AccountSelector({
           {/* Dropdown */}
           <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-card shadow-xl">
             {/* Default option */}
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => handleSelect(undefined)}
-              className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-accent ${
+              className={`h-auto w-full justify-start gap-2 rounded-none px-3 py-2 text-sm ${
                 !selectedAccountId ? 'bg-accent' : ''
               }`}
             >
@@ -132,7 +129,7 @@ export function AccountSelector({
               <span className="flex-1 text-left text-muted-foreground">
                 Use default account
               </span>
-            </button>
+            </Button>
 
             {/* Separator */}
             <div className="h-px bg-border" />
@@ -143,11 +140,11 @@ export function AccountSelector({
               const isDefault = account.id === defaultAccountId;
 
               return (
-                <button
+                <Button
                   key={account.id}
-                  type="button"
+                  variant="ghost"
                   onClick={() => handleSelect(account.id)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-accent ${
+                  className={`h-auto w-full justify-start gap-2 rounded-none px-3 py-2 text-sm ${
                     isSelected ? 'bg-accent' : ''
                   }`}
                 >
@@ -174,7 +171,7 @@ export function AccountSelector({
                       Default
                     </span>
                   )}
-                </button>
+                </Button>
               );
             })}
           </div>

@@ -226,20 +226,15 @@ export function WorktreeSessionListDialog({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className={cn(
-                'absolute right-4 top-4',
-                'p-2 rounded-lg',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent/50',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="absolute right-4 top-4"
               aria-label="Close dialog"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
 
             {/* Title area with icon badge */}
             <div className="flex items-start gap-4 pr-10">
@@ -328,19 +323,19 @@ export function WorktreeSessionListDialog({
                   const isActive = filter === k;
                   const badge = k === 'all' ? null : getStatusBadgeConfig(k);
                   return (
-                    <button
+                    <Button
                       key={k}
+                      variant="ghost"
                       onClick={() => setFilter(k)}
                       className={cn(
-                        'px-3 py-1.5 text-xs font-medium rounded-md',
-                        'transition-all duration-150',
+                        'px-3 text-xs font-medium h-auto',
                         isActive
                           ? 'bg-background text-foreground shadow-sm'
                           : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                       )}
                     >
                       {k === 'all' ? 'All' : badge?.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -384,14 +379,15 @@ export function WorktreeSessionListDialog({
                   const badge = getStatusBadgeConfig(s.status);
                   const StatusIcon = badge.icon;
                   return (
-                    <button
+                    <Button
                       key={s.id}
+                      variant="ghost"
                       onClick={() => {
                         onOpenSession(s.worktreePath);
                         onClose();
                       }}
                       className={cn(
-                        'w-full text-left rounded-xl',
+                        'w-full text-left rounded-xl h-auto justify-start',
                         'bg-card/50 dark:bg-card/30',
                         'border border-border/80',
                         'px-4 py-3.5',
@@ -459,7 +455,7 @@ export function WorktreeSessionListDialog({
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -479,20 +475,13 @@ export function WorktreeSessionListDialog({
             <div className="text-xs text-muted-foreground">
               {filtered.length} of {sessions.length} sessions
             </div>
-            <button
+            <Button
+              variant="ghost"
               onClick={onClose}
-              className={cn(
-                'px-4 py-2 rounded-lg',
-                'text-sm font-medium',
-                'bg-secondary hover:bg-accent',
-                'text-foreground',
-                'border border-border',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="bg-secondary hover:bg-accent border border-border"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       </div>

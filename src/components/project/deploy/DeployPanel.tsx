@@ -6,8 +6,8 @@
 // Refactored: Left-right layout matching Git Panel style
 // Note: Deploy Accounts management moved to app Settings
 
-import { useState, useEffect } from 'react';
-import { Rocket, LayoutDashboard, History, Settings, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Rocket, LayoutDashboard, History, Settings, AlertCircle, FolderCode, Variable } from 'lucide-react';
 import { useDeploy } from '../../../hooks/useDeploy';
 import { useDeployAccounts } from '../../../hooks/useDeployAccounts';
 import { deployAPI } from '../../../lib/tauri-api';
@@ -17,7 +17,12 @@ import { DeploymentHistory } from './DeploymentHistory';
 import { GitHubPagesSetupDialog } from './GitHubPagesSetupDialog';
 import { DeploymentStatsCard } from './DeploymentStatsCard';
 import { DeploymentProgress } from './DeploymentProgress';
+import { DeployTargetCard } from './DeployTargetCard';
+import { BuildConfigCard } from './BuildConfigCard';
+import { EnvVariablesPreview } from './EnvVariablesPreview';
+import { ConfigSection } from '../../ui/ConfigSection';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 import type { DeploymentConfig, PlatformType, GitHubWorkflowResult } from '../../../types/deploy';
 
@@ -37,6 +42,149 @@ const formatPlatformName = (platform: PlatformType): string => {
 
 type DeployTab = 'overview' | 'history' | 'settings';
 
+// ============================================================================
+// SettingsTabContent Component
+// ============================================================================
+
+interface SettingsTabContentProps {
+  deploymentConfig: DeploymentConfig | null;
+  accounts: import('../../../types/deploy').DeployAccount[];
+  onOpenSettings: () => void;
+  onUnbind: () => void;
+}
+
+function SettingsTabContent({
+  deploymentConfig,
+  accounts,
+  onOpenSettings,
+  onUnbind,
+}: SettingsTabContentProps) {
+  // Get account display name for the bound account
+  const accountDisplayName = useMemo(() => {
+    if (!deploymentConfig?.accountId) return undefined;
+    const account = accounts.find((a) => a.id === deploymentConfig.accountId);
+    return account?.displayName || account?.username;
+  }, [deploymentConfig?.accountId, accounts]);
+
+  // Get site/project name based on platform
+  const getSiteName = () => {
+    if (!deploymentConfig) return undefined;
+    switch (deploymentConfig.platform) {
+      case 'netlify':
+        return deploymentConfig.netlifySiteName;
+      case 'cloudflare_pages':
+        return deploymentConfig.cloudflareProjectName;
+      default:
+        return undefined;
+    }
+  };
+
+  // Check if build config has any values
+  const hasBuildConfig =
+    deploymentConfig &&
+    (deploymentConfig.frameworkPreset ||
+      deploymentConfig.buildCommand ||
+      deploymentConfig.outputDirectory ||
+      deploymentConfig.installCommand);
+
+  if (!deploymentConfig) {
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg border border-dashed border-border p-8 text-center">
+          <Settings className="mx-auto h-10 w-10 text-muted-foreground/50" />
+          <h3 className="mt-4 font-medium">No Configuration</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Set up your deployment configuration to get started.
+          </p>
+          <Button onClick={onOpenSettings} className="mt-4">
+            Configure Deploy
+          </Button>
+        </div>
+
+        {/* Deploy Accounts Info */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <h4 className="text-sm font-medium mb-2">Deploy Accounts</h4>
+          <p className="text-sm text-muted-foreground">
+            Manage your connected deployment accounts in the app settings.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Go to <span className="font-medium">Settings → Deploy Accounts</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Section 1: Deployment Target */}
+      <ConfigSection
+        icon={<Rocket className="h-4 w-4" />}
+        iconBgClass="bg-blue-500/10"
+        iconColorClass="text-blue-500 dark:text-blue-400"
+        title="Deployment Target"
+        description="Where your project will be deployed"
+        action={
+          <Button variant="outline" size="sm" onClick={onOpenSettings}>
+            <Settings className="mr-1.5 h-3.5 w-3.5" />
+            Edit
+          </Button>
+        }
+      >
+        <DeployTargetCard
+          platform={deploymentConfig.platform}
+          environment={deploymentConfig.environment}
+          accountName={accountDisplayName}
+          siteName={getSiteName()}
+          onEdit={onOpenSettings}
+          onUnbind={onUnbind}
+        />
+      </ConfigSection>
+
+      {/* Section 2: Build Configuration */}
+      {hasBuildConfig && (
+        <ConfigSection
+          icon={<FolderCode className="h-4 w-4" />}
+          iconBgClass="bg-emerald-500/10"
+          iconColorClass="text-emerald-500 dark:text-emerald-400"
+          title="Build Configuration"
+          description="How your project is built"
+        >
+          <BuildConfigCard config={deploymentConfig} />
+        </ConfigSection>
+      )}
+
+      {/* Section 3: Environment Variables */}
+      {deploymentConfig.envVariables.length > 0 && (
+        <ConfigSection
+          icon={<Variable className="h-4 w-4" />}
+          iconBgClass="bg-amber-500/10"
+          iconColorClass="text-amber-500 dark:text-amber-400"
+          title="Environment Variables"
+          description={`${deploymentConfig.envVariables.length} variable${deploymentConfig.envVariables.length !== 1 ? 's' : ''} configured`}
+        >
+          <EnvVariablesPreview variables={deploymentConfig.envVariables} />
+        </ConfigSection>
+      )}
+
+      {/* Deploy Accounts Info */}
+      <div className="rounded-lg border border-border bg-muted/30 p-4">
+        <h4 className="text-sm font-medium mb-2">Deploy Accounts</h4>
+        <p className="text-sm text-muted-foreground">
+          Manage your connected deployment accounts in the app settings.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Go to <span className="font-medium">Settings → Deploy Accounts</span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// DeployPanel Component
+// ============================================================================
+
 interface DeployPanelProps {
   projectId: string;
   projectName: string;
@@ -53,6 +201,8 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
   const [workflowError, setWorkflowError] = useState<string | undefined>(undefined);
   // Quick deploy confirmation dialog
   const [showDeployConfirm, setShowDeployConfirm] = useState(false);
+  // Unbind configuration confirmation dialog
+  const [showUnbindConfirm, setShowUnbindConfirm] = useState(false);
 
   const {
     // State
@@ -69,6 +219,7 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
     loadHistory,
     loadConfig,
     saveConfig,
+    deleteConfig,
     detectFramework,
     clearError,
     isPlatformConnected,
@@ -106,6 +257,12 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
         handleDeploy(projectId, projectPath, deploymentConfig);
       }
     }
+  };
+
+  // Handle confirmed unbind (remove configuration)
+  const handleConfirmUnbind = async () => {
+    setShowUnbindConfirm(false);
+    await deleteConfig(projectId);
   };
 
   const handleDeploy = async (_projectId: string, _projectPath: string, config: DeploymentConfig) => {
@@ -153,17 +310,18 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
 
             return (
               <li key={tab.id}>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors border-l-2',
+                    'w-full h-auto justify-start gap-2 px-3 py-2.5 rounded-none border-l-2',
                     isActive
                       ? 'bg-blue-600/20 text-blue-400 border-blue-400'
-                      : 'hover:bg-accent text-muted-foreground border-transparent'
+                      : 'text-muted-foreground border-transparent'
                   )}
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-left">
                     <div className="text-sm font-medium">{tab.label}</div>
                     <div className="text-xs text-muted-foreground">{tab.description}</div>
                   </div>
@@ -172,7 +330,7 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
                       {tab.badge}
                     </span>
                   )}
-                </button>
+                </Button>
               </li>
             );
           })}
@@ -186,12 +344,13 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
           <div className="mb-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="flex-1">{error}</span>
-            <button
+            <Button
+              variant="link"
               onClick={clearError}
-              className="text-xs underline hover:no-underline"
+              className="h-auto p-0 text-xs"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         )}
 
@@ -260,105 +419,12 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground text-white">Current Configuration</h3>
-              {deploymentConfig ? (
-                <div className="rounded-lg border border-border bg-card p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-3">
-                      {/* Platform & Environment */}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-lg">
-                            {formatPlatformName(deploymentConfig.platform)}
-                          </span>
-                          <span className={cn(
-                            "rounded px-2 py-0.5 text-xs font-medium",
-                            deploymentConfig.environment === 'production'
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-blue-500/20 text-blue-400'
-                          )}>
-                            {deploymentConfig.environment === 'production' ? 'Production' : 'Preview'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Framework */}
-                      {deploymentConfig.frameworkPreset && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Framework:</span>
-                          <span className="font-medium">{deploymentConfig.frameworkPreset}</span>
-                        </div>
-                      )}
-
-                      {/* Build Command */}
-                      {deploymentConfig.buildCommand && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Build:</span>
-                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
-                            {deploymentConfig.buildCommand}
-                          </code>
-                        </div>
-                      )}
-
-                      {/* Output Directory */}
-                      {deploymentConfig.outputDirectory && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Output:</span>
-                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
-                            {deploymentConfig.outputDirectory}
-                          </code>
-                        </div>
-                      )}
-
-                      {/* Install Command */}
-                      {deploymentConfig.installCommand && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">Install:</span>
-                          <code className="rounded bg-muted px-2 py-0.5 font-mono text-xs">
-                            {deploymentConfig.installCommand}
-                          </code>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => setShowSettingsDialog(true)}
-                      className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                  <Settings className="mx-auto h-10 w-10 text-muted-foreground/50" />
-                  <h3 className="mt-4 font-medium">No Configuration</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Set up your deployment configuration to get started.
-                  </p>
-                  <button
-                    onClick={() => setShowSettingsDialog(true)}
-                    className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                  >
-                    Configure Deploy
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Additional Settings Info */}
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <h4 className="text-sm font-medium mb-2">Deploy Accounts</h4>
-              <p className="text-sm text-muted-foreground">
-                Manage your connected deployment accounts in the app settings.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Go to <span className="font-medium">Settings → Deploy Accounts</span>
-              </p>
-            </div>
-          </div>
+          <SettingsTabContent
+            deploymentConfig={deploymentConfig}
+            accounts={accounts}
+            onOpenSettings={() => setShowSettingsDialog(true)}
+            onUnbind={() => setShowUnbindConfirm(true)}
+          />
         )}
       </div>
 
@@ -398,6 +464,18 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
         confirmText="Deploy"
         cancelText="Cancel"
         onConfirm={handleConfirmDeploy}
+      />
+
+      {/* Unbind Configuration Confirmation Dialog */}
+      <ConfirmDialog
+        open={showUnbindConfirm}
+        onOpenChange={setShowUnbindConfirm}
+        variant="destructive"
+        title="Remove Configuration"
+        description="Are you sure you want to remove this deployment configuration? This will not delete any deployed sites, only the local configuration."
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={handleConfirmUnbind}
       />
     </div>
   );

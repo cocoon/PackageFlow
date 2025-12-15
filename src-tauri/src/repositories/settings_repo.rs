@@ -6,11 +6,12 @@ use rusqlite::params;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::utils::database::Database;
-use crate::utils::store::{AppSettings, KeyboardShortcutsSettings};
+use crate::utils::store::{AppSettings, KeyboardShortcutsSettings, NotificationSettings};
 
 /// Well-known settings keys
 pub const KEY_APP_SETTINGS: &str = "app_settings";
 pub const KEY_KEYBOARD_SHORTCUTS: &str = "keyboard_shortcuts";
+pub const KEY_NOTIFICATION_SETTINGS: &str = "notification_settings";
 pub const KEY_PROJECT_SORT_MODE: &str = "project_sort_mode";
 pub const KEY_PROJECT_ORDER: &str = "project_order";
 pub const KEY_WORKFLOW_SORT_MODE: &str = "workflow_sort_mode";
@@ -167,6 +168,19 @@ impl SettingsRepository {
         shortcuts: &KeyboardShortcutsSettings,
     ) -> Result<(), String> {
         self.set(KEY_KEYBOARD_SHORTCUTS, shortcuts)
+    }
+
+    /// Get notification settings
+    pub fn get_notification_settings(&self) -> Result<NotificationSettings, String> {
+        self.get_or_default(KEY_NOTIFICATION_SETTINGS)
+    }
+
+    /// Save notification settings
+    pub fn save_notification_settings(
+        &self,
+        settings: &NotificationSettings,
+    ) -> Result<(), String> {
+        self.set(KEY_NOTIFICATION_SETTINGS, settings)
     }
 
     /// Get project sort mode

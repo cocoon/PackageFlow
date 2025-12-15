@@ -53,6 +53,7 @@ export interface UseDeployActions {
   // Config
   loadConfig: (projectId: string) => Promise<void>;
   saveConfig: (config: DeploymentConfig) => Promise<void>;
+  deleteConfig: (projectId: string) => Promise<boolean>;
   detectFramework: (projectPath: string) => Promise<string | null>;
 
   // Utility
@@ -305,6 +306,22 @@ export function useDeploy(): UseDeployReturn {
     }
   }, []);
 
+  const deleteConfig = useCallback(async (projectId: string): Promise<boolean> => {
+    try {
+      console.log('[useDeploy] deleteConfig called for projectId:', projectId);
+      const result = await deployAPI.deleteDeploymentConfig(projectId);
+      console.log('[useDeploy] deleteConfig result:', result);
+      if (result) {
+        setDeploymentConfig(null);
+      }
+      return result;
+    } catch (err) {
+      console.error('[useDeploy] deleteConfig error:', err);
+      setError(`Failed to delete deployment config: ${err}`);
+      return false;
+    }
+  }, []);
+
   const detectFrameworkAction = useCallback(async (projectPath: string): Promise<string | null> => {
     try {
       const framework = await deployAPI.detectFramework(projectPath);
@@ -349,6 +366,7 @@ export function useDeploy(): UseDeployReturn {
     loadHistory,
     loadConfig,
     saveConfig,
+    deleteConfig,
     detectFramework: detectFrameworkAction,
     clearError,
     isPlatformConnected,

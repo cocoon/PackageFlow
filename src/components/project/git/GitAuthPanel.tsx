@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { gitAPI } from '../../../lib/tauri-api';
 import type { GitAuthStatus, GitRemote } from '../../../types/git';
+import { Button } from '../../ui/Button';
 
 interface GitAuthPanelProps {
   /** Project path for Git operations */
@@ -130,13 +131,15 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
           <AlertTriangle className="w-5 h-5" />
           <span className="text-sm">{loadError}</span>
         </div>
-        <button
+        <Button
           onClick={loadAuthStatus}
-          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-muted hover:bg-accent rounded transition-colors"
+          variant="ghost"
+          size="sm"
+          className="h-auto"
         >
-          <RefreshCw className="w-4 h-4" />
+          <RefreshCw className="w-4 h-4 mr-1.5" />
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -230,14 +233,16 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-muted-foreground">Connection Test</h4>
-            <button
+            <Button
               onClick={testAllConnections}
               disabled={testingRemote !== null}
-              className="flex items-center gap-1 px-2 py-1 text-xs bg-muted hover:bg-accent disabled:opacity-50 rounded transition-colors"
+              variant="ghost"
+              size="sm"
+              className="h-auto text-xs"
             >
-              <RefreshCw className={`w-3 h-3 ${testingRemote ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3 h-3 mr-1 ${testingRemote ? 'animate-spin' : ''}`} />
               Test All
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-1">
@@ -267,10 +272,12 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
                         </span>
                       )
                     )}
-                    <button
+                    <Button
                       onClick={() => testConnection(remote.name)}
                       disabled={isTesting}
-                      className="p-1 rounded hover:bg-accent disabled:opacity-50 transition-colors"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1"
                       title="Test connection"
                     >
                       {isTesting ? (
@@ -278,7 +285,7 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
                       ) : (
                         <RefreshCw className="w-4 h-4 text-muted-foreground" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

@@ -8,6 +8,7 @@ import { FileBox, RefreshCw, FolderOpen, CheckCircle, XCircle, Search, Copy, Che
 import { ipaAPI, apkAPI } from '../../lib/tauri-api';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { formatDate, formatFileSize } from '../../lib/utils';
+import { Button } from '../ui/Button';
 
 type BuildType = 'ipa' | 'apk';
 
@@ -169,12 +170,13 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
       <div className="p-8 text-center">
         <XCircle className="w-12 h-12 mx-auto mb-4 text-red-500 opacity-50" />
         <p className="text-red-400">{error}</p>
-        <button
+        <Button
+          variant="ghost"
           onClick={loadBuilds}
-          className="mt-4 px-4 py-2 text-sm bg-card hover:bg-accent rounded transition-colors"
+          className="mt-4"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -185,12 +187,13 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
       <div className="p-8 text-center text-muted-foreground">
         <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-50" />
         <p>No IPA or APK files in this project directory</p>
-        <button
+        <Button
+          variant="ghost"
           onClick={loadBuilds}
-          className="mt-4 px-4 py-2 text-sm bg-card hover:bg-accent rounded transition-colors"
+          className="mt-4"
         >
           Scan again
-        </button>
+        </Button>
       </div>
     );
   }
@@ -210,33 +213,39 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
             </h3>
             {/* Type filter tabs */}
             <div className="flex items-center gap-1 bg-card rounded-md p-0.5">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setFilterType('all')}
-                className={`px-2 py-1 text-xs rounded transition-colors ${
+                className={`px-2 py-1 h-auto ${
                   filterType === 'all' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 All
-              </button>
+              </Button>
               {ipaCount > 0 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setFilterType('ipa')}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                  className={`px-2 py-1 h-auto ${
                     filterType === 'ipa' ? 'bg-blue-500/20 text-blue-400' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   IPA ({ipaCount})
-                </button>
+                </Button>
               )}
               {apkCount > 0 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setFilterType('apk')}
-                  className={`px-2 py-1 text-xs rounded transition-colors ${
+                  className={`px-2 py-1 h-auto ${
                     filterType === 'apk' ? 'bg-green-500/20 text-green-400' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   APK ({apkCount})
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -257,13 +266,15 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
               />
             </div>
             {/* Rescan button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={loadBuilds}
-              className="p-1.5 text-muted-foreground hover:bg-card rounded transition-colors"
+              className="h-auto"
               title="Rescan"
             >
               <RefreshCw className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -500,12 +511,14 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
             {build.fileName}
           </h3>
           <div className="flex items-center gap-1">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleCopy}
-              className={`p-1.5 rounded text-xs flex items-center gap-1 transition-colors ${
+              className={`gap-1 h-auto ${
                 copySuccess
                   ? 'bg-green-500/20 text-green-400'
-                  : 'hover:bg-accent text-muted-foreground'
+                  : ''
               }`}
             >
               {copySuccess ? (
@@ -519,13 +532,15 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
                   <span>Copy</span>
                 </>
               )}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-1.5 rounded hover:bg-accent text-muted-foreground transition-colors"
+              className="h-auto"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
 

@@ -20,6 +20,7 @@ import { useMonorepoTool } from '../../hooks/useMonorepoTool';
 import { useDependencyGraph } from '../../hooks/useDependencyGraph';
 import { cn } from '../../lib/utils';
 import { UI_FRAMEWORK_CONFIG } from '../../lib/framework-detector';
+import { Button } from '../ui/Button';
 
 /** Main view tabs */
 type MainViewTab = 'packages' | 'tools';
@@ -215,12 +216,13 @@ export function MonorepoView({
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background/50">
         <div className="flex gap-1" role="tablist" aria-label="Workspace views">
           {/* Packages Tab */}
-          <button
+          <Button
+            variant="ghost"
             role="tab"
             aria-selected={mainViewTab === 'packages'}
             onClick={() => setMainViewTab('packages')}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-colors',
+              'gap-1.5 h-auto px-3 py-1.5',
               mainViewTab === 'packages'
                 ? 'bg-muted text-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -228,16 +230,17 @@ export function MonorepoView({
           >
             <Package className="w-4 h-4" />
             Packages
-          </button>
+          </Button>
 
           {/* Tool Tab - Only show when Nx or Turbo is detected */}
           {toolPanelAvailable && (
-            <button
+            <Button
+              variant="ghost"
               role="tab"
               aria-selected={mainViewTab === 'tools'}
               onClick={() => setMainViewTab('tools')}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded transition-colors',
+                'gap-1.5 h-auto px-3 py-1.5',
                 mainViewTab === 'tools'
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -248,21 +251,22 @@ export function MonorepoView({
               {toolDisplayInfo.version && (
                 <span className="text-xs text-muted-foreground">v{toolDisplayInfo.version}</span>
               )}
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Dependency Graph Button */}
         {onShowDependencyGraph && monorepoTool.hasMonorepoTool && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onShowDependencyGraph}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground
-                       hover:text-foreground hover:bg-accent rounded transition-colors"
+            className="gap-1.5 h-auto px-2 py-1"
             title="View dependency graph (Cmd+G)"
           >
             <Network className="w-3.5 h-3.5" />
             Dependency Graph
-          </button>
+          </Button>
         )}
       </div>
 

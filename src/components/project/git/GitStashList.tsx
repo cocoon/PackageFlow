@@ -210,14 +210,16 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">Stashes</h3>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => loadStashes()}
             disabled={isLoading}
-            className="p-1.5 rounded hover:bg-accent transition-colors disabled:opacity-50"
+            variant="ghost"
+            size="icon"
+            className="h-auto w-auto p-1.5"
             title="Refresh stashes"
           >
             <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
+          </Button>
           <Button
             variant="default"
             size="sm"
@@ -265,15 +267,15 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
                 'Create Stash'
               )}
             </Button>
-            <button
+            <Button
               onClick={() => {
                 setShowCreateInput(false);
                 setStashMessage('');
               }}
-              className="px-3 py-1.5 bg-muted hover:bg-accent rounded text-sm transition-colors"
+              variant="ghost"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -316,10 +318,12 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
 
                   {/* Actions */}
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
                       onClick={() => handlePopStash(stash.index)}
                       disabled={isOperating}
-                      className="p-1.5 rounded bg-green-600/20 hover:bg-green-600/40 text-green-400 transition-colors disabled:opacity-50"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5 bg-green-600/20 hover:bg-green-600/40 text-green-400"
                       title="Pop stash (apply and remove)"
                     >
                       {isOperating ? (
@@ -327,23 +331,27 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
                       ) : (
                         <Play className="w-4 h-4" />
                       )}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleApplyStash(stash.index)}
                       disabled={isOperating}
-                      className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5"
                       title="Apply stash (keep in list)"
                     >
                       <Archive className="w-4 h-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleDropStash(stash.index)}
                       disabled={isOperating}
-                      className="p-1.5 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-50"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5 hover:bg-red-500/20 hover:text-red-400"
                       title="Drop stash"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

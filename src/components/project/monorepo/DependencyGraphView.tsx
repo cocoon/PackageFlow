@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useDependencyGraph, type GraphNodeData } from '../../../hooks/useDependencyGraph';
 import type { MonorepoToolType } from '../../../types/monorepo';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 interface DependencyGraphViewProps {
@@ -177,24 +178,26 @@ export function DependencyGraphView({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={refresh}
             disabled={loading}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="h-auto w-auto p-1.5"
             title="Refresh graph"
           >
             <RefreshCw className={cn('w-4 h-4', loading && 'animate-spin')} />
-          </button>
+          </Button>
           {onClose && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary
-                         transition-colors"
+              className="h-auto w-auto p-1.5"
               title="Close"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -256,15 +259,17 @@ export function DependencyGraphView({
                 <h4 className="font-semibold text-foreground">
                   {selectedNodeData.label}
                 </h4>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     selectNode(null);
                     clearHighlights();
                   }}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground/90 hover:bg-secondary"
+                  className="h-auto w-auto p-1"
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-3 text-sm">
@@ -300,24 +305,24 @@ export function DependencyGraphView({
                 <div className="pt-2 border-t border-border">
                   <p className="text-xs text-muted-foreground mb-2">Highlight:</p>
                   <div className="flex gap-2">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => highlightUpstream(selectedNode.id)}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded
-                                 bg-secondary text-foreground/90 border border-border
-                                 hover:bg-border transition-colors text-xs"
+                      className="flex-1 flex items-center justify-center gap-1"
                     >
                       <ArrowUp className="w-3 h-3" />
                       Upstream
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => highlightDownstream(selectedNode.id)}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded
-                                 bg-secondary text-foreground/90 border border-border
-                                 hover:bg-border transition-colors text-xs"
+                      className="flex-1 flex items-center justify-center gap-1"
                     >
                       <ArrowDown className="w-3 h-3" />
                       Downstream
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>

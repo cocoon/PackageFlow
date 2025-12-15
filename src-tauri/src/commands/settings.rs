@@ -6,7 +6,7 @@ use crate::models::{Project, Workflow};
 use crate::repositories::{ProjectRepository, SettingsRepository, WorkflowRepository};
 use crate::services::crypto;
 use crate::utils::database::get_database_path;
-use crate::utils::store::{AppSettings, StoreData};
+use crate::utils::store::{AppSettings, NotificationSettings, StoreData};
 use crate::DatabaseState;
 
 /// Response for get_store_path command
@@ -33,6 +33,29 @@ pub async fn save_settings(
 ) -> Result<(), String> {
     let repo = SettingsRepository::new(db.0.as_ref().clone());
     repo.save_app_settings(&settings)
+}
+
+// ============================================================================
+// Notification Settings Commands
+// ============================================================================
+
+/// Load notification settings from SQLite database
+#[tauri::command]
+pub async fn load_notification_settings(
+    db: tauri::State<'_, DatabaseState>,
+) -> Result<NotificationSettings, String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.get_notification_settings()
+}
+
+/// Save notification settings to SQLite database
+#[tauri::command]
+pub async fn save_notification_settings(
+    db: tauri::State<'_, DatabaseState>,
+    settings: NotificationSettings,
+) -> Result<(), String> {
+    let repo = SettingsRepository::new(db.0.as_ref().clone());
+    repo.save_notification_settings(&settings)
 }
 
 /// Load all projects from SQLite database

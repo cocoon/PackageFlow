@@ -27,6 +27,7 @@ import { GitSettingsPanel } from './GitSettingsPanel';
 import { GitWorktreeList } from './GitWorktreeList';
 import { GitDiffViewer } from './GitDiffViewer';
 import { cn } from '../../../lib/utils';
+import { Button } from '../../ui/Button';
 import type { GitFile } from '../../../types/git';
 import type { Project } from '../../../types/project';
 import type { Workflow } from '../../../types/workflow';
@@ -286,12 +287,12 @@ export function GitPanel({
           <div className="text-center space-y-4">
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto" />
             <p className="text-muted-foreground">{error}</p>
-            <button
+            <Button
+              variant="secondary"
               onClick={() => loadStatus()}
-              className="px-4 py-2 bg-muted hover:bg-accent rounded-lg text-sm transition-colors"
             >
               Retry
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -327,10 +328,11 @@ export function GitPanel({
 
             return (
               <li key={tab.id}>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2.5 text-left transition-colors border-l-2',
+                    'w-full flex items-center gap-2 px-3 py-2.5 text-left h-auto justify-start rounded-none border-l-2',
                     isActive
                       ? 'bg-blue-600/20 text-blue-400 border-blue-400'
                       : 'hover:bg-accent text-muted-foreground border-transparent'
@@ -346,7 +348,7 @@ export function GitPanel({
                       {changeCount}
                     </span>
                   )}
-                </button>
+                </Button>
               </li>
             );
           })}

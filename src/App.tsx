@@ -9,6 +9,7 @@ import { scriptAPI, confirm } from './lib/tauri-api';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { SettingsButton } from './components/settings/SettingsButton';
 import { SettingsPage } from './components/settings/SettingsPage';
+import { Button } from './components/ui/Button';
 import type { SettingsSection } from './types/settings';
 import { useKeyboardShortcuts, type KeyboardShortcut } from './hooks/useKeyboardShortcuts';
 import { ShortcutToast } from './components/ui/KeyboardShortcutsHint';
@@ -18,6 +19,7 @@ import {
 } from './components/ui/KeyboardShortcutsDialog';
 import { ScriptPtyTerminal, type ScriptPtyTerminalRef } from './components/terminal';
 import { useUpdater } from './hooks/useUpdater';
+import { UpdateDialog } from './components/ui/UpdateDialog';
 import { useMcpStatus } from './hooks/useMcpStatus';
 import { McpIcon } from './components/ui/McpIcon';
 
@@ -78,8 +80,23 @@ function TerminalPortal({ container, children }: TerminalPortalProps) {
 }
 
 function App() {
-  // Check for updates on app start
-  useUpdater();
+  // Update dialog state
+  const {
+    dialogOpen: updateDialogOpen,
+    setDialogOpen: setUpdateDialogOpen,
+    state: updateState,
+    currentVersion,
+    newVersion,
+    releaseNotes,
+    downloadProgress,
+    downloadedBytes,
+    totalBytes,
+    error: updateError,
+    startUpdate,
+    dismissUpdate,
+    restartApp,
+    retryUpdate,
+  } = useUpdater();
 
   const [activeTab, setActiveTab] = useState<AppTab>('project-manager');
   const [workflowNavState, setWorkflowNavState] = useState<WorkflowNavState | null>(null);
@@ -464,17 +481,19 @@ function App() {
         <div data-tauri-drag-region className="flex-1 h-full pl-20" />
         <div className="flex items-center gap-1 px-2">
           <div className="relative group">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleKillAllNodeProcesses}
               disabled={isKilling || runningProcessInfo.count === 0}
-              className={`p-1.5 rounded transition-colors relative ${
+              className={`h-8 w-8 relative ${
                 killSuccess
                   ? 'bg-gradient-to-r from-green-500/20 to-blue-500/20'
                   : isKilling
                   ? 'bg-amber-500/20 cursor-wait'
                   : runningProcessInfo.count > 0
                   ? 'hover:bg-red-500/20'
-                  : 'opacity-50 cursor-not-allowed'
+                  : ''
               }`}
               aria-label="Stop all running processes"
             >
@@ -490,7 +509,7 @@ function App() {
                   {runningProcessInfo.count}
                 </span>
               )}
-            </button>
+            </Button>
             {!isKilling && !killSuccess && (
               <div className="absolute right-0 top-full mt-2 px-3 py-2 bg-background border border-border rounded-lg shadow-lg text-sm text-foreground whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[200px]">
                 <div className="font-medium text-red-400 mb-1">Stop All Processes</div>
@@ -538,9 +557,11 @@ function App() {
               </div>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => openSettings('mcp')}
-            className="relative group mr-1 p-1 rounded hover:bg-muted transition-colors"
+            className="relative group mr-1 h-8 w-8"
           >
             <McpIcon
               className={`w-4 h-4 ${!mcpStatus.isEnabled ? 'text-muted-foreground' : ''}`}
@@ -565,7 +586,7 @@ function App() {
               )}
               <div className="absolute -top-1 right-4 w-2 h-2 bg-background border-l border-t border-border transform rotate-45" />
             </div>
-          </button>
+          </Button>
           <div className="w-px h-5 bg-border mx-1" />
           <SettingsButton onClick={() => openSettings()} />
         </div>
@@ -573,9 +594,10 @@ function App() {
 
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
         <nav className="flex items-center gap-6 px-4 border-b border-border bg-card">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('project-manager')}
-            className={`relative py-2.5 text-sm font-medium transition-colors ${
+            className={`relative py-2.5 text-sm font-medium h-auto rounded-none ${
               activeTab === 'project-manager'
                 ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground'
@@ -585,10 +607,11 @@ function App() {
             {activeTab === 'project-manager' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('workflow')}
-            className={`relative py-2.5 text-sm font-medium transition-colors ${
+            className={`relative py-2.5 text-sm font-medium h-auto rounded-none ${
               activeTab === 'workflow'
                 ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground'
@@ -598,7 +621,7 @@ function App() {
             {activeTab === 'workflow' && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
             )}
-          </button>
+          </Button>
         </nav>
 
         {activeTab === 'workflow' && (
@@ -668,6 +691,26 @@ function App() {
         visible={!!shortcutToast}
         onHide={() => setShortcutToast(null)}
       />
+
+      {/* Update Dialog */}
+      {(updateState === 'available' || updateState === 'downloading' || updateState === 'installing' || updateState === 'complete' || updateState === 'error') && (
+        <UpdateDialog
+          open={updateDialogOpen}
+          onOpenChange={setUpdateDialogOpen}
+          state={updateState}
+          currentVersion={currentVersion}
+          newVersion={newVersion || ''}
+          releaseNotes={releaseNotes}
+          downloadProgress={downloadProgress}
+          downloadedBytes={downloadedBytes}
+          totalBytes={totalBytes}
+          errorMessage={updateError}
+          onUpdate={startUpdate}
+          onLater={dismissUpdate}
+          onRestart={restartApp}
+          onRetry={retryUpdate}
+        />
+      )}
     </div>
   );
 }

@@ -40,6 +40,7 @@ import { save, open } from '@tauri-apps/plugin-dialog';
 import { writeTextFile, readTextFile } from '@tauri-apps/plugin-fs';
 import { cn } from '../../lib/utils';
 import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 import {
   TEMPLATE_CATEGORIES,
   groupTemplatesByCategory,
@@ -132,11 +133,12 @@ function ViewModeTabs({
   return (
     <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
       {tabs.map((tab) => (
-        <button
+        <Button
           key={tab.id}
+          variant="ghost"
           onClick={() => onViewChange(tab.id)}
           className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all',
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all h-auto',
             currentView === tab.id
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
@@ -149,7 +151,7 @@ function ViewModeTabs({
               {tab.count}
             </span>
           )}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -175,11 +177,12 @@ function CategoryNavigation({
       className="flex gap-1.5 overflow-x-auto py-1 px-0.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
     >
       {categories.map((cat) => (
-        <button
+        <Button
           key={cat.id}
+          variant="ghost"
           onClick={() => onCategoryClick(cat.id)}
           className={cn(
-            'flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-all shrink-0',
+            'h-auto px-2 py-1 text-xs font-medium whitespace-nowrap shrink-0',
             activeCategory === cat.id
               ? 'bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/50'
               : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -187,7 +190,7 @@ function CategoryNavigation({
         >
           <span>{cat.name}</span>
           <span className="text-[10px] opacity-60">({cat.count})</span>
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -227,9 +230,10 @@ function CategoryGroup({
   return (
     <div ref={categoryRef}>
       {/* Category Header - Clickable to collapse */}
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggleCollapse}
-        className="w-full sticky top-0 z-10 flex items-center gap-2 px-3 py-2 bg-muted/80 dark:bg-muted/50 border border-border rounded-lg mb-1 -mx-0.5 hover:bg-muted transition-colors group backdrop-blur-sm"
+        className="w-full justify-start h-auto sticky top-0 z-10 gap-2 px-3 py-2 bg-muted/80 dark:bg-muted/50 border border-border rounded-lg mb-1 -mx-0.5 hover:bg-muted group backdrop-blur-sm"
       >
         <span className="text-muted-foreground transition-transform duration-200">
           {isCollapsed ? (
@@ -241,7 +245,7 @@ function CategoryGroup({
         <IconComponent className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">{category.name}</span>
         <span className="text-xs text-muted-foreground">({templates.length})</span>
-      </button>
+      </Button>
 
       {/* Templates List - Collapsible */}
       {!isCollapsed && (
@@ -300,10 +304,11 @@ function TemplateItem({
   };
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'w-full flex flex-col gap-0.5 px-3 py-2.5 text-left transition-all duration-150 rounded-md group relative',
+        'w-full justify-start h-auto flex-col gap-0.5 px-3 py-2.5 rounded-md group relative',
         isSelected
           ? 'bg-blue-600/20 ring-1 ring-blue-500'
           : 'hover:bg-accent'
@@ -348,7 +353,7 @@ function TemplateItem({
           {highlightMatch(template.description, searchQuery)}
         </span>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -384,12 +389,13 @@ function RecentlyUsedSection({
           <span className="text-sm font-medium text-foreground">Recently Used</span>
           <span className="text-xs text-muted-foreground">({templates.length})</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
           onClick={onClear}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="h-auto text-xs text-muted-foreground hover:text-foreground px-2 py-1"
         >
           Clear
-        </button>
+        </Button>
       </div>
       <div className="flex flex-col gap-1">
         {templates.map((template) => (
@@ -727,30 +733,36 @@ export function TemplateSelector({
             className="pl-9 pr-8 bg-background border-border text-foreground"
           />
           {searchQuery && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6"
             >
               <X className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Export/Import Buttons */}
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={handleExport}
-          className="p-2 rounded-md border border-border hover:bg-accent transition-colors"
+          className="h-9 w-9"
           title="Export templates"
         >
           <Download className="w-4 h-4 text-muted-foreground" />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
           onClick={handleImport}
-          className="p-2 rounded-md border border-border hover:bg-accent transition-colors"
+          className="h-9 w-9"
           title="Import templates"
         >
           <Upload className="w-4 h-4 text-muted-foreground" />
-        </button>
+        </Button>
       </div>
 
       {/* Category Navigation - Only show in categories view with no search */}

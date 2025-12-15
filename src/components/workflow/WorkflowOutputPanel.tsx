@@ -149,10 +149,12 @@ export function WorkflowOutputPanel({
           <div className="flex items-center gap-1">
             {/* View mode toggle */}
             <div className="flex items-center bg-secondary rounded-lg p-0.5 mr-2">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setViewMode('grouped')}
                 className={cn(
-                  'p-1.5 rounded-md transition-colors',
+                  'h-7 w-7 rounded-md',
                   viewMode === 'grouped'
                     ? 'bg-muted text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -160,11 +162,13 @@ export function WorkflowOutputPanel({
                 title="Grouped view"
               >
                 <Layers className="w-4 h-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setViewMode('raw')}
                 className={cn(
-                  'p-1.5 rounded-md transition-colors',
+                  'h-7 w-7 rounded-md',
                   viewMode === 'raw'
                     ? 'bg-muted text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -172,13 +176,15 @@ export function WorkflowOutputPanel({
                 title="Raw view"
               >
                 <List className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
             {/* Copy button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleCopy}
               disabled={output.length === 0}
-              className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-9 w-9"
               title="Copy output"
             >
               {copied ? (
@@ -186,15 +192,17 @@ export function WorkflowOutputPanel({
               ) : (
                 <Copy className="w-4 h-4" />
               )}
-            </button>
+            </Button>
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              className="h-9 w-9"
               title="Close (Esc)"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 

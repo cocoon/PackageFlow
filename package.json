@@ -11,7 +11,8 @@
     "build:tauri": "tauri build --bundles dmg",
     "preview": "vite preview",
     "tauri": "tauri",
-    "clean": "cargo clean --manifest-path src-tauri/Cargo.toml"
+    "clean": "cargo clean --manifest-path src-tauri/Cargo.toml",
+    "kill": "lsof -ti:1420 | xargs kill -9"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

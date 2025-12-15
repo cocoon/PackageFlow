@@ -7,6 +7,7 @@ import { memo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, type Node } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { Button } from '../../ui/Button';
 import { Terminal, Play, Check, X, Clock, SkipForward, Loader2, Trash2, Plus, Pencil, Copy, ChevronUp, ChevronDown, Download, Star } from 'lucide-react';
 import type { NodeStatus } from '../../../types/workflow';
 
@@ -249,51 +250,61 @@ export const ScriptNode = memo(({ data, selected }: ScriptNodeProps) => {
           showToolbar ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
         )}
       >
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleInsertBefore}
-          className="nodrag nopan p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-400 transition-colors"
+          className="nodrag nopan h-auto w-auto p-1.5 text-muted-foreground hover:text-blue-400"
           title="Insert step before"
         >
           <div className="relative">
             <ChevronUp className="w-3.5 h-3.5 absolute -top-1" />
             <Plus className="w-3.5 h-3.5" />
           </div>
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleInsertAfter}
-          className="nodrag nopan p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-400 transition-colors"
+          className="nodrag nopan h-auto w-auto p-1.5 text-muted-foreground hover:text-blue-400"
           title="Insert step after"
         >
           <div className="relative">
             <Plus className="w-3.5 h-3.5" />
             <ChevronDown className="w-3.5 h-3.5 absolute -bottom-1" />
           </div>
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleDuplicate}
-          className="nodrag nopan p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-green-400 transition-colors"
+          className="nodrag nopan h-auto w-auto p-1.5 text-muted-foreground hover:text-green-400"
           title="Duplicate step"
         >
           <Copy className="w-3.5 h-3.5" />
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleEdit}
-          className="nodrag nopan p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-blue-400 transition-colors"
+          className="nodrag nopan h-auto w-auto p-1.5 text-muted-foreground hover:text-blue-400"
           title="Edit step"
         >
           <Pencil className="w-3.5 h-3.5" />
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleDelete}
-          className="nodrag nopan p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-red-400 transition-colors"
+          className="nodrag nopan h-auto w-auto p-1.5 text-muted-foreground hover:text-red-400"
           title="Delete step"
         >
           <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        </Button>
       </div>
 
       <Handle
@@ -367,77 +378,84 @@ export const ScriptNode = memo(({ data, selected }: ScriptNodeProps) => {
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
+          <Button
+            variant="ghost"
             onClick={handleInsertBefore}
-            className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
+            className="w-full justify-start h-auto px-3 py-2 text-sm rounded-none"
           >
             <div className="relative w-4 h-4">
               <ChevronUp className="w-3 h-3 absolute top-0 left-0.5" />
               <Plus className="w-3 h-3 absolute bottom-0 left-0.5" />
             </div>
             Insert Before
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
             onClick={handleInsertAfter}
-            className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
+            className="w-full justify-start h-auto px-3 py-2 text-sm rounded-none"
           >
             <div className="relative w-4 h-4">
               <Plus className="w-3 h-3 absolute top-0 left-0.5" />
               <ChevronDown className="w-3 h-3 absolute bottom-0 left-0.5" />
             </div>
             Insert After
-          </button>
+          </Button>
 
           <div className="my-1 border-t border-border" />
 
-          <button
+          <Button
+            variant="ghost"
             onClick={handleDuplicate}
-            className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
+            className="w-full justify-start h-auto px-3 py-2 text-sm rounded-none"
           >
             <Copy className="w-4 h-4" />
             Duplicate
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
             onClick={handleEdit}
-            className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
+            className="w-full justify-start h-auto px-3 py-2 text-sm rounded-none"
           >
             <Pencil className="w-4 h-4" />
             Edit
-          </button>
+          </Button>
 
           <div className="my-1 border-t border-border" />
 
           {data.onExportNode && (
-            <button
+            <Button
+              variant="ghost"
               onClick={handleExportNode}
-              className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-accent flex items-center gap-2"
+              className="w-full justify-start h-auto px-3 py-2 text-sm rounded-none"
             >
               <Download className="w-4 h-4" />
               Export Step
-            </button>
+            </Button>
           )}
 
           {data.onSaveAsTemplate && (
-            <button
+            <Button
+              variant="ghost"
               onClick={handleSaveAsTemplate}
-              className="w-full px-3 py-2 text-left text-sm text-yellow-400 hover:bg-accent flex items-center gap-2"
+              className="w-full justify-start h-auto px-3 py-2 text-sm text-yellow-400 rounded-none"
             >
               <Star className="w-4 h-4" />
               Save as Template
-            </button>
+            </Button>
           )}
 
           <div className="my-1 border-t border-border" />
 
-          <button
+          <Button
+            variant="ghost"
             onClick={handleDelete}
-            className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-accent flex items-center gap-2"
+            className="w-full justify-start h-auto px-3 py-2 text-sm text-red-400 rounded-none"
           >
             <Trash2 className="w-4 h-4" />
             Delete
-          </button>
+          </Button>
         </div>,
         document.body
       )}

@@ -4,6 +4,7 @@
 // Enhanced: Rocket animation on hover and during deployment
 
 import { Rocket, FileCode } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 import type { PlatformType, DeploymentConfig } from '../../../types/deploy';
 
@@ -61,15 +62,13 @@ export function DeployButton({
   };
 
   return (
-    <button
+    <Button
       onClick={handleClick}
       disabled={isLoading}
+      variant={canDeploy ? 'default' : 'ghost'}
       className={cn(
-        'group relative flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 overflow-visible',
-        canDeploy
-          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-          : 'bg-muted text-muted-foreground hover:bg-muted/80',
-        'disabled:opacity-50'
+        'group relative gap-2 overflow-visible',
+        !canDeploy && 'bg-muted text-muted-foreground hover:bg-muted/80'
       )}
     >
       {/* Rocket Icon with animations */}
@@ -98,6 +97,6 @@ export function DeployButton({
         )}
       </span>
       <span>{getButtonText()}</span>
-    </button>
+    </Button>
   );
 }

@@ -13,6 +13,7 @@ use crate::models::{
     WorkspaceVulnSummary,
 };
 use crate::repositories::{ProjectRepository, SecurityRepository};
+use crate::services::notification::{send_notification, NotificationType};
 use crate::utils::path_resolver;
 use crate::DatabaseState;
 
@@ -1119,6 +1120,20 @@ pub async fn run_security_audit(
         },
     );
 
+    // Send desktop notification for security scan completion
+    let project_name = Path::new(&project_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Unknown")
+        .to_string();
+    let _ = send_notification(
+        &app,
+        NotificationType::SecurityScanCompleted {
+            project_name,
+            vulnerability_count: scan_result.summary.total,
+        },
+    );
+
     Ok(RunSecurityAuditResponse {
         success: true,
         result: Some(scan_result),
@@ -1286,6 +1301,21 @@ async fn run_single_pm_audit(
                     error: None,
                 },
             );
+
+            // Send desktop notification for security scan completion
+            let project_name = Path::new(&project_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown")
+                .to_string();
+            let _ = send_notification(
+                &app,
+                NotificationType::SecurityScanCompleted {
+                    project_name,
+                    vulnerability_count: scan_result.summary.total,
+                },
+            );
+
             Ok(RunSecurityAuditResponse {
                 success: true,
                 result: Some(scan_result),

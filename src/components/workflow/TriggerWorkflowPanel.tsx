@@ -183,12 +183,14 @@ export function TriggerWorkflowPanel({
               )}
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-accent transition-colors"
+            className="h-auto w-auto p-2"
           >
             <X className="w-5 h-5 text-muted-foreground" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -249,32 +251,30 @@ export function TriggerWorkflowPanel({
               Execution Mode
             </label>
             <div className="flex gap-2">
-              <button
+              <Button
+                variant={waitForCompletion ? "default" : "outline"}
                 type="button"
                 onClick={() => setWaitForCompletion(true)}
                 disabled={disabled}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                  waitForCompletion
-                    ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                    : 'bg-background border-border text-muted-foreground hover:border-muted'
+                  'flex-1 h-auto px-3 py-2 text-sm',
+                  waitForCompletion && 'bg-purple-500/20 border-purple-500/50 text-purple-300'
                 )}
               >
                 Wait for completion
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={!waitForCompletion ? "default" : "outline"}
                 type="button"
                 onClick={() => setWaitForCompletion(false)}
                 disabled={disabled}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                  !waitForCompletion
-                    ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                    : 'bg-background border-border text-muted-foreground hover:border-muted'
+                  'flex-1 h-auto px-3 py-2 text-sm',
+                  !waitForCompletion && 'bg-purple-500/20 border-purple-500/50 text-purple-300'
                 )}
               >
                 Fire and forget
-              </button>
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground">
               {waitForCompletion
@@ -291,32 +291,30 @@ export function TriggerWorkflowPanel({
                 On Failure
               </label>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant={onChildFailure === 'fail' ? "default" : "outline"}
                   type="button"
                   onClick={() => setOnChildFailure('fail')}
                   disabled={disabled}
                   className={cn(
-                    'flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                    onChildFailure === 'fail'
-                      ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                      : 'bg-background border-border text-muted-foreground hover:border-muted'
+                    'flex-1 h-auto px-3 py-2 text-sm',
+                    onChildFailure === 'fail' && 'bg-red-500/20 border-red-500/50 text-red-300'
                   )}
                 >
                   Stop workflow
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant={onChildFailure === 'continue' ? "default" : "outline"}
                   type="button"
                   onClick={() => setOnChildFailure('continue')}
                   disabled={disabled}
                   className={cn(
-                    'flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                    onChildFailure === 'continue'
-                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
-                      : 'bg-background border-border text-muted-foreground hover:border-muted'
+                    'flex-1 h-auto px-3 py-2 text-sm',
+                    onChildFailure === 'continue' && 'bg-amber-500/20 border-amber-500/50 text-amber-300'
                   )}
                 >
                   Continue anyway
-                </button>
+                </Button>
               </div>
               <p className="text-xs text-muted-foreground">
                 {onChildFailure === 'fail'

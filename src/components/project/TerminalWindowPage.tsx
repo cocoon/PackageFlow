@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal, Square } from 'lucide-react';
 import { scriptAPI, tauriEvents, type ScriptOutputPayload, type ScriptCompletedPayload } from '../../lib/tauri-api';
+import { Button } from '../ui/Button';
 
 interface TerminalWindowPageProps {
   executionId: string;
@@ -85,13 +86,15 @@ export function TerminalWindowPage({ executionId }: TerminalWindowPageProps) {
           )}
         </div>
         {isRunning && (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleCancel}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs text-red-400 hover:bg-red-500/10 rounded transition-colors"
+            className="gap-1.5 text-red-400 hover:bg-red-500/10 h-auto px-2 py-1"
           >
             <Square className="w-3 h-3" />
             Stop
-          </button>
+          </Button>
         )}
       </div>
 

@@ -3,6 +3,7 @@
  * @see specs/001-expo-workflow-automation/spec.md - US1
  */
 
+import { Button } from '../ui/Button';
 import type { WorkflowNode as WorkflowNodeType, NodeStatus } from '../../types/workflow';
 import { isScriptNodeConfig, isTriggerWorkflowConfig } from '../../types/workflow';
 
@@ -92,13 +93,15 @@ export function WorkflowNode({
       onDoubleClick={handleDoubleClick}
     >
       {!disabled && onDelete && (
-        <button
+        <Button
+          variant="destructive"
+          size="icon"
           onClick={handleDelete}
-          className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-500 rounded-full text-white text-sm flex items-center justify-center"
+          className="absolute -top-2 -right-2 h-6 w-6 rounded-full text-sm"
           title="Delete node"
         >
           ×
-        </button>
+        </Button>
       )}
 
       <div className="absolute -top-3 -left-3 w-6 h-6 bg-muted rounded-full flex items-center justify-center text-xs text-foreground">

@@ -530,15 +530,17 @@ export function GitWorktreeList({
                 className="w-32 pl-7 pr-7 py-1 text-xs bg-muted/50 border border-border rounded focus:outline-none focus:border-blue-500"
               />
               {searchQuery && (
-                <button
+                <Button
                   onClick={() => {
                     setSearchQuery('');
                     setIsSearchExpanded(false);
                   }}
-                  className="absolute right-1.5 p-0.5 rounded hover:bg-accent"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1.5 h-auto w-auto p-0.5"
                 >
                   <X className="w-3 h-3 text-muted-foreground" />
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -552,18 +554,21 @@ export function GitWorktreeList({
         <div className="flex items-center gap-2">
           {/* Search toggle */}
           {!isSearchExpanded && !searchQuery && (
-            <button
+            <Button
               onClick={() => setIsSearchExpanded(true)}
-              className="p-1.5 rounded hover:bg-accent transition-colors"
+              variant="ghost"
+              size="icon"
+              className="h-auto w-auto p-1.5"
               title="Search worktrees"
             >
               <Search className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           )}
           {sessionsEnabled && (
-            <button
+            <Button
               onClick={() => setShowSessionListDialog(true)}
-              className="flex items-center gap-1.5 p-1.5 rounded hover:bg-accent transition-colors"
+              variant="ghost"
+              className="h-auto gap-1.5 p-1.5"
               title="Sessions"
             >
               <Bookmark className="w-4 h-4 text-muted-foreground" />
@@ -572,14 +577,16 @@ export function GitWorktreeList({
                   {worktreeSessions.length}
                 </span>
               )}
-            </button>
+            </Button>
           )}
           {/* View mode toggle */}
           <div className="flex items-center gap-0.5 bg-muted/50 rounded-md p-0.5">
-            <button
+            <Button
               onClick={() => setViewMode('list')}
+              variant="ghost"
+              size="icon"
               className={cn(
-                'p-1.5 rounded transition-colors',
+                'h-auto w-auto p-1.5',
                 viewMode === 'list'
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -587,11 +594,13 @@ export function GitWorktreeList({
               title="List view"
             >
               <List className="w-4 h-4" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setViewMode('grid')}
+              variant="ghost"
+              size="icon"
               className={cn(
-                'p-1.5 rounded transition-colors',
+                'h-auto w-auto p-1.5',
                 viewMode === 'grid'
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -599,7 +608,7 @@ export function GitWorktreeList({
               title="Grid view"
             >
               <LayoutGrid className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
           {/* Batch Actions */}
           {worktrees.length > 1 && (
@@ -612,17 +621,19 @@ export function GitWorktreeList({
               }}
             />
           )}
-          <button
+          <Button
             onClick={() => {
               loadWorktrees(true);
               refreshStatuses();
             }}
             disabled={isLoading}
-            className="p-1.5 rounded hover:bg-accent transition-colors disabled:opacity-50"
+            variant="ghost"
+            size="icon"
+            className="h-auto w-auto p-1.5"
             title="Refresh"
           >
             <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading || isLoadingStatuses ? 'animate-spin' : ''}`} />
-          </button>
+          </Button>
           <Dropdown
             trigger={
               <Button variant="default" size="sm">
@@ -678,15 +689,16 @@ export function GitWorktreeList({
         <div className="p-8 text-center text-muted-foreground">
           <Search className="w-10 h-10 mx-auto mb-3 opacity-50" />
           <p className="text-sm">No matches for "{searchQuery}"</p>
-          <button
+          <Button
             onClick={() => {
               setSearchQuery('');
               setIsSearchExpanded(false);
             }}
-            className="text-xs text-blue-400 hover:underline mt-2"
+            variant="ghost"
+            className="text-xs text-blue-400 hover:underline mt-2 h-auto"
           >
             Clear search
-          </button>
+          </Button>
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid View */
@@ -797,34 +809,39 @@ export function GitWorktreeList({
                 {/* Actions */}
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   {sessionsEnabled && (
-                    <button
+                    <Button
                       onClick={() => setSessionDialogWorktreePath(worktree.path)}
-                      className="p-1.5 rounded hover:bg-accent"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5"
                       title={session ? 'Open session' : 'Create session'}
                     >
                       <Bookmark className={cn('w-3.5 h-3.5', sessionIconClass)} />
-                    </button>
+                    </Button>
                   )}
                   {/* Open in Editor */}
                   {availableEditors.length > 0 && (
                     availableEditors.length === 1 ? (
-                      <button
+                      <Button
                         onClick={() => handleOpenInEditor(worktree.path, availableEditors[0].id)}
-                        className="p-1.5 rounded hover:bg-accent"
+                        variant="ghost"
+                        size="icon"
+                        className="h-auto w-auto p-1.5"
                         title={`Open in ${availableEditors[0].name}`}
                       >
                         <Code2 className="w-3.5 h-3.5 text-blue-400" />
-                      </button>
+                      </Button>
                     ) : (
                       <Dropdown
                         trigger={
-                          <button
-                            className="flex items-center gap-1.5 p-1.5 rounded hover:bg-accent"
+                          <Button
+                            variant="ghost"
+                            className="h-auto gap-1.5 p-1.5"
                             title="Open in Editor"
                           >
                             <Code2 className="w-3.5 h-3.5 text-blue-400" />
                             <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                          </button>
+                          </Button>
                         }
                         align="right"
                       >
@@ -844,10 +861,12 @@ export function GitWorktreeList({
                   )}
                   {/* Pull button */}
                   {!worktree.isDetached && (
-                    <button
+                    <Button
                       onClick={() => handlePull(worktree)}
                       disabled={pullingWorktreePath === worktree.path}
-                      className="p-1.5 rounded hover:bg-accent disabled:opacity-50"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5"
                       title="Pull"
                     >
                       {pullingWorktreePath === worktree.path ? (
@@ -855,43 +874,51 @@ export function GitWorktreeList({
                       ) : (
                         <ArrowDownToLine className="w-3.5 h-3.5 text-blue-400" />
                       )}
-                    </button>
+                    </Button>
                   )}
                   {/* Sync button */}
                   {!worktree.isMain && !worktree.isDetached && (
-                    <button
+                    <Button
                       onClick={() => handleSync(worktree)}
-                      className="p-1.5 rounded hover:bg-accent"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5"
                       title="Sync with main"
                     >
                       <RefreshCw className="w-3.5 h-3.5 text-orange-400" />
-                    </button>
+                    </Button>
                   )}
                   {/* Stash button */}
-                  <button
+                  <Button
                     onClick={() => handleStash(worktree)}
-                    className="p-1.5 rounded hover:bg-accent"
+                    variant="ghost"
+                    size="icon"
+                    className="h-auto w-auto p-1.5"
                     title="Stash"
                   >
                     <Archive className="w-3.5 h-3.5 text-purple-400" />
-                  </button>
+                  </Button>
                   {onSwitchWorkingDirectory && !worktree.isMain && (
-                    <button
+                    <Button
                       onClick={() => onSwitchWorkingDirectory(worktree.path)}
-                      className="p-1.5 rounded hover:bg-accent"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5"
                       title="Switch working directory"
                     >
                       <FolderOpen className="w-3.5 h-3.5 text-muted-foreground" />
-                    </button>
+                    </Button>
                   )}
                   {!worktree.isMain && (
-                    <button
+                    <Button
                       onClick={() => handleOpenRemoveDialog(worktree)}
-                      className="p-1.5 rounded hover:bg-red-500/20"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-1.5 hover:bg-red-500/20"
                       title="Remove"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

@@ -25,6 +25,7 @@ import {
 import { useTerminalHeight } from '../../hooks/useTerminalHeight';
 import { scriptAPI } from '../../lib/tauri-api';
 import { useSettings } from '../../contexts/SettingsContext';
+import { Button } from '../ui/Button';
 import '@xterm/xterm/css/xterm.css';
 
 // PTY session info
@@ -642,13 +643,15 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
           <>
             <TerminalIcon className="w-4 h-4 text-muted-foreground mr-2" />
             <span className="text-sm text-muted-foreground flex-1">Terminal ({sessions.size})</span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onToggleCollapse}
-              className="p-1.5 rounded hover:bg-secondary"
+              className="h-auto p-1.5"
               title="Expand"
             >
               <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           </>
         ) : (
           /* Expanded state: full UI */
@@ -690,15 +693,17 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
                         :{port}
                       </span>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
                         killSession(session.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-accent rounded"
+                      className="opacity-0 group-hover:opacity-100 h-auto p-0.5"
                     >
                       <X className="w-3 h-3" />
-                    </button>
+                    </Button>
                   </div>
                 );
               })}
@@ -707,23 +712,27 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
             {/* Toolbar buttons */}
             <div className="flex items-center gap-1 flex-shrink-0">
               {/* Search button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setIsSearchOpen(!isSearchOpen);
                   if (!isSearchOpen) {
                     setTimeout(() => searchInputRef.current?.focus(), 0);
                   }
                 }}
-                className={`p-1.5 rounded hover:bg-secondary ${isSearchOpen ? 'bg-secondary' : ''}`}
+                className={`h-auto p-1.5 ${isSearchOpen ? 'bg-secondary' : ''}`}
                 title="Search (Cmd+F)"
               >
                 <Search className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </Button>
               {/* Copy button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleCopy}
                 disabled={!activeSession}
-                className="p-1.5 rounded hover:bg-secondary disabled:opacity-50"
+                className="h-auto p-1.5"
                 title="Copy output (Cmd+Shift+C)"
               >
                 {copied ? (
@@ -731,24 +740,28 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
                 ) : (
                   <Copy className="w-4 h-4 text-muted-foreground" />
                 )}
-              </button>
+              </Button>
               {/* Close session button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleCloseActiveSession}
                 disabled={!activeSession}
-                className="p-1.5 rounded hover:bg-secondary hover:text-red-400 disabled:opacity-50"
+                className="h-auto p-1.5 hover:text-red-400"
                 title="Close session (kill process)"
               >
                 <Trash2 className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </Button>
               {/* Collapse button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onToggleCollapse}
-                className="p-1.5 rounded hover:bg-secondary"
+                className="h-auto p-1.5"
                 title="Collapse"
               >
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </Button>
             </div>
           </>
         )}
@@ -775,30 +788,36 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
             className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none min-w-0"
           />
           <div className="flex items-center gap-0.5 flex-shrink-0">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleSearchPrev}
               disabled={!searchQuery}
-              className="p-1 hover:bg-accent rounded disabled:opacity-50"
+              className="h-auto p-1"
               title="Previous match (Shift+Enter)"
             >
               <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleSearchNext}
               disabled={!searchQuery}
-              className="p-1 hover:bg-accent rounded disabled:opacity-50"
+              className="h-auto p-1"
               title="Next match (Enter)"
             >
               <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleCloseSearch}
-            className="p-1 hover:bg-accent rounded flex-shrink-0"
+            className="h-auto p-1 flex-shrink-0"
             title="Close (Esc)"
           >
             <X className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </Button>
         </div>
       )}
 

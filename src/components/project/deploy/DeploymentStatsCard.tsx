@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { deployAPI } from '../../../lib/tauri-api';
+import { Button } from '../../ui/Button';
 import type { DeploymentStats, PlatformType } from '../../../types/deploy';
 
 interface DeploymentStatsCardProps {
@@ -233,13 +234,15 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
               {stats.lastSuccessfulDeployment.url}
             </a>
             <div className="flex shrink-0 items-center gap-1">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleCopyUrl}
-                className="rounded p-1 hover:bg-green-100 dark:hover:bg-green-900"
+                className="h-auto w-auto rounded p-1 hover:bg-green-100 dark:hover:bg-green-900"
                 title="Copy URL"
               >
                 <Copy className={`h-4 w-4 ${copied ? 'text-green-500' : 'text-green-600 dark:text-green-500'}`} />
-              </button>
+              </Button>
               <a
                 href={stats.lastSuccessfulDeployment.url}
                 target="_blank"

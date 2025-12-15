@@ -8,6 +8,7 @@ import { Terminal, Check, ChevronDown } from 'lucide-react';
 import { Dropdown, DropdownItem } from '../ui/Dropdown';
 import { terminalAPI, TerminalDefinition } from '../../lib/tauri-api';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
 
 interface TerminalSelectorProps {
   path: string;
@@ -74,29 +75,29 @@ export const TerminalSelector: React.FC<TerminalSelectorProps> = ({
   const availableTerminals = terminals.filter(t => t.isAvailable);
 
   const trigger = (
-    <button
-      className={cn(
-        'p-2 rounded hover:bg-accent transition-colors flex items-center gap-1',
-        disabled && 'opacity-50 cursor-not-allowed',
-        className
-      )}
+    <Button
+      variant="ghost"
+      size="icon"
+      className={cn('gap-1 h-auto', className)}
       title="Open Terminal"
       disabled={disabled || isLoading}
     >
       <Terminal className="w-4 h-4 text-muted-foreground" />
       <ChevronDown className="w-3 h-3 text-muted-foreground" />
-    </button>
+    </Button>
   );
 
   if (isLoading) {
     return (
-      <button
-        className={cn('p-2 rounded hover:bg-accent transition-colors', className)}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn('h-auto', className)}
         title="Loading terminals..."
         disabled
       >
         <Terminal className="w-4 h-4 text-muted-foreground animate-pulse" />
-      </button>
+      </Button>
     );
   }
 

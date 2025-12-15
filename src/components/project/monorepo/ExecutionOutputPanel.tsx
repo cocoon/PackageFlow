@@ -8,6 +8,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { X, Terminal, Copy, Check, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 export type ExecutionStatus = 'running' | 'completed' | 'failed' | 'cancelled';
@@ -150,10 +151,12 @@ export function ExecutionOutputPanel({
           </div>
           <div className="flex items-center gap-1">
             {/* Copy button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleCopy}
               disabled={!output}
-              className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-auto w-auto p-2 rounded-lg"
               title="Copy output"
             >
               {copied ? (
@@ -161,15 +164,17 @@ export function ExecutionOutputPanel({
               ) : (
                 <Copy className="w-4 h-4" />
               )}
-            </button>
+            </Button>
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              className="h-auto w-auto p-2 rounded-lg"
               title="Close (Esc)"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -219,17 +224,19 @@ export function ExecutionOutputPanel({
 
         {/* Auto-scroll indicator */}
         {!autoScroll && isActive && (
-          <button
+          <Button
+            variant="info"
+            size="sm"
             onClick={() => {
               setAutoScroll(true);
               if (outputRef.current) {
                 outputRef.current.scrollTop = outputRef.current.scrollHeight;
               }
             }}
-            className="absolute bottom-16 right-6 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-full shadow-lg transition-colors"
+            className="absolute bottom-16 right-6 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg"
           >
             Scroll to bottom
-          </button>
+          </Button>
         )}
       </div>
     </div>

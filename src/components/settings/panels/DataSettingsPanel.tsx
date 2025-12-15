@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Download, Upload, ArrowLeftRight } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 // Keyboard shortcut display helper
@@ -48,21 +49,17 @@ export const DataSettingsPanel: React.FC<DataSettingsPanelProps> = ({
           </div>
         </div>
 
-        <button
+        <Button
+          variant="outline-success"
           onClick={onExport}
-          className={cn(
-            'w-full flex items-center justify-center gap-2 px-4 py-2.5',
-            'text-sm font-medium rounded-lg',
-            'bg-green-500/10 text-green-500 border border-green-500/20',
-            'hover:bg-green-500/20 transition-colors'
-          )}
+          className="w-full"
         >
           <Download className="w-4 h-4" />
           Export Data
           <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-green-500/10 rounded">
             {modKey}+E
           </kbd>
-        </button>
+        </Button>
       </div>
 
       {/* Import Section */}
@@ -80,21 +77,17 @@ export const DataSettingsPanel: React.FC<DataSettingsPanelProps> = ({
           </div>
         </div>
 
-        <button
+        <Button
+          variant="outline-info"
           onClick={onImport}
-          className={cn(
-            'w-full flex items-center justify-center gap-2 px-4 py-2.5',
-            'text-sm font-medium rounded-lg',
-            'bg-blue-500/10 text-blue-500 border border-blue-500/20',
-            'hover:bg-blue-500/20 transition-colors'
-          )}
+          className="w-full"
         >
           <Upload className="w-4 h-4" />
           Import Data
           <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-blue-500/10 rounded">
             {modKey}+I
           </kbd>
-        </button>
+        </Button>
       </div>
 
       {/* Info */}

@@ -80,12 +80,12 @@ function Section({
 
   return (
     <div className={cn('space-y-4', className)}>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
         disabled={!collapsible}
         className={cn(
-          'flex items-center gap-3 w-full text-left group',
+          'h-auto justify-start gap-3 w-full p-0',
           collapsible && 'cursor-pointer'
         )}
       >
@@ -116,7 +116,7 @@ function Section({
             )}
           />
         )}
-      </button>
+      </Button>
 
       {(!collapsible || isExpanded) && (
         <div className="ml-12 space-y-4 animate-in fade-in-0 slide-in-from-top-1 duration-150">
@@ -180,14 +180,12 @@ function PlatformCard({
   const { Icon, name, bgColor, iconClass } = getPlatformConfig();
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'relative flex flex-col items-center gap-3',
+        'relative h-auto flex-col items-center gap-3',
         'rounded-xl border-2 p-4',
-        'transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         isSelected
           ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
           : 'border-border hover:border-primary/40 hover:bg-accent/50'
@@ -232,7 +230,7 @@ function PlatformCard({
           <Check className="h-3.5 w-3.5 text-primary-foreground" />
         </div>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -291,10 +289,11 @@ function EnvVariableRow({
           )}
         />
         {env.isSecret && (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onToggleSecret}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-auto w-auto p-1"
             title={showSecret ? 'Hide value' : 'Show value'}
           >
             {showSecret ? (
@@ -302,31 +301,33 @@ function EnvVariableRow({
             ) : (
               <Eye className="h-3.5 w-3.5" />
             )}
-          </button>
+          </Button>
         )}
       </div>
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => onUpdate('isSecret', !env.isSecret)}
         className={cn(
-          'flex h-8 items-center gap-1.5 rounded-md px-2 text-xs transition-colors',
+          'h-8 gap-1.5 px-2 text-xs',
           env.isSecret
             ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+            : ''
         )}
         title={env.isSecret ? 'Secret (hidden in logs)' : 'Mark as secret'}
       >
         <Lock className="h-3 w-3" />
         <span className="hidden sm:inline">Secret</span>
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onRemove}
-        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+        className="h-auto w-auto p-1.5 opacity-0 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
         title="Remove variable"
       >
         <Trash2 className="h-4 w-4" />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -615,20 +616,19 @@ export function DeploymentSettingsDialog({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
               className={cn(
                 'absolute right-4 top-4',
-                'rounded-lg p-2',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-background/80',
-                'transition-colors duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                'h-auto w-auto rounded-lg p-2',
+                'hover:bg-background/80'
               )}
               aria-label="Close dialog"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
 
             {/* Title with icon badge */}
             <div className="flex items-start gap-4 pr-10">
@@ -872,11 +872,12 @@ export function DeploymentSettingsDialog({
                   <label className="text-sm font-medium text-foreground">
                     Framework
                   </label>
-                  <button
-                    type="button"
+                  <Button
+                    variant="link"
+                    size="sm"
                     onClick={handleDetectFramework}
                     disabled={isDetecting}
-                    className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+                    className="h-auto p-0 text-xs"
                   >
                     {isDetecting ? (
                       <>
@@ -886,7 +887,7 @@ export function DeploymentSettingsDialog({
                     ) : (
                       'Auto Detect'
                     )}
-                  </button>
+                  </Button>
                 </div>
                 <Select
                   value={framework}

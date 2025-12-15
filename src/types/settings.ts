@@ -6,6 +6,7 @@ export type SettingsSection =
   | 'storage'
   | 'deploy-accounts'
   | 'appearance'
+  | 'notifications'
   | 'shortcuts'
   | 'ai-services'
   | 'prompts'
@@ -40,6 +41,7 @@ export const SETTINGS_SECTIONS: SettingsSidebarSection[] = [
     label: 'Preferences',
     items: [
       { id: 'appearance', label: 'Appearance', icon: 'Palette' },
+      { id: 'notifications', label: 'Notifications', icon: 'Bell' },
       { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: 'Keyboard' },
       { id: 'toolchain', label: 'Toolchain', icon: 'Wrench' },
     ],

@@ -4,7 +4,8 @@
  */
 
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { Workflow as WorkflowIcon, MoreVertical, Trash2, Copy, ArrowUpFromLine, ArrowDownToLine, ArrowUpDown, Check, GripVertical, Loader2, CheckCircle, XCircle, MinusCircle, Search } from 'lucide-react';
+import { Workflow as WorkflowIcon, MoreVertical, Trash2, Copy, ArrowUpFromLine, ArrowDownToLine, ArrowUpDown, Check, GripVertical, Loader2, CheckCircle, XCircle, MinusCircle, Search, Plus } from 'lucide-react';
+import { Button } from '../ui/Button';
 import type { ExecutionStatus } from '../../types/workflow';
 import {
   DndContext,
@@ -107,15 +108,17 @@ function SortableWorkflowItem({
         {getStatusIcon()}
       </span>
       {isDraggable && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           {...attributes}
           {...listeners}
-          className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          className="absolute inset-0 h-4 w-4 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 p-0"
           title="Drag to reorder"
           onClick={e => e.stopPropagation()}
         >
           <GripVertical className="w-4 h-4 text-muted-foreground" />
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -126,10 +129,11 @@ function SortableWorkflowItem({
       style={style}
       className="group relative"
     >
-      <button
+      <Button
+        variant="ghost"
         onClick={onSelect}
         onContextMenu={onContextMenu}
-        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+        className={`w-full justify-start h-auto gap-2 px-2 py-1.5 ${
           isActive
             ? 'bg-blue-600/20 text-blue-400'
             : 'hover:bg-accent text-foreground'
@@ -159,19 +163,21 @@ function SortableWorkflowItem({
             )}
           </div>
         </div>
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={(e) => {
           e.stopPropagation();
           onContextMenu(e);
         }}
-        className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted transition-opacity ${
+        className={`absolute right-1 top-1/2 -translate-y-1/2 h-auto w-auto p-1 ${
           isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
         }`}
         title="More options"
       >
         <MoreVertical className="w-3.5 h-3.5 text-muted-foreground" />
-      </button>
+      </Button>
     </li>
   );
 }
@@ -315,18 +321,18 @@ export function WorkflowSidebar({
         <div className={`flex items-center gap-1 flex-shrink-0 transition-all duration-200 ${isSearchFocused ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {/* Sort button */}
           <div className="relative">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowSortMenu(!showSortMenu);
               }}
-              className={`p-1.5 rounded hover:bg-accent transition-colors ${
-                showSortMenu ? 'bg-accent' : ''
-              }`}
+              className={`h-8 w-8 ${showSortMenu ? 'bg-accent' : ''}`}
               title="Sort by"
             >
               <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
             {/* Sort menu */}
             {showSortMenu && (
               <>
@@ -336,13 +342,14 @@ export function WorkflowSidebar({
                 />
                 <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] whitespace-nowrap">
                   {SORT_OPTIONS.map(option => (
-                    <button
+                    <Button
                       key={option.value}
+                      variant="ghost"
                       onClick={() => {
                         onSortModeChange(option.value);
                         setShowSortMenu(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent justify-start h-auto rounded-none"
                     >
                       <Check
                         className={`w-4 h-4 ${
@@ -350,21 +357,21 @@ export function WorkflowSidebar({
                         }`}
                       />
                       {option.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onCreateWorkflow}
-            className="p-1.5 rounded hover:bg-accent transition-colors"
+            className="h-8 w-8"
             title="Create workflow"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+            <Plus className="w-4 h-4 text-muted-foreground" />
+          </Button>
         </div>
       </div>
 
@@ -423,27 +430,29 @@ export function WorkflowSidebar({
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
           {onDuplicateWorkflow && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => {
                 const workflow = workflows.find(w => w.id === contextMenu.workflowId);
                 if (workflow) handleDuplicateClick(workflow);
               }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent justify-start h-auto rounded-none"
             >
               <Copy className="w-4 h-4" />
               Duplicate
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             onClick={() => {
               const workflow = workflows.find(w => w.id === contextMenu.workflowId);
               if (workflow) handleDeleteClick(workflow);
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-accent"
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-accent justify-start h-auto rounded-none"
           >
             <Trash2 className="w-4 h-4" />
             Delete
-          </button>
+          </Button>
         </div>
         </>
       )}

@@ -1685,6 +1685,32 @@ pub async fn save_deployment_config(
     save_config_to_store(&app, &config)
 }
 
+/// Delete deployment config for a project
+#[tauri::command]
+pub async fn delete_deployment_config(
+    app: AppHandle,
+    project_id: String,
+) -> Result<bool, String> {
+    println!("[delete_deployment_config] project_id={}", project_id);
+
+    let db = get_db(&app);
+    let repo = get_deploy_repo(&app);
+    let result = repo.delete_config(&project_id);
+
+    // Force WAL checkpoint to ensure deletion is persisted
+    if result.is_ok() {
+        if let Err(e) = db.with_connection(|conn| {
+            conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
+                .map_err(|e| format!("WAL checkpoint failed: {}", e))
+        }) {
+            println!("[delete_deployment_config] WAL checkpoint warning: {}", e);
+        }
+        println!("[delete_deployment_config] SUCCESS for project_id={}", project_id);
+    }
+
+    result
+}
+
 /// Detect framework from project path
 #[tauri::command]
 pub async fn detect_framework(project_path: String) -> Result<Option<String>, String> {

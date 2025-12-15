@@ -689,20 +689,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
-              className={cn(
-                'absolute right-4 top-4',
-                'p-2 rounded-lg',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent/50',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="absolute right-4 top-4 h-auto p-2 hover:bg-accent/50"
               aria-label="Close dialog"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
 
             {/* Title area with icon badge */}
             <div className="flex items-start gap-4 pr-10">
@@ -784,39 +779,24 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           >
             {/* Select step footer */}
             {step === 'select' && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={handleClose}
-                className={cn(
-                  'px-4 py-2 rounded-lg',
-                  'text-sm font-medium',
-                  'bg-secondary hover:bg-accent',
-                  'text-foreground',
-                  'border border-border',
-                  'transition-colors duration-150',
-                  'focus:outline-none focus:ring-2 focus:ring-ring'
-                )}
               >
                 Cancel
-              </button>
+              </Button>
             )}
 
             {/* Preview step footer */}
             {step === 'preview' && importState.preview && (
               <>
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleBack}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-lg',
-                    'text-sm font-medium',
-                    'text-muted-foreground hover:text-foreground',
-                    'hover:bg-accent',
-                    'transition-colors duration-150',
-                    'focus:outline-none focus:ring-2 focus:ring-ring'
-                  )}
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back
-                </button>
+                </Button>
                 <Button
                   onClick={handleImport}
                   variant={importMode === 'replace' ? 'destructive' : 'default'}

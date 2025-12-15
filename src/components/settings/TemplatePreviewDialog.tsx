@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { PromptTemplate, TemplateCategory } from '../../types/ai';
 import { getCategoryInfo } from '../../types/ai';
+import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { isTopModal, registerModal, unregisterModal } from '../ui/modalStack';
 
@@ -254,20 +255,15 @@ export function TemplatePreviewDialog({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onOpenChange(false)}
-              className={cn(
-                'absolute right-4 top-4',
-                'p-2 rounded-lg',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent/50',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="absolute right-4 top-4 h-auto p-2 hover:bg-accent/50"
               aria-label="Close dialog"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
 
             {/* Title area with icon badge */}
             <div className="flex items-start gap-4 pr-10">
@@ -347,13 +343,10 @@ export function TemplatePreviewDialog({
                   <span className="text-xs text-muted-foreground">
                     {template.template.length} characters
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => handleCopy('template', template.template)}
-                    className={cn(
-                      'flex items-center gap-1 px-2 py-1 rounded text-xs',
-                      'text-muted-foreground hover:text-foreground',
-                      'hover:bg-accent transition-colors'
-                    )}
+                    className="h-auto px-2 py-1 text-xs"
                     title="Copy template"
                   >
                     {copiedSection === 'template' ? (
@@ -367,7 +360,7 @@ export function TemplatePreviewDialog({
                         <span>Copy</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
               <pre
@@ -390,13 +383,10 @@ export function TemplatePreviewDialog({
                   <span className={cn('text-xs px-2 py-0.5 rounded', config.badge)}>
                     with sample values
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => handleCopy('preview', previewContent)}
-                    className={cn(
-                      'flex items-center gap-1 px-2 py-1 rounded text-xs',
-                      'text-muted-foreground hover:text-foreground',
-                      'hover:bg-accent transition-colors'
-                    )}
+                    className="h-auto px-2 py-1 text-xs"
                     title="Copy expanded preview"
                   >
                     {copiedSection === 'preview' ? (
@@ -410,7 +400,7 @@ export function TemplatePreviewDialog({
                         <span>Copy</span>
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
               <pre
@@ -449,20 +439,12 @@ export function TemplatePreviewDialog({
             </div>
 
             {/* Right side - close button */}
-            <button
+            <Button
+              variant="secondary"
               onClick={() => onOpenChange(false)}
-              className={cn(
-                'px-4 py-2 rounded-lg',
-                'text-sm font-medium',
-                'bg-secondary hover:bg-accent',
-                'text-foreground',
-                'border border-border',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       </div>

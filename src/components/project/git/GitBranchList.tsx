@@ -268,6 +268,9 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
   const localBranches = branches.filter((b) => !b.isRemote);
   const remoteBranches = branches.filter((b) => b.isRemote);
 
+  // Import Button component
+  // (Button is already imported at the top)
+
   if (isLoading && branches.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -380,18 +383,19 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
 
       {/* Local Branches */}
       <div className="space-y-1">
-        <button
+        <Button
           onClick={() => toggleSection('local')}
-          className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+          variant="ghost"
+          className="h-auto w-auto p-0 text-sm font-medium justify-start hover:bg-transparent"
         >
           {expandedSections.local ? (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4 mr-1" />
           ) : (
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 mr-1" />
           )}
-          <Laptop className="w-4 h-4 text-muted-foreground" />
+          <Laptop className="w-4 h-4 text-muted-foreground mr-1" />
           Local ({localBranches.length})
-        </button>
+        </Button>
 
         {expandedSections.local && (
           <div className="space-y-0.5 pl-6">
@@ -414,18 +418,19 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
       {/* Remote Branches */}
       {remoteBranches.length > 0 && (
         <div className="space-y-1">
-          <button
+          <Button
             onClick={() => toggleSection('remote')}
-            className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+            variant="ghost"
+            className="h-auto w-auto p-0 text-sm font-medium justify-start hover:bg-transparent"
           >
             {expandedSections.remote ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4 mr-1" />
             ) : (
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-4 h-4 mr-1" />
             )}
-            <Cloud className="w-4 h-4 text-muted-foreground" />
+            <Cloud className="w-4 h-4 text-muted-foreground mr-1" />
             Remote ({remoteBranches.length})
-          </button>
+          </Button>
 
           {expandedSections.remote && (
             <div className="space-y-0.5 pl-6">
@@ -486,15 +491,16 @@ function BranchItem({
       )}
 
       {/* Branch name */}
-      <button
+      <Button
         onClick={() => onCheckout(branch.name)}
-        className={`flex-1 text-left text-sm truncate ${
+        variant="ghost"
+        className={`h-auto flex-1 justify-start text-left text-sm truncate p-0 ${
           isCurrent ? 'text-green-400 font-medium' : 'text-muted-foreground hover:text-foreground'
         }`}
         title={branch.name}
       >
         {branch.name}
-      </button>
+      </Button>
 
       {/* Commit SHA */}
       {branch.lastCommitHash && (
@@ -503,13 +509,15 @@ function BranchItem({
 
       {/* Rebase button (rebase current branch onto this branch) */}
       {!isCurrent && (
-        <button
+        <Button
           onClick={(e) => {
             e.stopPropagation();
             onRebase(branch.name);
           }}
           disabled={rebaseDisabled}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+          variant="ghost"
+          size="icon"
+          className="h-auto w-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-purple-500/20"
           title={`Rebase current branch onto ${branch.name}`}
         >
           {isRebasing ? (
@@ -517,21 +525,23 @@ function BranchItem({
           ) : (
             <GitMerge className="w-3.5 h-3.5 text-purple-400" />
           )}
-        </button>
+        </Button>
       )}
 
       {/* Delete button (only for local, non-current branches) */}
       {!isRemote && !isCurrent && (
-        <button
+        <Button
           onClick={(e) => {
             e.stopPropagation();
             onDelete(branch.name);
           }}
-          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 transition-opacity"
+          variant="ghost"
+          size="icon"
+          className="h-auto w-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20"
           title="Delete branch"
         >
           <Trash2 className="w-3.5 h-3.5 text-red-400" />
-        </button>
+        </Button>
       )}
     </div>
   );

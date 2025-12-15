@@ -5,6 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Terminal, Settings2, Copy, Check, ChevronDown, ExternalLink, Bot } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 interface QuickSetupSectionProps {
@@ -95,15 +96,13 @@ const CopyButton: React.FC<{ text: string; label?: string }> = ({ text, label = 
   }, [text]);
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       onClick={handleCopy}
       className={cn(
-        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md',
-        'text-xs font-medium transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        'h-auto px-2.5 py-1.5 text-xs',
         state === 'copied'
-          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+          ? 'bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20'
           : 'bg-primary/10 text-primary hover:bg-primary/20'
       )}
     >
@@ -118,7 +117,7 @@ const CopyButton: React.FC<{ text: string; label?: string }> = ({ text, label = 
           <span>{label}</span>
         </>
       )}
-    </button>
+    </Button>
   );
 };
 

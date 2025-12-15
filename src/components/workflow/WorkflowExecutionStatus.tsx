@@ -5,6 +5,7 @@
 
 import { Loader2, CheckCircle2, XCircle, StopCircle, Play, Terminal } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
 import type { WorkflowExecutionState } from '../../hooks/useWorkflowExecution';
 import { formatDuration } from '../../hooks/useWorkflowExecution';
 
@@ -51,16 +52,18 @@ export function WorkflowExecutionStatus({
           </span>
         )}
         {isActive && onCancel && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               onCancel();
             }}
-            className="p-1 hover:bg-accent rounded text-muted-foreground hover:text-red-400 transition-colors"
+            className="h-auto w-auto p-1 text-muted-foreground hover:text-red-400"
             title="Cancel execution"
           >
             <StopCircle className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -94,31 +97,36 @@ export function WorkflowExecutionStatus({
             <span className="text-xs text-muted-foreground mr-2">{duration}</span>
           )}
           {onViewOutput && state.output.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onViewOutput}
-              className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-foreground transition-colors"
+              className="h-auto w-auto p-1.5 text-muted-foreground hover:text-foreground"
               title="View output"
             >
               <Terminal className="w-4 h-4" />
-            </button>
+            </Button>
           )}
           {isActive && onCancel && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onCancel}
-              className="p-1.5 hover:bg-accent rounded text-muted-foreground hover:text-red-400 transition-colors"
+              className="h-auto w-auto p-1.5 text-muted-foreground hover:text-red-400"
               title="Cancel execution"
             >
               <StopCircle className="w-4 h-4" />
-            </button>
+            </Button>
           )}
           {!isActive && onClear && (
-            <button
+            <Button
+              variant="ghost"
               onClick={onClear}
-              className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 hover:bg-accent rounded transition-colors"
+              className="h-auto text-xs text-muted-foreground hover:text-foreground px-2 py-1"
               title="Dismiss"
             >
               Dismiss
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -221,17 +229,17 @@ export function ExecuteButton({
   className,
 }: ExecuteButtonProps) {
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
       disabled={disabled || isExecuting}
       className={cn(
-        'p-1.5 rounded transition-all duration-200',
-        isExecuting
-          ? 'bg-blue-500/20 cursor-wait'
-          : 'hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed',
+        'h-auto w-auto p-1.5',
+        isExecuting && 'bg-blue-500/20 cursor-wait',
         className
       )}
       title={isExecuting ? 'Running...' : disabled ? 'No steps to run' : 'Run workflow'}
@@ -241,7 +249,7 @@ export function ExecuteButton({
       ) : (
         <Play className="w-4 h-4 text-green-400" />
       )}
-    </button>
+    </Button>
   );
 }
 

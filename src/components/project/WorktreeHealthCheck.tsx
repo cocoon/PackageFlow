@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { AlertTriangle, ArrowDown, FileEdit, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Worktree, WorktreeStatus } from '../../lib/tauri-api';
+import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 
 interface HealthIssue {
@@ -108,9 +109,10 @@ export function WorktreeHealthCheck({
   return (
     <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg overflow-hidden">
       {/* Header - always visible */}
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggleCollapse}
-        className="w-full flex items-center justify-between px-3 py-2 hover:bg-yellow-500/10 transition-colors"
+        className="w-full flex items-center justify-between px-3 h-auto hover:bg-yellow-500/10 justify-start rounded-none"
       >
         <div className="flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-yellow-400" />
@@ -133,7 +135,7 @@ export function WorktreeHealthCheck({
         ) : (
           <ChevronUp className="w-4 h-4 text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {/* Issue list - collapsible */}
       {!isCollapsed && (

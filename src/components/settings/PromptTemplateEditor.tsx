@@ -458,25 +458,23 @@ ${outputInstructions}`;
                     <p className="text-sm text-muted-foreground mb-4">
                       No templates yet. Create your first template to get started.
                     </p>
-                    <button
-                      onClick={handleStartAdd}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                    >
+                    <Button onClick={handleStartAdd}>
                       <Plus className="w-4 h-4" />
                       Create Template
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {/* Add button */}
                 {templates.length > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={handleStartAdd}
-                    className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-muted rounded-lg text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    className="w-full h-auto p-4 border-2 border-dashed border-muted text-muted-foreground hover:border-primary hover:text-primary"
                   >
                     <Plus className="w-5 h-5" />
                     <span>Add Template</span>
-                  </button>
+                  </Button>
                 )}
               </>
             )}
@@ -538,12 +536,12 @@ ${outputInstructions}`;
           </div>
 
           <DialogFooter>
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setPreviewTemplateId(null)}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg text-sm font-medium hover:bg-secondary/80 transition-colors"
             >
               Close
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -660,35 +658,41 @@ function TemplateCard({
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onPreview}
-            className="p-1.5 hover:bg-accent rounded transition-colors"
+            className="h-auto p-1.5"
             title="Preview template"
             aria-label={`Preview ${template.name}`}
           >
-            <Eye className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onEdit}
-            className="p-1.5 hover:bg-accent rounded transition-colors"
+            className="h-auto p-1.5"
             title={template.isBuiltin ? 'Copy template' : 'Edit template'}
             aria-label={template.isBuiltin ? `Copy ${template.name}` : `Edit ${template.name}`}
           >
             {template.isBuiltin ? (
-              <Copy className="w-4 h-4 text-muted-foreground" />
+              <Copy className="w-4 h-4" />
             ) : (
-              <Edit2 className="w-4 h-4 text-muted-foreground" />
+              <Edit2 className="w-4 h-4" />
             )}
-          </button>
+          </Button>
           {!template.isBuiltin && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onDelete}
-              className="p-1.5 hover:bg-accent rounded transition-colors"
+              className="h-auto p-1.5"
               title="Delete template"
               aria-label={`Delete ${template.name}`}
             >
-              <Trash2 className="w-4 h-4 text-muted-foreground" />
-            </button>
+              <Trash2 className="w-4 h-4" />
+            </Button>
           )}
         </div>
       </div>
@@ -700,13 +704,14 @@ function TemplateCard({
 
       {/* Set as default for this category */}
       {!template.isDefault && (
-        <button
+        <Button
+          variant="link"
           onClick={onSetDefault}
-          className="flex items-center gap-1 text-xs text-primary hover:underline"
+          className="h-auto p-0 text-xs"
         >
           <Star className="w-3 h-3" />
           Set as Default for this category
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -916,17 +921,16 @@ function TemplateForm({
 
       {/* Actions */}
       <DialogFooter className="border-t-0 pt-2 mt-4">
-        <button
+        <Button
+          variant="ghost"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onSubmit}
           disabled={isSubmitting || !hasRequiredVariable}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -934,7 +938,7 @@ function TemplateForm({
             <Check className="w-4 h-4" />
           )}
           {isEditing ? 'Save Changes' : 'Add Template'}
-        </button>
+        </Button>
       </DialogFooter>
     </div>
   );

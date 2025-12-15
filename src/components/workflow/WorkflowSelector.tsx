@@ -7,6 +7,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ChevronDown, Search, Workflow, Clock, Layers, FolderGit2, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
 import { workflowAPI, type AvailableWorkflowInfo, type CycleDetectionResult } from '../../lib/tauri-api';
 
 interface WorkflowSelectorProps {
@@ -132,17 +133,14 @@ export function WorkflowSelector({
   return (
     <div className="relative">
       {/* Trigger Button */}
-      <button
+      <Button
+        variant="outline"
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-3 py-2.5',
-          'bg-background border border-border rounded-lg',
-          'text-left transition-colors',
-          disabled
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:border-accent focus:outline-none focus:ring-2 focus:ring-purple-500'
+          'w-full justify-between h-auto px-3 py-2.5',
+          !disabled && 'hover:border-accent focus:ring-purple-500'
         )}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -166,7 +164,7 @@ export function WorkflowSelector({
             isOpen && 'rotate-180'
           )}
         />
-      </button>
+      </Button>
 
       {/* Dropdown */}
       {isOpen && (
@@ -217,14 +215,14 @@ export function WorkflowSelector({
                     const hasCycle = cycleWarning?.hasCycle;
 
                     return (
-                      <button
+                      <Button
                         key={workflow.id}
+                        variant="ghost"
                         type="button"
                         onClick={() => handleSelect(workflow)}
                         disabled={hasCycle}
                         className={cn(
-                          'w-full flex flex-col gap-1 px-3 py-2.5 text-left',
-                          'transition-colors',
+                          'w-full flex-col gap-1 px-3 py-2.5 justify-start h-auto rounded-none',
                           hasCycle
                             ? 'bg-red-500/10 cursor-not-allowed'
                             : 'hover:bg-accent/50',
@@ -289,7 +287,7 @@ export function WorkflowSelector({
                             {workflow.description}
                           </p>
                         )}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

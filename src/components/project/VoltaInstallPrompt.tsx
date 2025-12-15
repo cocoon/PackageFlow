@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { Zap, Terminal, X, ExternalLink, Copy, Check } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface VoltaInstallPromptProps {
   onDismiss: () => void;
@@ -52,9 +53,11 @@ export function VoltaInstallPrompt({ onDismiss }: VoltaInstallPromptProps) {
                 <Terminal className="w-3.5 h-3.5 text-muted-foreground" />
                 <code className="text-xs text-foreground font-mono">{installCommand}</code>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleCopy}
-                className="p-1.5 rounded hover:bg-muted transition-colors"
+                className="h-auto"
                 title="Copy command"
               >
                 {copied ? (
@@ -62,29 +65,33 @@ export function VoltaInstallPrompt({ onDismiss }: VoltaInstallPromptProps) {
                 ) : (
                   <Copy className="w-4 h-4 text-muted-foreground" />
                 )}
-              </button>
+              </Button>
             </div>
 
             {/* Actions */}
             <div className="mt-3 flex items-center gap-3">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleOpenDocs}
-                className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 transition-colors"
+                className="gap-1.5 text-orange-400 hover:text-orange-300 h-auto px-0"
               >
                 <ExternalLink className="w-3 h-3" />
                 View on Homebrew
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={onDismiss}
-          className="p-1 rounded hover:bg-muted transition-colors flex-shrink-0"
+          className="h-auto flex-shrink-0"
           title="Dismiss"
         >
           <X className="w-4 h-4 text-muted-foreground" />
-        </button>
+        </Button>
       </div>
     </div>
   );

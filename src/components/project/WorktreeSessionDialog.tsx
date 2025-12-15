@@ -780,37 +780,27 @@ export function WorktreeSessionDialog({
               )}
             >
               {/* Close button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={handleClose}
-                className={cn(
-                  'absolute right-4 top-4',
-                  'p-2 rounded-lg',
-                  'text-muted-foreground hover:text-foreground',
-                  'hover:bg-accent/50',
-                  'transition-colors duration-150',
-                  'focus:outline-none focus:ring-2 focus:ring-ring'
-                )}
+                className="absolute right-4 top-4"
                 aria-label="Close dialog"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
 
               {/* Help button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsHelpOpen(true)}
-                className={cn(
-                  'absolute right-12 top-4',
-                  'p-2 rounded-lg',
-                  'text-muted-foreground hover:text-foreground',
-                  'hover:bg-accent/50',
-                  'transition-colors duration-150',
-                  'focus:outline-none focus:ring-2 focus:ring-ring'
-                )}
+                className="absolute right-12 top-4"
                 title="Usage guide / scenarios"
                 aria-label="Usage help"
               >
                 <Info className={cn('w-4 h-4', isHelpOpen ? 'text-teal-400' : '')} />
-              </button>
+              </Button>
 
               {/* Title area with icon badge */}
               <div className="flex items-start gap-4 pr-20">
@@ -946,11 +936,11 @@ export function WorktreeSessionDialog({
 
                 {/* Tab Navigation */}
                 <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => setActiveTab('notes')}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md',
-                      'transition-all duration-150',
+                      'flex items-center gap-2 px-4 text-sm font-medium h-auto justify-start',
                       activeTab === 'notes'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
@@ -958,12 +948,12 @@ export function WorktreeSessionDialog({
                   >
                     <FileText className="w-4 h-4" />
                     Notes
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
                     onClick={() => setActiveTab('checklist')}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md',
-                      'transition-all duration-150',
+                      'flex items-center gap-2 px-4 text-sm font-medium h-auto justify-start',
                       activeTab === 'checklist'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
@@ -981,12 +971,12 @@ export function WorktreeSessionDialog({
                         {(draft?.checklist ?? []).filter((i) => i.completed).length}/{draft?.checklist?.length}
                       </span>
                     )}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="ghost"
                     onClick={() => setActiveTab('actions')}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md',
-                      'transition-all duration-150',
+                      'flex items-center gap-2 px-4 text-sm font-medium h-auto justify-start',
                       activeTab === 'actions'
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
@@ -1004,7 +994,7 @@ export function WorktreeSessionDialog({
                         {draft?.resumeActions?.length}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Tab Content */}
@@ -1124,17 +1114,15 @@ export function WorktreeSessionDialog({
                                   </span>
                                 }
                               />
-                              <button
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => handleRemoveChecklistItem(item.id)}
-                                className={cn(
-                                  'ml-auto p-1.5 rounded-lg',
-                                  'hover:bg-red-500/20',
-                                  'transition-colors duration-150'
-                                )}
+                                className="ml-auto hover:bg-red-500/20"
                                 title="Remove item"
                               >
                                 <Trash2 className="w-4 h-4 text-red-500 dark:text-red-400" />
-                              </button>
+                              </Button>
                             </div>
                           ))
                         )}
@@ -1193,17 +1181,14 @@ export function WorktreeSessionDialog({
                             >
                               <div className="text-xs text-muted-foreground px-2 py-1.5">Select Workflow</div>
                               {workflowOptions.map((opt) => (
-                                <button
+                                <Button
                                   key={opt.value}
+                                  variant="ghost"
                                   onClick={() => handleAddResumeAction('runWorkflow', opt.value)}
-                                  className={cn(
-                                    'w-full text-left px-2 py-1.5 text-sm rounded-lg',
-                                    'hover:bg-accent/50 truncate',
-                                    'transition-colors duration-150'
-                                  )}
+                                  className="w-full text-left px-2 text-sm h-auto justify-start rounded-lg hover:bg-accent/50 truncate"
                                 >
                                   {opt.label}
-                                </button>
+                                </Button>
                               ))}
                             </div>
                           )}
@@ -1264,43 +1249,33 @@ export function WorktreeSessionDialog({
                                 />
 
                                 <div className="flex items-center gap-1">
-                                  <button
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => handleMoveResumeAction(action.id, -1)}
                                     disabled={index === 0}
-                                    className={cn(
-                                      'p-1.5 rounded-lg',
-                                      'hover:bg-accent/50',
-                                      'disabled:opacity-50',
-                                      'transition-colors duration-150'
-                                    )}
                                     title="Move up"
                                   >
                                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => handleMoveResumeAction(action.id, 1)}
                                     disabled={index === (draft?.resumeActions.length ?? 1) - 1}
-                                    className={cn(
-                                      'p-1.5 rounded-lg',
-                                      'hover:bg-accent/50',
-                                      'disabled:opacity-50',
-                                      'transition-colors duration-150'
-                                    )}
                                     title="Move down"
                                   >
                                     <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => handleRemoveResumeAction(action.id)}
-                                    className={cn(
-                                      'p-1.5 rounded-lg',
-                                      'hover:bg-red-500/20',
-                                      'transition-colors duration-150'
-                                    )}
+                                    className="hover:bg-red-500/20"
                                     title="Remove action"
                                   >
                                     <XCircle className="w-4 h-4 text-red-500 dark:text-red-400" />
-                                  </button>
+                                  </Button>
                                 </div>
                               </div>
 
@@ -1514,20 +1489,13 @@ export function WorktreeSessionDialog({
 
                 {/* Right side - primary actions */}
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={handleClose}
-                    className={cn(
-                      'px-4 py-2 rounded-lg',
-                      'text-sm font-medium',
-                      'text-muted-foreground hover:text-foreground',
-                      'hover:bg-accent/50',
-                      'border border-transparent hover:border-border',
-                      'transition-all duration-150',
-                      'focus:outline-none focus:ring-2 focus:ring-ring'
-                    )}
+                    className="text-muted-foreground hover:text-foreground border border-transparent hover:border-border"
                   >
                     Cancel
-                  </button>
+                  </Button>
                   <Button
                     onClick={handleSave}
                     disabled={!draft}
@@ -1586,17 +1554,13 @@ export function WorktreeSessionDialog({
                   <Info className="w-4 h-4 text-teal-500 dark:text-teal-400" />
                   <h2 className="text-sm font-medium text-foreground">Worktree Session Help</h2>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setIsHelpOpen(false)}
-                  className={cn(
-                    'p-2 rounded-lg',
-                    'text-muted-foreground hover:text-foreground',
-                    'hover:bg-accent/50',
-                    'transition-colors duration-150'
-                  )}
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               </div>
 
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">

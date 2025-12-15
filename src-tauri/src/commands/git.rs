@@ -3,11 +3,13 @@
 
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use tauri::AppHandle;
 
 use crate::models::git::{
     Branch, Commit, DiffHunk, DiffLine, DiffLineType, FileDiff, FileDiffStatus, GitFile,
     GitFileStatus, GitStatus, Stash,
 };
+use crate::services::notification::{send_notification, NotificationType};
 use crate::utils::path_resolver;
 
 // ============================================================================
@@ -998,6 +1000,7 @@ pub async fn get_commit_history(
 /// Push to remote
 #[tauri::command]
 pub async fn git_push(
+    app: AppHandle,
     project_path: String,
     remote: Option<String>,
     branch: Option<String>,
@@ -1005,6 +1008,13 @@ pub async fn git_push(
     force: Option<bool>,
 ) -> Result<GitPushResponse, String> {
     let path = Path::new(&project_path);
+
+    // Extract project name from path for notifications
+    let project_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("Unknown")
+        .to_string();
 
     // Check if git repo
     if !is_git_repo(path) {
@@ -1015,7 +1025,7 @@ pub async fn git_push(
     }
 
     let remote = remote.filter(|r| !r.trim().is_empty());
-    let branch = branch.filter(|b| !b.trim().is_empty());
+    let branch_ref = branch.filter(|b| !b.trim().is_empty());
     let set_upstream = set_upstream.unwrap_or(false);
     let force = force.unwrap_or(false);
 
@@ -1030,12 +1040,20 @@ pub async fn git_push(
         args.push("--force");
     }
 
+    // Get current branch for notification
+    let current_branch = branch_ref.clone().unwrap_or_else(|| {
+        exec_git(path, &["rev-parse", "--abbrev-ref", "HEAD"])
+            .unwrap_or_else(|_| "unknown".to_string())
+            .trim()
+            .to_string()
+    });
+
     if let Some(ref remote) = remote {
         args.push(remote);
-        if let Some(ref branch) = branch {
+        if let Some(ref branch) = branch_ref {
             args.push(branch);
         }
-    } else if branch.is_some() {
+    } else if branch_ref.is_some() {
         return Ok(GitPushResponse {
             success: false,
             error: Some("REMOTE_REQUIRED".to_string()),
@@ -1043,10 +1061,20 @@ pub async fn git_push(
     }
 
     match exec_git(path, &args) {
-        Ok(_) => Ok(GitPushResponse {
-            success: true,
-            error: None,
-        }),
+        Ok(_) => {
+            // Send success notification
+            let _ = send_notification(
+                &app,
+                NotificationType::GitPushSuccess {
+                    project_name,
+                    branch: current_branch,
+                },
+            );
+            Ok(GitPushResponse {
+                success: true,
+                error: None,
+            })
+        }
         Err(e) => {
             let error_lower = e.to_lowercase();
 
@@ -1076,6 +1104,15 @@ pub async fn git_push(
             } else {
                 format!("GIT_ERROR: {}", e)
             };
+
+            // Send failure notification
+            let _ = send_notification(
+                &app,
+                NotificationType::GitPushFailed {
+                    project_name,
+                    error: error.clone(),
+                },
+            );
 
             Ok(GitPushResponse {
                 success: false,

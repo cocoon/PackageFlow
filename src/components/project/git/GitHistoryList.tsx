@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { gitAPI } from '../../../lib/tauri-api';
 import type { Commit } from '../../../types/git';
+import { Button } from '../../ui/Button';
 
 interface GitHistoryListProps {
   /** Project path for Git operations */
@@ -173,9 +174,11 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
             {/* Commit Header */}
             <div className="p-3 flex items-start gap-3">
               {/* Expand/Collapse Button */}
-              <button
+              <Button
                 onClick={() => setExpandedCommit(isExpanded ? null : commit.hash)}
-                className="mt-0.5 p-0.5 rounded hover:bg-accent transition-colors"
+                variant="ghost"
+                size="icon"
+                className="h-auto w-auto mt-0.5 p-0.5"
                 disabled={!hasDetails}
               >
                 {hasDetails ? (
@@ -187,7 +190,7 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
                 ) : (
                   <div className="w-4 h-4" />
                 )}
-              </button>
+              </Button>
 
               {/* Commit Info */}
               <div className="flex-1 min-w-0">
@@ -218,9 +221,11 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
                 <code className="text-xs text-muted-foreground font-mono bg-card px-2 py-0.5 rounded">
                   {commit.shortHash}
                 </code>
-                <button
+                <Button
                   onClick={() => handleCopySha(commit.hash)}
-                  className="p-1 rounded hover:bg-accent transition-colors"
+                  variant="ghost"
+                  size="icon"
+                  className="h-auto w-auto p-1"
                   title="Copy full SHA"
                 >
                   {copiedSha === commit.hash ? (
@@ -228,7 +233,7 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
                   ) : (
                     <Copy className="w-3.5 h-3.5 text-muted-foreground" />
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -247,13 +252,14 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
       {/* Load More */}
       {hasMore && (
         <div className="p-3 text-center">
-          <button
+          <Button
             onClick={loadMore}
             disabled={isLoading}
-            className="text-sm text-blue-400 hover:text-blue-300 disabled:opacity-50"
+            variant="ghost"
+            className="text-blue-400 hover:text-blue-300"
           >
             {isLoading ? 'Loading...' : 'Load more commits'}
-          </button>
+          </Button>
         </div>
       )}
     </div>

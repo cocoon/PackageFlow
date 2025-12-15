@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Workflow as WorkflowIcon } from 'lucide-react';
+import { Button } from '../ui/Button';
 import { WorkflowSidebar } from './WorkflowSidebar';
 import { WorkflowEditor } from './WorkflowEditor';
 import { useWorkflowExecutionContext } from '../../contexts/WorkflowExecutionContext';
@@ -381,12 +382,14 @@ export function WorkflowPage({
                           </div>
                         )}
                       </div>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleKillProcess(exec.executionId)}
-                        className="ml-3 px-3 py-1.5 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded transition-colors"
+                        className="ml-3 h-auto px-3 py-1.5 text-xs bg-red-600/20 hover:bg-red-600/40 text-red-400"
                       >
                         Stop
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>

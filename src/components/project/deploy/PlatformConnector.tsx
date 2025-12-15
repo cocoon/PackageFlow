@@ -11,6 +11,7 @@ import {
   ExternalLink,
   AlertCircle,
 } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import type { PlatformType, ConnectedPlatform } from '../../../types/deploy';
 import { NetlifyIcon } from '../../ui/icons';
 
@@ -138,10 +139,12 @@ export function PlatformConnector({
                 {/* Action Button */}
                 <div className="shrink-0">
                   {connected ? (
-                    <button
+                    <Button
+                      variant="outline-destructive"
+                      size="sm"
                       onClick={() => handleDisconnect(platform.id)}
                       disabled={isDisconnecting}
-                      className="flex items-center gap-1.5 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-sm text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+                      className="gap-1.5"
                     >
                       {isDisconnecting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -149,12 +152,14 @@ export function PlatformConnector({
                         <Unlink className="h-4 w-4" />
                       )}
                       <span>Disconnect</span>
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
+                      variant="default"
+                      size="sm"
                       onClick={() => handleConnect(platform.id)}
                       disabled={isConnecting}
-                      className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                      className="gap-1.5"
                     >
                       {isConnecting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -162,7 +167,7 @@ export function PlatformConnector({
                         <Link2 className="h-4 w-4" />
                       )}
                       <span>{isConnecting ? 'Connecting...' : 'Connect'}</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

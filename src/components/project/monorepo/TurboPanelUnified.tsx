@@ -45,6 +45,7 @@ import {
 import { TaskQuickSwitcher, useTaskQuickSwitcher } from './TaskQuickSwitcher';
 import type { DependencyNode, TurboCacheStatus as TurboCacheStatusType } from '../../../types/monorepo';
 import { ExecutionOutputPanel, type ExecutionStatus } from './ExecutionOutputPanel';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 interface TurboPanelUnifiedProps {
@@ -78,9 +79,10 @@ function CollapsibleSection({
 }) {
   return (
     <div className="border-t border-border">
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-accent/50 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-4 py-2.5 h-auto justify-start"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -90,7 +92,7 @@ function CollapsibleSection({
         <Icon className={cn('w-4 h-4', iconColor)} />
         <span className="text-sm font-medium text-foreground">{title}</span>
         {badge}
-      </button>
+      </Button>
       {expanded && <div className="pb-4">{children}</div>}
     </div>
   );
@@ -118,9 +120,10 @@ function ExecutionItem({
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2 flex-1 text-left"
+          className="flex items-center gap-2 flex-1 h-auto justify-start px-0 py-0"
         >
           {expanded ? (
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -137,7 +140,7 @@ function ExecutionItem({
               </span>
             )}
           </span>
-        </button>
+        </Button>
         <div className="flex items-center gap-2">
           {execution.cached === true && (
             <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
@@ -152,16 +155,18 @@ function ExecutionItem({
               : execution.status}
           </span>
           {/* View output button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={(e) => {
               e.stopPropagation();
               onViewOutput(execution);
             }}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="h-auto w-auto p-1"
             title="View output"
           >
             <Terminal className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         </div>
       </div>
       {expanded && execution.output && (
@@ -190,9 +195,10 @@ function BatchResultItem({ execution }: { execution: BatchExecution }) {
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 h-auto justify-start"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -222,7 +228,7 @@ function BatchResultItem({ execution }: { execution: BatchExecution }) {
             </>
           )}
         </div>
-      </button>
+      </Button>
 
       {expanded && (
         <div className="px-3 py-2 bg-card border-t border-border">
@@ -360,13 +366,12 @@ function CacheStatusInline({ projectPath }: { projectPath: string }) {
 
       {/* Actions row */}
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="outline-destructive"
+          size="sm"
           onClick={clearCache}
           disabled={clearing || (status.entries !== undefined && status.entries === 0)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded
-                     border border-red-500/30 text-red-400
-                     hover:bg-red-500/10 transition-colors
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5"
         >
           {clearing ? (
             <>
@@ -379,16 +384,17 @@ function CacheStatusInline({ projectPath }: { projectPath: string }) {
               Clear Cache
             </>
           )}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={fetchStatus}
           disabled={loading}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="h-auto w-auto p-1.5"
           title="Refresh"
         >
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -513,13 +519,13 @@ export function TurboPanelUnified({
         </div>
         <div className="flex items-center gap-3">
           {/* Force toggle - clearer semantics */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setForceRun(!forceRun)}
             className={cn(
-              'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors',
-              forceRun
-                ? 'bg-amber-500/20 text-amber-400'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              'flex items-center gap-1.5',
+              forceRun && 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
             )}
             title={forceRun ? 'Cache will be ignored' : 'Enable to ignore cache'}
             aria-pressed={forceRun}
@@ -530,18 +536,19 @@ export function TurboPanelUnified({
               <ToggleLeft className="w-4 h-4" />
             )}
             <span>Ignore Cache</span>
-          </button>
+          </Button>
 
           {/* Refresh */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={refreshPipelines}
             disabled={turboLoading}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="h-auto w-auto p-1.5"
             title="Refresh pipelines"
           >
             <RefreshCw className={cn('w-4 h-4', turboLoading && 'animate-spin')} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -606,12 +613,14 @@ export function TurboPanelUnified({
                     <h4 className="text-xs uppercase tracking-wider text-muted-foreground">
                       Recent Executions
                     </h4>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={clearCompleted}
-                      className="text-xs text-muted-foreground hover:text-foreground/90 transition-colors"
+                      className="h-auto text-xs px-2 py-1"
                     >
                       Clear completed
-                    </button>
+                    </Button>
                   </div>
                   <div className="space-y-2">
                     {Array.from(executions.values())
@@ -666,9 +675,14 @@ export function TurboPanelUnified({
             {batchError && (
               <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-xs text-red-400 flex items-center justify-between">
                 <span>{batchError}</span>
-                <button onClick={clearBatchError} className="hover:text-red-300">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearBatchError}
+                  className="h-auto w-auto p-0 hover:text-red-300"
+                >
                   <XCircle className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
             )}
 
@@ -687,30 +701,27 @@ export function TurboPanelUnified({
               <h5 className="text-xs text-muted-foreground mb-2">Script</h5>
               <div className="flex flex-wrap gap-2">
                 {availableScripts.slice(0, 10).map((script) => (
-                  <button
+                  <Button
                     key={script}
+                    variant={selectedScript === script ? 'outline-success' : 'outline'}
+                    size="sm"
                     onClick={() => setSelectedScript(script)}
                     className={cn(
-                      'px-2 py-1 rounded text-xs border transition-colors',
-                      selectedScript === script
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-secondary text-muted-foreground border-zinc-700 hover:border-muted-foreground'
+                      selectedScript === script && 'bg-green-500/20 text-green-400'
                     )}
                   >
                     {script}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
             {/* Run button */}
-            <button
+            <Button
+              variant="success"
               onClick={handleRunBatch}
               disabled={batchLoading || selectedPackages.size === 0 || !selectedScript}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded
-                         bg-green-600 text-white text-sm font-medium
-                         hover:bg-green-500 transition-colors
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-500"
             >
               {batchLoading ? (
                 <>
@@ -723,7 +734,7 @@ export function TurboPanelUnified({
                   Run {selectedScript} on {selectedPackages.size} packages
                 </>
               )}
-            </button>
+            </Button>
 
             {/* Current & History */}
             {(currentExecution || executionHistory.length > 0) && (
@@ -731,12 +742,14 @@ export function TurboPanelUnified({
                 <div className="flex items-center justify-between">
                   <h5 className="text-xs text-muted-foreground">Results</h5>
                   {executionHistory.length > 0 && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={clearHistory}
-                      className="text-xs text-muted-foreground hover:text-foreground/90"
+                      className="h-auto text-xs px-2 py-1"
                     >
                       Clear
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {currentExecution && <BatchResultItem execution={currentExecution} />}

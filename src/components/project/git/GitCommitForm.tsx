@@ -156,12 +156,14 @@ export function GitCommitForm({
           <div className="flex-1 min-w-0">
             <p className="text-sm text-red-400">{aiCommit.error}</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={aiCommit.clearError}
-            className="flex-shrink-0 p-0.5 hover:bg-red-500/20 rounded transition-colors"
+            className="flex-shrink-0 h-6 w-6 hover:bg-red-500/20"
           >
             <X className="w-3.5 h-3.5 text-red-400" />
-          </button>
+          </Button>
         </div>
       )}
 
@@ -169,24 +171,26 @@ export function GitCommitForm({
       <div className="flex items-center gap-2">
         {/* Template Selector */}
         <div className="relative" ref={dropdownRef}>
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setShowTemplates(!showTemplates)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-accent rounded text-sm transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 h-auto"
           >
             <span className="text-muted-foreground">
               {currentTemplate ? currentTemplate.label : 'Template'}
             </span>
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </Button>
 
           {/* Dropdown Menu */}
           {showTemplates && (
             <div className="absolute top-full left-0 mt-1 w-64 max-h-60 overflow-y-auto bg-card border border-border rounded-lg shadow-xl z-10">
               {COMMIT_TEMPLATES.map((template) => (
-                <button
+                <Button
                   key={template.id}
+                  variant="ghost"
                   onClick={() => handleSelectTemplate(template)}
-                  className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2 text-left h-auto rounded-none ${
                     selectedTemplate === template.id ? 'bg-accent' : ''
                   }`}
                 >
@@ -195,7 +199,7 @@ export function GitCommitForm({
                     <div className="text-xs text-muted-foreground">{template.description}</div>
                   </div>
                   <code className="text-xs text-muted-foreground font-mono">{template.prefix}</code>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -206,23 +210,25 @@ export function GitCommitForm({
           <>
             {!isLoadingServices && !defaultService ? (
               // No default AI service configured - show setup prompt
-              <button
+              <Button
+                variant="outline"
                 onClick={onOpenAISettings}
                 title="Configure AI service to enable AI commit message generation"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-accent rounded text-sm transition-colors border border-border"
+                className="flex items-center gap-1.5 px-3 py-1.5 h-auto"
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Setup AI</span>
-              </button>
+              </Button>
             ) : (
               // AI service configured - show generate and review buttons
               <>
                 {/* AI Generate Button - Gentle glow effect */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleAIGenerate}
                   disabled={!hasStagedChanges || aiCommit.isGenerating || aiReview.isGenerating || isLoadingServices}
                   title={!hasStagedChanges ? 'Stage files first' : aiReview.isGenerating ? 'Wait for AI Review to complete' : 'Generate commit message with AI'}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-all duration-200 border border-purple-500/30 ${aiCommit.isGenerating ? 'animate-ai-generate-glow' : ''}`}
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 h-auto border border-purple-500/30 ${aiCommit.isGenerating ? 'animate-ai-generate-glow' : ''}`}
                 >
                   <span className="relative">
                     <Sparkles className={`w-4 h-4 text-purple-400 transition-transform duration-200 ${aiCommit.isGenerating ? 'animate-sparkle-glow' : 'group-hover:scale-110'}`} />
@@ -237,14 +243,15 @@ export function GitCommitForm({
                   <span className="text-purple-400">
                     {aiCommit.isGenerating ? 'Generating...' : 'AI Generate'}
                   </span>
-                </button>
+                </Button>
 
                 {/* AI Review Button - Gentle glow effect */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleAIReview}
                   disabled={!hasStagedChanges || aiReview.isGenerating || aiCommit.isGenerating || isLoadingServices}
                   title={!hasStagedChanges ? 'Stage files first' : aiCommit.isGenerating ? 'Wait for AI Generate to complete' : 'Review all staged changes with AI'}
-                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-all duration-200 border border-blue-500/30 ${aiReview.isGenerating ? 'animate-ai-review-glow' : ''}`}
+                  className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 h-auto border border-blue-500/30 ${aiReview.isGenerating ? 'animate-ai-review-glow' : ''}`}
                 >
                   <span className="relative">
                     <FileSearch className={`w-4 h-4 text-blue-400 transition-transform duration-200 ${aiReview.isGenerating ? 'animate-scan-glow' : 'group-hover:scale-110'}`} />
@@ -256,7 +263,7 @@ export function GitCommitForm({
                   <span className="text-blue-400">
                     {aiReview.isGenerating ? 'Reviewing...' : 'AI Review'}
                   </span>
-                </button>
+                </Button>
               </>
             )}
           </>
@@ -324,12 +331,13 @@ export function GitCommitForm({
       {aiReview.error && (
         <div className="fixed bottom-4 right-4 bg-background border border-red-500/30 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
           <span className="text-sm text-red-500 dark:text-red-400">{aiReview.error}</span>
-          <button
+          <Button
+            variant="ghost"
             onClick={aiReview.clearError}
-            className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-accent transition-colors"
+            className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 h-auto"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 

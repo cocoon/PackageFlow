@@ -395,13 +395,14 @@ export function WorktreeTemplateDialog({
                       key={template.id}
                       className="flex items-center gap-2 p-3 bg-background/50 border border-border rounded-lg hover:border-blue-500/50 hover:bg-muted transition-colors group"
                     >
-                      <button
+                      <Button
+                        variant="ghost"
                         onClick={() => {
                           setSelectedTemplate(template);
                           setBaseBranch(template.baseBranch || 'main');
                           setView('create');
                         }}
-                        className="flex-1 text-left min-w-0"
+                        className="flex-1 text-left min-w-0 h-auto justify-start"
                       >
                         <div className="flex items-center gap-2">
                           <GitBranch className="w-4 h-4 text-blue-400 shrink-0" />
@@ -424,19 +425,21 @@ export function WorktreeTemplateDialog({
                             </span>
                           )}
                         </div>
-                      </button>
+                      </Button>
                       {/* Delete button for custom templates only */}
                       {!template.isDefault && (
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenDeleteDialog(template.id);
                           }}
-                          className="p-1.5 rounded hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                           title="Delete template"
                         >
                           <Trash2 className="w-4 h-4 text-red-400" />
-                        </button>
+                        </Button>
                       )}
                       <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                     </div>
@@ -445,13 +448,14 @@ export function WorktreeTemplateDialog({
 
                 {/* Fixed Footer */}
                 <div className="flex items-center justify-between pt-4 mt-4 border-t border-border shrink-0">
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={handleStartCreateTemplate}
-                    className="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300"
+                    className="text-blue-400 hover:text-blue-300"
                   >
                     <Plus className="w-4 h-4" />
                     Create Custom Template
-                  </button>
+                  </Button>
                   <Button variant="ghost" onClick={onClose} className="text-muted-foreground">
                     Cancel
                   </Button>

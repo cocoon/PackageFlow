@@ -131,20 +131,18 @@ export function CloudflareTokenDialog({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
               className={cn(
                 'absolute right-4 top-4',
-                'rounded-lg p-2',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-background/80',
-                'transition-colors duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                'h-auto w-auto rounded-lg p-2'
               )}
               aria-label="Close dialog"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
 
             {/* Title with icon badge */}
             <div className="flex items-center gap-4">
@@ -189,20 +187,19 @@ export function CloudflareTokenDialog({
                 <p className="text-foreground font-medium">
                   Create an API token with Cloudflare Pages permission
                 </p>
-                <button
-                  type="button"
+                <Button
+                  variant="link"
                   onClick={() =>
                     shellOpen('https://dash.cloudflare.com/profile/api-tokens')
                   }
                   className={cn(
-                    'inline-flex items-center gap-1.5',
-                    'text-orange-500 hover:text-orange-400',
-                    'transition-colors duration-150'
+                    'h-auto p-0 text-orange-500 hover:text-orange-400 no-underline hover:underline',
+                    'inline-flex items-center gap-1.5'
                   )}
                 >
                   Create API Token
                   <ExternalLink className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -241,15 +238,13 @@ export function CloudflareTokenDialog({
                     }
                   }}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setShowToken(!showToken)}
                   className={cn(
                     'absolute right-2 top-1/2 -translate-y-1/2',
-                    'rounded-md p-1.5',
-                    'text-muted-foreground hover:text-foreground',
-                    'hover:bg-accent',
-                    'transition-colors duration-150'
+                    'h-auto w-auto rounded-md p-1.5'
                   )}
                   aria-label={showToken ? 'Hide token' : 'Show token'}
                 >
@@ -258,7 +253,7 @@ export function CloudflareTokenDialog({
                   ) : (
                     <Eye className="h-4 w-4" />
                   )}
-                </button>
+                </Button>
               </div>
             </div>
 

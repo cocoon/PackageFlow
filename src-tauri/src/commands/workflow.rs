@@ -20,7 +20,9 @@ use crate::models::webhook::{
 use crate::models::{Execution, ExecutionStatus, Project, Workflow, WorkflowNode};
 use crate::repositories::{ExecutionRepository, ProjectRepository, WorkflowRepository};
 use crate::services::crypto;
-use crate::services::notification::{send_webhook_notification, WebhookNotificationType};
+use crate::services::notification::{
+    send_notification, send_webhook_notification, NotificationType, WebhookNotificationType,
+};
 use crate::utils::database::Database;
 use crate::utils::path_resolver;
 use crate::DatabaseState;
@@ -694,6 +696,15 @@ async fn execute_workflow_nodes_with_context(
                     },
                 );
 
+                // Send desktop notification for workflow failure
+                let _ = send_notification(
+                    &app,
+                    NotificationType::WorkflowFailed {
+                        workflow_name: workflow_name.clone(),
+                        error: error_msg.clone().unwrap_or_else(|| "Unknown error".to_string()),
+                    },
+                );
+
                 // Feature 013: Emit child execution completed if this is a child execution
                 if let (Some(ref parent_exec_id), Some(ref parent_node)) =
                     (&parent_execution_id, &parent_node_id)
@@ -869,6 +880,15 @@ async fn execute_workflow_nodes_with_context(
                 status: "completed".to_string(),
                 finished_at: Utc::now().to_rfc3339(),
                 total_duration_ms: duration_ms,
+            },
+        );
+
+        // Send desktop notification for workflow completion
+        let _ = send_notification(
+            &app,
+            NotificationType::WorkflowCompleted {
+                workflow_name: workflow_name.clone(),
+                duration_ms,
             },
         );
 

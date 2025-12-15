@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { Settings } from 'lucide-react';
+import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 
 interface SettingsButtonProps {
@@ -24,19 +25,15 @@ export const SettingsButton: React.FC<SettingsButtonProps> = ({
   className,
 }) => {
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={onClick}
-      className={cn(
-        'p-1.5 rounded-md transition-all duration-150',
-        'text-muted-foreground hover:text-foreground',
-        'hover:bg-accent',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-        className
-      )}
+      className={cn('h-8 w-8', className)}
       aria-label={`Settings (${modKey}+,)`}
       title={`Settings (${modKey}+,)`}
     >
       <Settings className="w-4 h-4" />
-    </button>
+    </Button>
   );
 };

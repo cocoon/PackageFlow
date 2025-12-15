@@ -29,6 +29,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useAIService } from '../../../hooks/useAIService';
+import { Button } from '../../ui/Button';
 import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
 import { Skeleton } from '../../ui/Skeleton';
@@ -227,17 +228,9 @@ const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ messag
   <div className="flex flex-col items-center justify-center py-12 text-center">
     <AlertCircle className="w-12 h-12 text-destructive mb-4" />
     <p className="text-sm text-muted-foreground mb-4">{message}</p>
-    <button
-      onClick={onRetry}
-      className={cn(
-        'px-4 py-2 rounded-lg text-sm font-medium',
-        'bg-primary text-primary-foreground',
-        'hover:bg-primary/90 transition-colors',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-      )}
-    >
+    <Button onClick={onRetry}>
       Retry
-    </button>
+    </Button>
   </div>
 );
 
@@ -497,53 +490,45 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onPreview}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              'text-muted-foreground hover:text-foreground hover:bg-accent',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
+            className="h-auto p-2"
             title="Preview template"
           >
             <Eye className="w-4 h-4" />
-          </button>
+          </Button>
           {!template.isDefault && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onSetDefault}
-              className={cn(
-                'p-2 rounded-lg transition-colors',
-                'text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-accent',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              )}
+              className="h-auto p-2 hover:text-amber-600 dark:hover:text-amber-400"
               title="Set as default"
             >
               <Star className="w-4 h-4" />
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onEdit}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              'text-muted-foreground hover:text-foreground hover:bg-accent',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
+            className="h-auto p-2"
             title={template.isBuiltin ? 'Copy template' : 'Edit template'}
           >
             {template.isBuiltin ? <Copy className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
-          </button>
+          </Button>
           {!template.isBuiltin && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onDelete}
-              className={cn(
-                'p-2 rounded-lg transition-colors',
-                'text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-accent',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-              )}
+              className="h-auto p-2 hover:text-red-600 dark:hover:text-red-400"
               title="Delete template"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -813,12 +798,13 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
             </p>
           </div>
           {editingTemplate && (
-            <button
+            <Button
+              variant="link"
               onClick={onCancel}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="h-auto p-0 text-xs"
             >
               Cancel editing
-            </button>
+            </Button>
           )}
         </div>
 
@@ -976,32 +962,20 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
       <div className="shrink-0 pt-4 mt-4 border-t border-border bg-background sticky bottom-0">
         <div className="flex justify-end gap-2">
           {editingTemplate && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={onCancel}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium',
-                'text-muted-foreground hover:text-foreground',
-                'transition-colors'
-              )}
             >
               Cancel
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             onClick={onSubmit}
             disabled={isSubmitting || !hasRequiredVariable}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
-              'bg-primary text-primary-foreground',
-              'hover:bg-primary/90 transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
           >
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
             {editingTemplate ? 'Update Template' : 'Add Template'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

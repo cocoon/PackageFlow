@@ -177,28 +177,30 @@ export function WorktreeStashDialog({
         <div className="space-y-4 mt-4">
           {/* Mode tabs */}
           <div className="flex items-center gap-1 bg-muted/50 rounded-md p-1">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setMode('list')}
               className={cn(
-                'flex-1 px-3 py-1.5 text-sm rounded transition-colors',
+                'flex-1 px-3 text-sm h-auto',
                 mode === 'list'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
               Stashes ({stashes.length})
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setMode('create')}
               className={cn(
-                'flex-1 px-3 py-1.5 text-sm rounded transition-colors',
+                'flex-1 px-3 text-sm h-auto',
                 mode === 'create'
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
               Create New
-            </button>
+            </Button>
           </div>
 
           {/* Error/Success messages */}
@@ -251,22 +253,25 @@ export function WorktreeStashDialog({
                           <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                         ) : (
                           <>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleApplyStash(stash.index, true)}
                               disabled={isActioning}
-                              className="p-1.5 rounded hover:bg-accent transition-colors"
                               title="Pop (apply and remove)"
                             >
                               <ArchiveRestore className="w-3.5 h-3.5 text-green-400" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={() => handleDropStash(stash.index)}
                               disabled={isActioning}
-                              className="p-1.5 rounded hover:bg-red-500/20 transition-colors"
+                              className="hover:bg-red-500/20"
                               title="Drop"
                             >
                               <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>

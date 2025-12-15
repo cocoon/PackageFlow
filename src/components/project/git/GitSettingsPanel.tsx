@@ -155,26 +155,28 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
     <div className="space-y-4">
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 border-b border-border">
-        <button
+        <Button
           onClick={() => setActiveTab('remotes')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          variant="ghost"
+          className={`h-auto px-4 py-2 text-sm font-medium border-b-2 rounded-none ${
             activeTab === 'remotes'
               ? 'border-blue-500 text-blue-400'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           Remotes
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setActiveTab('auth')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          variant="ghost"
+          className={`h-auto px-4 py-2 text-sm font-medium border-b-2 rounded-none ${
             activeTab === 'auth'
               ? 'border-blue-500 text-blue-400'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
           Authentication
-        </button>
+        </Button>
       </div>
 
       {/* Remotes Tab */}
@@ -241,17 +243,17 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
                   )}
                   Add
                 </Button>
-                <button
+                <Button
                   onClick={() => {
                     setShowAddRemote(false);
                     setNewRemoteName('origin');
                     setNewRemoteUrl('');
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-muted hover:bg-accent rounded text-sm transition-colors"
+                  variant="ghost"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4 mr-1.5" />
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -284,21 +286,25 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       onClick={() => handleFetch(remote.name)}
                       disabled={isFetching}
-                      className="p-2 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-2"
                       title="Fetch from this remote"
                     >
                       <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleRemoveRemote(remote.name)}
-                      className="p-2 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-colors"
+                      variant="ghost"
+                      size="icon"
+                      className="h-auto w-auto p-2 hover:bg-red-500/20 hover:text-red-400"
                       title="Remove remote"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}

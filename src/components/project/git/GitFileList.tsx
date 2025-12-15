@@ -146,9 +146,10 @@ function FileSection({
     <div className="space-y-1">
       {/* Section Header */}
       <div className="flex items-center justify-between">
-        <button
+        <Button
+          variant="ghost"
           onClick={onToggle}
-          className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground h-auto px-1"
         >
           {isExpanded ? (
             <ChevronDown className="w-4 h-4" />
@@ -156,7 +157,7 @@ function FileSection({
             <ChevronRight className="w-4 h-4" />
           )}
           {title} ({files.length})
-        </button>
+        </Button>
         <div className="flex items-center gap-1">
           {secondaryButton && (
             <Button

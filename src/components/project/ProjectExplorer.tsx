@@ -34,6 +34,7 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useToolchainStrategy } from '../../hooks/useToolchainStrategy';
 import { ToolchainConflictDialog } from './ToolchainConflictDialog';
 import type { ToolchainStrategy } from '../../types/toolchain';
+import { Button } from '../ui/Button';
 
 type TabType = 'scripts' | 'workspaces' | 'workflows' | 'builds' | 'security' | 'git' | 'deploy';
 
@@ -519,24 +520,28 @@ export function ProjectExplorer({
           </div>
           <div className="flex items-center gap-px">
             {/* Quick Switcher Button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsQuickSwitcherOpen(true)}
-              className="p-2 rounded hover:bg-accent transition-colors"
+              className="h-auto"
               title="Quick Switcher (⌘K)"
             >
               <Search className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
 
             {/* Open in Editor Dropdown */}
             <div className="relative">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsEditorDropdownOpen(!isEditorDropdownOpen)}
-                className="flex items-center gap-1.5 p-2 rounded hover:bg-accent transition-colors"
+                className="gap-1.5 h-auto"
                 title="Open in Editor"
               >
                 <Code2 className="w-4 h-4 text-muted-foreground" />
                 <ChevronDown className="w-3 h-3 text-muted-foreground" />
-              </button>
+              </Button>
               {isEditorDropdownOpen && (
                 <>
                   <div
@@ -548,24 +553,26 @@ export function ProjectExplorer({
                       Open In
                     </div>
                     {availableEditors.map(editor => (
-                      <button
+                      <Button
                         key={editor.id}
+                        variant="ghost"
                         onClick={() => handleOpenInEditor(editor.id)}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                        className="w-full justify-start gap-2 h-auto rounded-none"
                       >
                         <Code2 className="w-4 h-4" />
                         {editor.name}
-                      </button>
+                      </Button>
                     ))}
                     {availableEditors.length === 0 && (
                       onOpenInVSCode ? (
-                        <button
+                        <Button
+                          variant="ghost"
                           onClick={onOpenInVSCode}
-                          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                          className="w-full justify-start gap-2 h-auto rounded-none"
                         >
                           <Code2 className="w-4 h-4" />
                           Open in VS Code
-                        </button>
+                        </Button>
                       ) : (
                         <div className="px-3 py-1.5 text-sm text-muted-foreground">
                           No editors available
@@ -582,24 +589,28 @@ export function ProjectExplorer({
                 onOpenBuiltinTerminal={onOpenTerminal}
               />
             )}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => {
                 onRefresh();
                 setVersionRefreshKey(prev => prev + 1);
               }}
               disabled={isLoading}
-              className="p-2 rounded hover:bg-accent transition-colors disabled:opacity-50"
+              className="h-auto"
               title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onOpenInFinder}
-              className="p-2 rounded hover:bg-accent transition-colors"
+              className="h-auto"
               title="Open in Finder"
             >
               <ExternalLink className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -634,9 +645,10 @@ export function ProjectExplorer({
       {/* Tabs */}
       <div className="px-4 border-b border-border overflow-x-auto">
         <div className="flex gap-1 min-w-max">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('scripts')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
               activeTab === 'scripts'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -644,22 +656,24 @@ export function ProjectExplorer({
           >
             <Terminal className="w-4 h-4" />
             Scripts
-          </button>
+          </Button>
           {showWorkspacesTab && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab('workspaces')}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`h-auto px-4 py-2 rounded-none border-b-2 ${
                 activeTab === 'workspaces'
                   ? 'text-blue-400 border-blue-400'
                   : 'text-muted-foreground border-transparent hover:text-foreground'
               }`}
             >
               Workspaces ({workspaces.length})
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('workflows')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
               activeTab === 'workflows'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -667,10 +681,11 @@ export function ProjectExplorer({
           >
             <WorkflowIcon className="w-4 h-4" />
             Workflows
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('git')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
               activeTab === 'git'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -678,11 +693,12 @@ export function ProjectExplorer({
           >
             <GitCommit className="w-4 h-4" />
             Git
-          </button>
+          </Button>
           {(hasIpaFiles || hasApkFiles) && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setActiveTab('builds')}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
                 activeTab === 'builds'
                   ? 'text-blue-400 border-blue-400'
                   : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -690,11 +706,12 @@ export function ProjectExplorer({
             >
               <FileBox className="w-4 h-4" />
               Builds ({ipaCount + apkCount})
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('security')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
               activeTab === 'security'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -711,10 +728,11 @@ export function ProjectExplorer({
                 {scanResult.summary.total}
               </span>
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setActiveTab('deploy')}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
               activeTab === 'deploy'
                 ? 'text-blue-400 border-blue-400'
                 : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -722,7 +740,7 @@ export function ProjectExplorer({
           >
             <Rocket className="w-4 h-4" />
             Deploy
-          </button>
+          </Button>
         </div>
       </div>
 

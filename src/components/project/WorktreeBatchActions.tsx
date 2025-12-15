@@ -364,36 +364,39 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
   return (
     <>
       {/* Fetch All Button */}
-      <button
+      <Button
+        variant="ghost"
         onClick={handleFetchAll}
         disabled={worktrees.filter((w) => !w.isDetached).length === 0}
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground h-auto"
         title="Fetch all worktrees"
       >
         <CloudDownload className="w-3.5 h-3.5" />
         Fetch All
-      </button>
+      </Button>
 
       {/* Pull All Button */}
-      <button
+      <Button
+        variant="ghost"
         onClick={handlePullAll}
         disabled={worktrees.filter((w) => !w.isDetached).length === 0}
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground h-auto"
         title="Pull all worktrees"
       >
         <ArrowDownToLine className="w-3.5 h-3.5" />
         Pull All
-      </button>
+      </Button>
 
       {/* Clean Merged Button */}
-      <button
+      <Button
+        variant="ghost"
         onClick={handleOpenCleanMerged}
-        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors"
+        className="gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground h-auto"
         title="Clean merged worktrees"
       >
         <GitMerge className="w-3.5 h-3.5" />
         Clean Merged
-      </button>
+      </Button>
 
       {/* Fetch Progress Dialog */}
       <Dialog open={isFetchDialogOpen} onOpenChange={(open) => !isFetching && !open && handleCloseFetch()}>

@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 // ============================================================================
@@ -248,15 +249,17 @@ export function TaskSearchBar({
           ⌘{shortcutKey}
         </kbd>
         {query && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => {
               setQuery('');
               inputRef.current?.focus();
             }}
-            className="p-0.5 text-muted-foreground hover:text-foreground/90 transition-colors"
+            className="h-auto w-auto p-0.5"
           >
             <X className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -293,19 +296,20 @@ export function TaskSearchBar({
                   </span>
                 )}
                 {onTaskDryRun && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={(e) => {
                       e.stopPropagation();
                       onTaskDryRun(task.name);
                       setQuery('');
                       setIsOpen(false);
                     }}
-                    className="p-1 rounded text-muted-foreground hover:text-amber-400 hover:bg-accent
-                               opacity-0 group-hover:opacity-100 transition-all"
+                    className="h-auto w-auto p-1 opacity-0 group-hover:opacity-100 hover:text-amber-400"
                     title="Dry Run - Preview what will run without executing"
                   >
                     <Eye className="w-3 h-3" />
-                  </button>
+                  </Button>
                 )}
                 <Play className="w-3.5 h-3.5 text-muted-foreground group-hover:text-green-400 transition-colors" />
               </div>
@@ -357,15 +361,12 @@ export const TaskButton = memo(function TaskButton({
   if (compact) {
     return (
       <div className="flex items-center gap-1">
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={onRun}
           disabled={isRunning}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded transition-colors',
-            'bg-secondary text-foreground/90 border border-border',
-            'hover:bg-accent hover:border-muted-foreground',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
-          )}
+          className="flex items-center gap-1.5"
         >
           {isRunning ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -376,15 +377,17 @@ export const TaskButton = memo(function TaskButton({
           {task.cache && !forceRun && (
             <span className="text-[10px] text-muted-foreground">(cached)</span>
           )}
-        </button>
+        </Button>
         {onDryRun && (
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onDryRun}
-            className="p-1.5 rounded text-muted-foreground hover:text-amber-400 hover:bg-secondary transition-colors"
+            className="h-auto w-auto p-1.5 hover:text-amber-400"
             title="Dry Run - Preview what will run without executing"
           >
             <Eye className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -397,10 +400,11 @@ export const TaskButton = memo(function TaskButton({
         isRunning ? 'border-blue-500/50' : 'border-border hover:border-muted-foreground hover:bg-secondary'
       )}
     >
-      <button
+      <Button
+        variant="ghost"
         onClick={onRun}
         disabled={isRunning}
-        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left disabled:cursor-not-allowed"
+        className="w-full flex items-center gap-2.5 px-3 py-2.5 h-auto justify-start"
       >
         <div
           className={cn(
@@ -427,22 +431,22 @@ export const TaskButton = memo(function TaskButton({
             cached
           </span>
         )}
-      </button>
+      </Button>
 
       {/* Hover actions */}
       {onDryRun && !isRunning && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={(e) => {
             e.stopPropagation();
             onDryRun();
           }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded
-                     text-muted-foreground hover:text-amber-400 hover:bg-accent
-                     opacity-0 group-hover:opacity-100 transition-all"
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-auto w-auto p-1.5 hover:text-amber-400 opacity-0 group-hover:opacity-100"
           title="Dry Run - Preview what will run without executing"
         >
           <Eye className="w-3.5 h-3.5" />
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -540,10 +544,10 @@ export function TaskCategoryGroup({
 
         return (
           <div key={category}>
-            <button
+            <Button
+              variant="ghost"
               onClick={() => toggleCategory(category)}
-              className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider text-muted-foreground
-                         hover:text-muted-foreground transition-colors w-full text-left"
+              className="flex items-center gap-2 mb-2 text-xs uppercase tracking-wider h-auto px-0 py-0 w-full justify-start"
             >
               {isCollapsed ? (
                 <ChevronRight className="w-3 h-3" />
@@ -553,7 +557,7 @@ export function TaskCategoryGroup({
               <Icon className={cn('w-3.5 h-3.5', config.color)} />
               <span>{config.label}</span>
               <span className="text-muted-foreground/70">({categoryTasks.length})</span>
-            </button>
+            </Button>
             {!isCollapsed && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {categoryTasks.map((task) => (
@@ -638,16 +642,16 @@ export function RecentTasks({ tasks, recentTaskNames, onTaskRun, maxItems = 3 }:
       </h4>
       <div className="flex flex-wrap gap-2">
         {recentTasks.map((task) => (
-          <button
+          <Button
             key={task.name}
+            variant="outline-info"
+            size="sm"
             onClick={() => onTaskRun(task.name)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                       bg-blue-500/10 text-blue-400 border border-blue-500/20
-                       hover:bg-blue-500/20 transition-colors text-sm"
+            className="flex items-center gap-1.5 rounded-full bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
           >
             <Play className="w-3 h-3" />
             {task.name}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

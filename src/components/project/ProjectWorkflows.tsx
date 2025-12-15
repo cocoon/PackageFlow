@@ -228,13 +228,15 @@ export function ProjectWorkflows({
       {/* Add workflow button */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">Project workflows</h3>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={handleAddClick}
-          className="flex items-center gap-1.5 px-2 py-1 text-sm text-blue-400 hover:bg-blue-500/10 rounded transition-colors"
+          className="gap-1.5 text-blue-400 hover:bg-blue-500/10 h-auto px-2 py-1"
         >
           <Plus className="w-4 h-4" />
           New
-        </button>
+        </Button>
       </div>
 
       {/* Workflow list */}
@@ -284,29 +286,33 @@ export function ProjectWorkflows({
                     />
                     {/* View output button when there's output */}
                     {executionState.output.length > 0 && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={e => {
                           e.stopPropagation();
                           handleViewOutput(workflow.id);
                         }}
-                        className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        className="h-auto"
                         title="View output"
                       >
                         <Terminal className="w-4 h-4" />
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={e => {
                         e.stopPropagation();
                         handleContextMenu(e, workflow.id);
                       }}
-                      className={`p-1.5 rounded hover:bg-muted transition-opacity ${
+                      className={`h-auto transition-opacity ${
                         contextMenu?.workflowId === workflow.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                       }`}
                       title="More options"
                     >
                       <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -358,24 +364,26 @@ export function ProjectWorkflows({
           }}
           onClick={e => e.stopPropagation()}
         >
-          <button
+          <Button
+            variant="ghost"
             onClick={() => {
               const workflow = workflows.find(w => w.id === contextMenu.workflowId);
               if (workflow) handleEditClick(workflow);
               closeContextMenu();
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+            className="w-full justify-start gap-2 h-auto rounded-none"
           >
             <Edit className="w-4 h-4" />
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => handleUnlinkWorkflow(contextMenu.workflowId)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-yellow-400 hover:bg-accent"
+            className="w-full justify-start gap-2 h-auto rounded-none text-yellow-400"
           >
             <Unlink className="w-4 h-4" />
             Unlink
-          </button>
+          </Button>
         </div>
       )}
 
@@ -425,16 +433,17 @@ export function ProjectWorkflows({
             {!showNewForm && !showLinkDialog ? (
               <div className="space-y-4">
                 {/* Create new workflow option */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setShowNewForm(true)}
                   className={cn(
-                    'w-full flex items-center gap-4 p-4',
+                    'w-full justify-start gap-4 p-4 h-auto',
                     'bg-card/50 rounded-xl',
                     'border border-border',
                     'hover:border-blue-500/40 hover:bg-blue-500/5',
                     'dark:hover:bg-blue-500/10',
                     'transition-all duration-150',
-                    'text-left group',
+                    'group',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background'
                   )}
                 >
@@ -448,7 +457,7 @@ export function ProjectWorkflows({
                     <Plus className="w-6 h-6 text-blue-400" />
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-left">
                     <div className="text-sm font-medium text-foreground">Create new workflow</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Create a project-specific workflow and start editing
@@ -457,20 +466,21 @@ export function ProjectWorkflows({
 
                   {/* Arrow indicator */}
                   <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-blue-400 transition-colors flex-shrink-0" />
-                </button>
+                </Button>
 
                 {/* Link existing workflow option */}
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setShowLinkDialog(true)}
                   disabled={globalWorkflows.length === 0}
                   className={cn(
-                    'w-full flex items-center gap-4 p-4',
+                    'w-full justify-start gap-4 p-4 h-auto',
                     'bg-card/50 rounded-xl',
                     'border border-border',
                     'hover:border-purple-500/40 hover:bg-purple-500/5',
                     'dark:hover:bg-purple-500/10',
                     'transition-all duration-150',
-                    'text-left group',
+                    'group',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     'disabled:hover:border-border disabled:hover:bg-transparent'
@@ -486,7 +496,7 @@ export function ProjectWorkflows({
                     <Link2 className="w-6 h-6 text-purple-400" />
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-left">
                     <div className="text-sm font-medium text-foreground">Link existing workflow</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {globalWorkflows.length > 0
@@ -500,26 +510,27 @@ export function ProjectWorkflows({
                   {globalWorkflows.length > 0 && (
                     <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-purple-400 transition-colors flex-shrink-0" />
                   )}
-                </button>
+                </Button>
               </div>
             ) : showNewForm ? (
               /* Create new workflow form */
               <div className="space-y-4">
                 {/* Back navigation */}
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setShowNewForm(false);
                     setNewWorkflowName('');
                   }}
                   className={cn(
-                    'flex items-center gap-2 text-sm text-muted-foreground',
-                    'hover:text-foreground transition-colors',
-                    'focus:outline-none focus:text-foreground'
+                    'gap-2 h-auto px-0',
+                    'hover:text-foreground'
                   )}
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to options
-                </button>
+                </Button>
 
                 {/* Form content */}
                 <div className="space-y-3">

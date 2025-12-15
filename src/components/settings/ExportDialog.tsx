@@ -18,6 +18,7 @@ import {
   Workflow,
   Zap,
   X,
+  Bell,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
@@ -71,6 +72,12 @@ const ExportInfoCard: React.FC = () => (
           <Zap className="h-4 w-4 text-cyan-400" />
         </div>
         <span>Custom step templates</span>
+      </li>
+      <li className="flex items-center gap-3 text-sm text-foreground">
+        <div className="flex h-7 w-7 items-center justify-center rounded bg-amber-500/20">
+          <Bell className="h-4 w-4 text-amber-400" />
+        </div>
+        <span>Notification preferences</span>
       </li>
       <li className="flex items-center gap-3 text-sm text-foreground">
         <div className="flex h-7 w-7 items-center justify-center rounded bg-orange-500/20">
@@ -304,20 +311,15 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
             )}
           >
             {/* Close button */}
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleClose}
-              className={cn(
-                'absolute right-4 top-4',
-                'p-2 rounded-lg',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent/50',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="absolute right-4 top-4 h-auto p-2 hover:bg-accent/50"
               aria-label="Close dialog"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
 
             {/* Title area with icon badge */}
             <div className="flex items-start gap-4 pr-10">
@@ -396,20 +398,12 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               'flex-shrink-0'
             )}
           >
-            <button
+            <Button
+              variant="secondary"
               onClick={handleClose}
-              className={cn(
-                'px-4 py-2 rounded-lg',
-                'text-sm font-medium',
-                'bg-secondary hover:bg-accent',
-                'text-foreground',
-                'border border-border',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
             >
               {showSuccess ? 'Done' : 'Cancel'}
-            </button>
+            </Button>
             {!showSuccess && (
               <Button
                 onClick={handleExport}

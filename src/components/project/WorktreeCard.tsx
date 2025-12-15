@@ -161,13 +161,14 @@ export function WorktreeCard({
 
         {/* Session Entry - Always Visible */}
         {onOpenSession && (
-          <button
+          <Button
+            variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
               onOpenSession(worktree);
             }}
             className={cn(
-              'w-full mt-3 px-2 py-1.5 rounded text-xs text-left transition-colors flex items-center gap-2',
+              'w-full mt-3 px-2 text-xs text-left h-auto justify-start flex items-center gap-2',
               sessionStatus
                 ? 'bg-muted/50 hover:bg-muted'
                 : 'border border-dashed border-border hover:border-muted-foreground hover:bg-muted/30'
@@ -197,7 +198,7 @@ export function WorktreeCard({
                     : 'View Session'
                 : '+ Start Session'}
             </span>
-          </button>
+          </Button>
         )}
 
         {/* Hover Actions - Progressive Disclosure Pattern */}
@@ -208,23 +209,25 @@ export function WorktreeCard({
           {/* Primary Action: Open in Editor */}
           {availableEditors.length > 0 && (
             availableEditors.length === 1 ? (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => onOpenInEditor(worktree.path, availableEditors[0].id)}
-                className="p-1.5 rounded hover:bg-accent transition-colors"
                 title={`Open in ${availableEditors[0].name}`}
               >
                 <Code2 className="w-3.5 h-3.5 text-blue-400" />
-              </button>
+              </Button>
             ) : (
               <Dropdown
                 trigger={
-                  <button
-                    className="flex items-center gap-0.5 p-1.5 rounded hover:bg-accent transition-colors"
+                  <Button
+                    variant="ghost"
+                    className="flex items-center gap-0.5 h-auto p-1.5"
                     title="Open in Editor"
                   >
                     <Code2 className="w-3.5 h-3.5 text-blue-400" />
                     <ChevronDown className="w-3 h-3 text-muted-foreground" />
-                  </button>
+                  </Button>
                 }
                 align="right"
               >
@@ -245,24 +248,26 @@ export function WorktreeCard({
 
           {/* Primary Action: Pull (if applicable) */}
           {onPull && !worktree.isDetached && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => onPull(worktree)}
-              className="p-1.5 rounded hover:bg-accent transition-colors"
               title="Pull"
             >
               <ArrowDownToLine className="w-3.5 h-3.5 text-blue-400" />
-            </button>
+            </Button>
           )}
 
           {/* More Menu - Secondary Actions */}
           <Dropdown
             trigger={
-              <button
-                className="p-1.5 rounded hover:bg-accent transition-colors"
+              <Button
+                variant="ghost"
+                size="icon"
                 title="More actions"
               >
                 <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              </Button>
             }
             align="right"
           >

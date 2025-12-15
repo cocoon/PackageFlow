@@ -46,6 +46,7 @@ import {
 import { TaskQuickSwitcher, useTaskQuickSwitcher } from './TaskQuickSwitcher';
 import type { DependencyNode } from '../../../types/monorepo';
 import { ExecutionOutputPanel, type ExecutionStatus } from './ExecutionOutputPanel';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 interface NxPanelUnifiedProps {
@@ -79,9 +80,10 @@ function CollapsibleSection({
 }) {
   return (
     <div className="border-t border-border">
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-accent/50 transition-colors text-left"
+        className="w-full flex items-center gap-2 px-4 py-2.5 h-auto justify-start"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -91,7 +93,7 @@ function CollapsibleSection({
         <Icon className={cn('w-4 h-4', iconColor)} />
         <span className="text-sm font-medium text-foreground">{title}</span>
         {badge}
-      </button>
+      </Button>
       {expanded && <div className="pb-4">{children}</div>}
     </div>
   );
@@ -143,9 +145,10 @@ const ExecutionItem = memo(function ExecutionItem({
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors">
-        <button
+        <Button
+          variant="ghost"
           onClick={toggleExpanded}
-          className="flex items-center gap-2 flex-1 text-left"
+          className="flex items-center gap-2 flex-1 h-auto justify-start px-0 py-0"
         >
           {expanded ? (
             <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -156,7 +159,7 @@ const ExecutionItem = memo(function ExecutionItem({
           <span className="flex-1 text-sm font-medium text-foreground">
             {taskName}
           </span>
-        </button>
+        </Button>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {execution.status === 'running'
@@ -166,13 +169,15 @@ const ExecutionItem = memo(function ExecutionItem({
               : execution.status}
           </span>
           {/* View output button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleViewOutput}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="h-auto w-auto p-1"
             title="View output"
           >
             <Terminal className="w-3.5 h-3.5" />
-          </button>
+          </Button>
         </div>
       </div>
       {expanded && displayOutput && (
@@ -205,9 +210,10 @@ const BatchResultItem = memo(function BatchResultItem({ execution }: { execution
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
-      <button
+      <Button
+        variant="ghost"
         onClick={toggleExpanded}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-accent/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 h-auto justify-start"
       >
         {expanded ? (
           <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -237,7 +243,7 @@ const BatchResultItem = memo(function BatchResultItem({ execution }: { execution
             </>
           )}
         </div>
-      </button>
+      </Button>
 
       {expanded && (
         <div className="px-3 py-2 bg-card border-t border-border">
@@ -369,13 +375,12 @@ function NxCacheStatusInline({ projectPath }: { projectPath: string }) {
 
       {/* Actions row */}
       <div className="flex items-center gap-2">
-        <button
+        <Button
+          variant="outline-destructive"
+          size="sm"
           onClick={clearCache}
           disabled={clearing || (status.entries !== undefined && status.entries === 0)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded
-                     border border-red-500/30 text-red-400
-                     hover:bg-red-500/10 transition-colors
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5"
         >
           {clearing ? (
             <>
@@ -388,16 +393,17 @@ function NxCacheStatusInline({ projectPath }: { projectPath: string }) {
               Clear Cache
             </>
           )}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={fetchStatus}
           disabled={loading}
-          className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent
-                     disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="h-auto w-auto p-1.5"
           title="Refresh"
         >
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -521,13 +527,13 @@ export function NxPanelUnified({
         </div>
         <div className="flex items-center gap-3">
           {/* Skip cache toggle */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setSkipCache(!skipCache)}
             className={cn(
-              'flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors',
-              skipCache
-                ? 'bg-amber-500/20 text-amber-400'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+              'flex items-center gap-1.5',
+              skipCache && 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
             )}
             title={skipCache ? 'Cache will be skipped' : 'Enable to skip cache'}
             aria-pressed={skipCache}
@@ -538,18 +544,19 @@ export function NxPanelUnified({
               <ToggleLeft className="w-4 h-4" />
             )}
             <span>Skip Cache</span>
-          </button>
+          </Button>
 
           {/* Refresh */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={refreshTargets}
             disabled={nxLoading}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="h-auto w-auto p-1.5"
             title="Refresh targets"
           >
             <RefreshCw className={cn('w-4 h-4', nxLoading && 'animate-spin')} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -612,12 +619,14 @@ export function NxPanelUnified({
                     <h4 className="text-xs uppercase tracking-wider text-muted-foreground">
                       Recent Executions
                     </h4>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={clearCompleted}
-                      className="text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
+                      className="h-auto text-xs px-2 py-1"
                     >
                       Clear completed
-                    </button>
+                    </Button>
                   </div>
                   <div className="space-y-2">
                     {Array.from(executions.values())
@@ -674,16 +683,16 @@ export function NxPanelUnified({
             </div>
             <div className="flex flex-wrap gap-2">
               {targets.map((target) => (
-                <button
+                <Button
                   key={`affected-${target.name}`}
+                  variant="outline-info"
+                  size="sm"
                   onClick={() => runAffected(target.name, affectedBase)}
-                  className="flex items-center gap-1.5 px-2 py-1 text-xs rounded
-                             bg-purple-500/20 text-purple-400 border border-purple-500/30
-                             hover:bg-purple-500/30 transition-colors"
+                  className="flex items-center gap-1.5 bg-purple-500/20 text-purple-400 border-purple-500/30 hover:bg-purple-500/30"
                 >
                   <Play className="w-3 h-3" />
                   {target.name}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -715,9 +724,14 @@ export function NxPanelUnified({
             {batchError && (
               <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-xs text-red-400 flex items-center justify-between">
                 <span>{batchError}</span>
-                <button onClick={clearBatchError} className="hover:text-red-300">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearBatchError}
+                  className="h-auto w-auto p-0 hover:text-red-300"
+                >
                   <XCircle className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
             )}
 
@@ -736,30 +750,27 @@ export function NxPanelUnified({
               <h5 className="text-xs text-muted-foreground mb-2">Target</h5>
               <div className="flex flex-wrap gap-2">
                 {targets.slice(0, 10).map((target) => (
-                  <button
+                  <Button
                     key={target.name}
+                    variant={selectedScript === target.name ? 'outline-success' : 'outline'}
+                    size="sm"
                     onClick={() => setSelectedScript(target.name)}
                     className={cn(
-                      'px-2 py-1 rounded text-xs border transition-colors',
-                      selectedScript === target.name
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-secondary text-muted-foreground border-border hover:border-muted-foreground'
+                      selectedScript === target.name && 'bg-green-500/20 text-green-400'
                     )}
                   >
                     {target.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
 
             {/* Run button */}
-            <button
+            <Button
+              variant="success"
               onClick={() => handleRunMany(selectedScript)}
               disabled={batchLoading || selectedPackages.size === 0 || !selectedScript}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded
-                         bg-green-600 text-white text-sm font-medium
-                         hover:bg-green-500 transition-colors
-                         disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-500"
             >
               {batchLoading ? (
                 <>
@@ -772,7 +783,7 @@ export function NxPanelUnified({
                   Run {selectedScript} on {selectedPackages.size} projects
                 </>
               )}
-            </button>
+            </Button>
 
             {/* Current & History */}
             {(currentExecution || executionHistory.length > 0) && (
@@ -780,12 +791,14 @@ export function NxPanelUnified({
                 <div className="flex items-center justify-between">
                   <h5 className="text-xs text-muted-foreground">Results</h5>
                   {executionHistory.length > 0 && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={clearHistory}
-                      className="text-xs text-muted-foreground hover:text-foreground/80"
+                      className="h-auto text-xs px-2 py-1"
                     >
                       Clear
-                    </button>
+                    </Button>
                   )}
                 </div>
                 {currentExecution && <BatchResultItem execution={currentExecution} />}

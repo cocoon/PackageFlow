@@ -136,13 +136,13 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
 
         {/* Tab Buttons - Enhanced design */}
         <div className="flex gap-2 px-6 py-3 border-b border-border bg-card/30">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('templates')}
             className={cn(
               'flex-1 px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2',
               'rounded-lg transition-all duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
               activeTab === 'templates'
                 ? 'bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/50'
                 : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -150,14 +150,14 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
           >
             <LayoutTemplate className="w-4 h-4" />
             Templates
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setActiveTab('custom')}
             className={cn(
               'flex-1 px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2',
               'rounded-lg transition-all duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
               activeTab === 'custom'
                 ? 'bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/50'
                 : 'bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary'
@@ -165,7 +165,7 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
           >
             <PenLine className="w-4 h-4" />
             Custom
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
@@ -245,12 +245,12 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
               />
             </div>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => setSaveAsTemplate(!saveAsTemplate)}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all w-full text-left',
-                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all w-full text-left h-auto',
                 saveAsTemplate
                   ? 'border-yellow-500/50 bg-yellow-500/10'
                   : 'border-border bg-muted/50 hover:border-accent hover:bg-accent/50'
@@ -268,7 +268,7 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">Reuse later</span>
-            </button>
+            </Button>
           </div>
         )}
         </div>
@@ -875,9 +875,10 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
               <div className="w-10 h-0.5 bg-muted-foreground group-hover:bg-blue-400 rounded-full" />
             </div>
           )}
-          <button
+          <Button
+            variant="ghost"
             onClick={handleToggleTerminal}
-            className="w-full flex items-center justify-between px-4 py-3 bg-secondary hover:bg-accent transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 bg-secondary hover:bg-accent transition-colors rounded-none h-auto"
           >
             <div className="flex items-center gap-2">
               <Terminal className="w-4 h-4 text-muted-foreground" />
@@ -893,7 +894,7 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
             ) : (
               <ChevronUp className="w-4 h-4 text-muted-foreground" />
             )}
-          </button>
+          </Button>
 
           {isTerminalExpanded && (
             <div className="flex-1 overflow-hidden min-h-0">

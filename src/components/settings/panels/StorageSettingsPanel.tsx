@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { ExternalLink, HardDrive } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { settingsAPI } from '../../../lib/tauri-api';
 import type { StorePathInfo } from '../../../types/tauri';
 import { cn } from '../../../lib/utils';
@@ -78,17 +79,15 @@ export const StorageSettingsPanel: React.FC = () => {
             >
               {displayPath || 'Not set'}
             </code>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleOpenLocation}
-              className={cn(
-                'p-2 rounded-md',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent transition-colors'
-              )}
+              className="h-auto p-2"
               title="Open in Finder"
             >
               <ExternalLink className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         )}
 

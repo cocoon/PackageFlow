@@ -91,6 +91,117 @@ impl Default for KeyboardShortcutsSettings {
     }
 }
 
+// ============================================================================
+// Notification Settings
+// ============================================================================
+
+/// Default notification enabled
+fn default_notification_enabled() -> bool {
+    true
+}
+
+/// Default notification sound enabled
+fn default_notification_sound_enabled() -> bool {
+    true
+}
+
+/// Default DND start time
+fn default_dnd_start_time() -> String {
+    String::from("22:00")
+}
+
+/// Default DND end time
+fn default_dnd_end_time() -> String {
+    String::from("08:00")
+}
+
+/// Do Not Disturb settings for notifications
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoNotDisturbSettings {
+    /// Whether DND is enabled
+    #[serde(default)]
+    pub enabled: bool,
+    /// Start time in 24h format (e.g., "22:00")
+    #[serde(default = "default_dnd_start_time")]
+    pub start_time: String,
+    /// End time in 24h format (e.g., "08:00")
+    #[serde(default = "default_dnd_end_time")]
+    pub end_time: String,
+}
+
+impl Default for DoNotDisturbSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            start_time: default_dnd_start_time(),
+            end_time: default_dnd_end_time(),
+        }
+    }
+}
+
+/// Notification categories toggle settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationCategories {
+    /// Webhook notifications (incoming triggered, outgoing success/failure)
+    #[serde(default = "default_notification_enabled")]
+    pub webhooks: bool,
+    /// Workflow execution (completed, failed)
+    #[serde(default = "default_notification_enabled")]
+    pub workflow_execution: bool,
+    /// Git operations (push success/failure)
+    #[serde(default = "default_notification_enabled")]
+    pub git_operations: bool,
+    /// Security scan (completed, vulnerabilities found)
+    #[serde(default = "default_notification_enabled")]
+    pub security_scans: bool,
+    /// Deployment (success, failure)
+    #[serde(default = "default_notification_enabled")]
+    pub deployments: bool,
+}
+
+impl Default for NotificationCategories {
+    fn default() -> Self {
+        Self {
+            webhooks: default_notification_enabled(),
+            workflow_execution: default_notification_enabled(),
+            git_operations: default_notification_enabled(),
+            security_scans: default_notification_enabled(),
+            deployments: default_notification_enabled(),
+        }
+    }
+}
+
+/// Notification settings stored in database
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationSettings {
+    /// Master toggle for all notifications
+    #[serde(default = "default_notification_enabled")]
+    pub enabled: bool,
+    /// Play sound with notifications
+    #[serde(default = "default_notification_sound_enabled")]
+    pub sound_enabled: bool,
+    /// Category-specific toggles
+    #[serde(default)]
+    pub categories: NotificationCategories,
+    /// Do Not Disturb settings
+    #[serde(default)]
+    pub do_not_disturb: DoNotDisturbSettings,
+}
+
+impl Default for NotificationSettings {
+    fn default() -> Self {
+        Self {
+            enabled: default_notification_enabled(),
+            sound_enabled: default_notification_sound_enabled(),
+            categories: NotificationCategories::default(),
+            do_not_disturb: DoNotDisturbSettings::default(),
+        }
+    }
+}
+
 /// Application settings stored in settings.json
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

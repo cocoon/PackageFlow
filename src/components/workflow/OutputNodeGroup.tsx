@@ -7,6 +7,7 @@
 import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Terminal, Workflow, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/Button';
 import type { OutputLine } from '../../hooks/useWorkflowExecution';
 
 /** Grouped output for a single node */
@@ -122,10 +123,11 @@ export function OutputNodeGroup({ group, isLatest = false, defaultExpanded = tru
       )}
     >
       {/* Header */}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          'w-full flex items-center gap-2 px-3 py-2 text-left transition-colors',
+          'w-full justify-start h-auto gap-2 px-3 py-2 rounded-none',
           'hover:bg-white/5',
           isTriggerWorkflow ? 'bg-purple-950/30' : 'bg-blue-950/30'
         )}
@@ -198,7 +200,7 @@ export function OutputNodeGroup({ group, isLatest = false, defaultExpanded = tru
             {outputLines.length} {outputLines.length === 1 ? 'line' : 'lines'}
           </span>
         )}
-      </button>
+      </Button>
 
       {/* Content */}
       {isExpanded && hasOutput && (

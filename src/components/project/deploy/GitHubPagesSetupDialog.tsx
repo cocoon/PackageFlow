@@ -127,12 +127,11 @@ export function GitHubPagesSetupDialog({
                   <code className="flex-1 text-sm font-mono">
                     {result.workflowPath}
                   </code>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={handleCopyPath}
-                    className={cn(
-                      'rounded p-1.5 transition-colors',
-                      'hover:bg-accent text-muted-foreground hover:text-foreground'
-                    )}
+                    className="h-auto w-auto p-1.5"
                     title="Copy path"
                   >
                     {copied ? (
@@ -140,7 +139,7 @@ export function GitHubPagesSetupDialog({
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -169,21 +168,15 @@ export function GitHubPagesSetupDialog({
               {/* Quick Actions */}
               <div className="flex flex-col gap-2 pt-2">
                 {pagesSettingsUrl && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
                     onClick={() => shellOpen(pagesSettingsUrl)}
                     disabled={!pagesSettingsUrl}
-                    className={cn(
-                      'flex items-center justify-center gap-2',
-                      'rounded-md border border-border px-4 py-2',
-                      'text-sm font-medium text-foreground',
-                      'transition-colors hover:bg-accent',
-                      'disabled:opacity-50 disabled:cursor-not-allowed'
-                    )}
+                    className="justify-center gap-2"
                   >
                     <ExternalLink className="h-4 w-4" />
                     Open GitHub Pages Settings
-                  </button>
+                  </Button>
                 )}
               </div>
             </>

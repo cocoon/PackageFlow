@@ -12,6 +12,7 @@ import {
   type Edge,
 } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
+import { Button } from '../../ui/Button';
 import { Plus } from 'lucide-react';
 import type { NodeStatus } from '../../../types/workflow';
 
@@ -162,7 +163,9 @@ export const InsertableEdge = memo(function InsertableEdge({
       {/* Insert button - always visible with subtle opacity, more visible on hover */}
       {!disabled && (
         <EdgeLabelRenderer>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleInsertClick}
             style={{
               position: 'absolute',
@@ -171,18 +174,16 @@ export const InsertableEdge = memo(function InsertableEdge({
             }}
             className={cn(
               'nodrag nopan',
-              'w-6 h-6 rounded-full',
+              'h-6 w-6 rounded-full',
               'bg-muted/80 hover:bg-blue-600',
               'border-2 border-border hover:border-blue-500',
-              'flex items-center justify-center',
-              'transition-all duration-200',
               'opacity-40 hover:opacity-100 hover:scale-110',
-              'focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
+              'focus:opacity-100 focus:ring-2 focus:ring-blue-500'
             )}
             title="Insert step here"
           >
             <Plus className="w-3.5 h-3.5 text-foreground hover:text-white" />
-          </button>
+          </Button>
         </EdgeLabelRenderer>
       )}
     </>

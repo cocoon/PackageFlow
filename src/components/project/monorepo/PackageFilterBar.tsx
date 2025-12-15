@@ -7,6 +7,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { Search, X, Filter, Check, ChevronsUpDown } from 'lucide-react';
+import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
 export interface PackageInfo {
@@ -115,54 +116,58 @@ export function PackageFilterBar({
                        focus:outline-none focus:border-blue-500"
           />
           {searchQuery && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/90"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-auto w-auto p-0"
             >
               <X className="w-4 h-4" />
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Type filter dropdown */}
         {availableTypes.length > 0 && (
           <div className="relative">
-            <button
+            <Button
+              variant={typeFilter ? 'outline-info' : 'outline'}
+              size="sm"
               onClick={() => setShowTypeDropdown(!showTypeDropdown)}
               className={cn(
-                'flex items-center gap-1.5 px-2 py-1.5 rounded text-sm border transition-colors',
-                typeFilter
-                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                  : 'bg-secondary text-muted-foreground border-border hover:border-muted-foreground'
+                'flex items-center gap-1.5',
+                typeFilter && 'bg-blue-500/20 text-blue-400'
               )}
             >
               <Filter className="w-3.5 h-3.5" />
               <span>{typeFilter || 'All types'}</span>
               <ChevronsUpDown className="w-3 h-3" />
-            </button>
+            </Button>
 
             {showTypeDropdown && (
               <div className="absolute right-0 top-full mt-1 z-10 min-w-[120px] bg-secondary border border-border rounded shadow-lg">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => {
                     setTypeFilter(null);
                     setShowTypeDropdown(false);
                   }}
-                  className="w-full px-3 py-1.5 text-left text-sm text-foreground/90 hover:bg-border"
+                  className="w-full px-3 py-1.5 h-auto justify-start rounded-none text-sm"
                 >
                   All types
-                </button>
+                </Button>
                 {availableTypes.map((type) => (
-                  <button
+                  <Button
                     key={type}
+                    variant="ghost"
                     onClick={() => {
                       setTypeFilter(type);
                       setShowTypeDropdown(false);
                     }}
-                    className="w-full px-3 py-1.5 text-left text-sm text-foreground/90 hover:bg-border"
+                    className="w-full px-3 py-1.5 h-auto justify-start rounded-none text-sm"
                   >
                     {type}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -173,13 +178,15 @@ export function PackageFilterBar({
       {/* Selection controls */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={allSelected ? deselectAll : selectAll}
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 h-auto px-2 py-1"
           >
             <Check className="w-3 h-3" />
             {allSelected ? 'Deselect all' : 'Select all'}
-          </button>
+          </Button>
           <span className="text-muted-foreground/70">|</span>
           <span className="text-muted-foreground">
             {selectedPackages.size} of {packages.length} selected
@@ -193,11 +200,12 @@ export function PackageFilterBar({
       {/* Package list */}
       <div className="max-h-48 overflow-y-auto space-y-1">
         {filteredPackages.map((pkg) => (
-          <button
+          <Button
             key={pkg.name}
+            variant="ghost"
             onClick={() => togglePackage(pkg.name)}
             className={cn(
-              'w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors',
+              'w-full flex items-center gap-2 px-2 py-1.5 h-auto justify-start',
               selectedPackages.has(pkg.name)
                 ? 'bg-blue-500/10 border border-blue-500/30'
                 : 'bg-secondary/50 border border-transparent hover:border-border'
@@ -222,7 +230,7 @@ export function PackageFilterBar({
                 {pkg.type}
               </span>
             )}
-          </button>
+          </Button>
         ))}
 
         {filteredPackages.length === 0 && (

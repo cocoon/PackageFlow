@@ -376,20 +376,15 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
           )}
         >
           {/* Close button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className={cn(
-              'absolute right-4 top-4',
-              'p-2 rounded-lg',
-              'text-muted-foreground hover:text-foreground',
-              'hover:bg-accent/50',
-              'transition-colors duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-ring'
-            )}
+            className="absolute right-4 top-4 h-auto w-auto p-2"
             aria-label="Close dialog"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
 
           <div className="flex items-center gap-4 pr-10">
             {/* Icon badge */}
@@ -467,19 +462,11 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
               onClick={handleCopy}
               disabled={item.output.length === 0}
-              className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-lg',
-                'text-sm font-medium',
-                'text-muted-foreground hover:text-foreground',
-                'hover:bg-accent',
-                'border border-transparent hover:border-border',
-                'transition-all duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
+              className="h-auto px-3 py-1.5 text-sm"
             >
               {copied ? (
                 <>
@@ -492,21 +479,14 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
                   <span>Copy</span>
                 </>
               )}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={onClose}
-              className={cn(
-                'px-4 py-1.5 rounded-lg',
-                'text-sm font-medium',
-                'bg-secondary hover:bg-accent',
-                'text-foreground',
-                'border border-border',
-                'transition-colors duration-150',
-                'focus:outline-none focus:ring-2 focus:ring-ring'
-              )}
+              className="h-auto px-4 py-1.5 text-sm"
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -530,40 +510,39 @@ function FilterButton({
 
   return (
     <div className="relative">
-      <button
+      <Button
+        variant={value !== 'all' ? "default" : "outline"}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
-          'border transition-colors',
-          value !== 'all'
-            ? 'border-primary/50 bg-primary/10 text-primary'
-            : 'border-border bg-background hover:bg-accent text-muted-foreground'
+          'h-auto px-2 py-1 text-xs',
+          value !== 'all' && 'border-primary/50 bg-primary/10 text-primary'
         )}
       >
         <Filter className="w-3 h-3" />
         <span>{label}</span>
-      </button>
+      </Button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 mt-1 z-20 min-w-[120px] py-1 bg-background border border-border rounded-lg shadow-lg">
             {options.map((option) => (
-              <button
+              <Button
                 key={option.value}
+                variant="ghost"
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
                 }}
                 className={cn(
-                  'w-full px-3 py-1.5 text-left text-xs transition-colors',
+                  'w-full justify-start h-auto px-3 py-1.5 text-xs rounded-none',
                   value === option.value
                     ? 'bg-primary/10 text-primary'
                     : 'hover:bg-accent text-foreground'
                 )}
               >
                 {option.label}
-              </button>
+              </Button>
             ))}
           </div>
         </>
@@ -761,20 +740,15 @@ export function ExecutionHistoryPanel({
           )}
         >
           {/* Close button */}
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className={cn(
-              'absolute right-4 top-4',
-              'p-2 rounded-lg',
-              'text-muted-foreground hover:text-foreground',
-              'hover:bg-accent/50',
-              'transition-colors duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-ring'
-            )}
+            className="absolute right-4 top-4 h-auto w-auto p-2"
             aria-label="Close panel"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
 
           <div className="flex items-center gap-4 pr-10">
             {/* Icon badge */}
@@ -856,13 +830,15 @@ export function ExecutionHistoryPanel({
 
               {/* Reset Filters */}
               {hasActiveFilters && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={resetFilters}
-                  className="p-1.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                  className="h-auto w-auto p-1.5"
                   aria-label="Reset filters"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -885,12 +861,13 @@ export function ExecutionHistoryPanel({
               <Search className="w-12 h-12 mb-4 opacity-30" />
               <p className="text-sm font-medium">No matching results</p>
               <p className="text-xs mt-1">Try adjusting your filters</p>
-              <button
+              <Button
+                variant="link"
                 onClick={resetFilters}
-                className="mt-3 text-xs text-primary hover:underline"
+                className="mt-3 h-auto text-xs"
               >
                 Reset filters
-              </button>
+              </Button>
             </div>
           ) : (
             Array.from(groupedHistory.entries()).map(([date, items]) => (

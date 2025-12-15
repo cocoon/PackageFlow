@@ -75,6 +75,13 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchIndexItem[] = [
     keywords: ['theme', 'dark', 'light', 'mode', 'color', 'style', 'path', 'compact'],
   },
   {
+    id: 'notifications',
+    category: 'preferences',
+    title: 'Notifications',
+    description: 'Configure desktop notification preferences',
+    keywords: ['notification', 'alert', 'sound', 'dnd', 'do not disturb', 'bell', 'desktop'],
+  },
+  {
     id: 'shortcuts',
     category: 'preferences',
     title: 'Keyboard Shortcuts',
@@ -104,7 +111,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryInfo[] = [
   {
     id: 'all',
     label: 'All',
-    sections: ['storage', 'deploy-accounts', 'ai-services', 'prompts', 'mcp', 'appearance', 'shortcuts', 'toolchain', 'data'],
+    sections: ['storage', 'deploy-accounts', 'ai-services', 'prompts', 'mcp', 'appearance', 'notifications', 'shortcuts', 'toolchain', 'data'],
   },
   {
     id: 'project',
@@ -119,7 +126,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryInfo[] = [
   {
     id: 'preferences',
     label: 'Preferences',
-    sections: ['appearance', 'shortcuts', 'toolchain'],
+    sections: ['appearance', 'notifications', 'shortcuts', 'toolchain'],
   },
   {
     id: 'data',

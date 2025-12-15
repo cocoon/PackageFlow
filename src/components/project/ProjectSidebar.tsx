@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Folder, FolderOpen, Plus, RefreshCw, Trash2, Search, ChevronLeft, ChevronRight, MoreVertical, ArrowUpDown, GripVertical, Check } from 'lucide-react';
+import { Button } from '../ui/Button';
 import {
   DndContext,
   closestCenter,
@@ -314,20 +315,22 @@ export function ProjectSidebar({
     return (
       <div className="w-12 bg-background border-r border-border flex flex-col">
         <div className="p-2">
-          <button
+          <Button
+            variant="ghost"
             onClick={onToggleCollapse}
-            className="w-full p-2 rounded hover:bg-accent transition-colors"
+            className="w-full p-2 h-auto"
             title="Expand sidebar"
           >
             <ChevronRight className="w-4 h-4 text-muted-foreground mx-auto" />
-          </button>
+          </Button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {sortedProjects.map(project => (
-            <button
+            <Button
               key={project.id}
+              variant="ghost"
               onClick={() => onSelectProject(project.id)}
-              className={`w-full p-2 rounded transition-colors ${
+              className={`w-full p-2 rounded h-auto ${
                 activeProjectId === project.id
                   ? 'bg-blue-600/20 text-blue-400'
                   : 'hover:bg-accent text-muted-foreground'
@@ -339,17 +342,18 @@ export function ProjectSidebar({
               ) : (
                 <Folder className="w-4 h-4 mx-auto" />
               )}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="p-2 border-t border-border">
-          <button
+          <Button
+            variant="ghost"
             onClick={onAddProject}
-            className="w-full p-2 rounded hover:bg-accent transition-colors"
+            className="w-full p-2 h-auto"
             title="Add project"
           >
             <Plus className="w-4 h-4 text-muted-foreground mx-auto" />
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -384,16 +388,16 @@ export function ProjectSidebar({
         <div className={`flex items-center gap-1 flex-shrink-0 transition-all duration-200 ${isSearchFocused ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {/* Sort button */}
           <div className="relative">
-            <button
+            <Button
               ref={sortButtonRef}
+              variant="ghost"
+              size="icon"
               onClick={() => setShowSortMenu(!showSortMenu)}
-              className={`p-1.5 rounded hover:bg-accent transition-colors ${
-                showSortMenu ? 'bg-accent' : ''
-              }`}
+              className={`h-8 w-8 ${showSortMenu ? 'bg-accent' : ''}`}
               title="Sort by"
             >
               <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-            </button>
+            </Button>
             {/* Sort menu */}
             {showSortMenu && (
               <>
@@ -403,13 +407,14 @@ export function ProjectSidebar({
                 />
                 <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] whitespace-nowrap">
                   {SORT_OPTIONS.map(option => (
-                    <button
+                    <Button
                       key={option.value}
+                      variant="ghost"
                       onClick={() => {
                         onSortModeChange(option.value);
                         setShowSortMenu(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-accent justify-start h-auto rounded-none"
                     >
                       <Check
                         className={`w-4 h-4 ${
@@ -417,26 +422,30 @@ export function ProjectSidebar({
                         }`}
                       />
                       {option.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onAddProject}
-            className="p-1.5 rounded hover:bg-accent transition-colors"
+            className="h-8 w-8"
             title="Add project"
           >
             <Plus className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onToggleCollapse}
-            className="p-1.5 rounded hover:bg-accent transition-colors"
+            className="h-8 w-8"
             title="Collapse sidebar"
           >
             <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -499,13 +508,14 @@ export function ProjectSidebar({
             className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[140px]"
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
-            <button
+            <Button
+              variant="ghost"
               onClick={() => handleMenuAction('remove')}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-accent"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 hover:bg-accent justify-start h-auto rounded-none"
             >
               <Trash2 className="w-4 h-4" />
               Remove
-            </button>
+            </Button>
           </div>
         </>
       )}
