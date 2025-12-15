@@ -80,28 +80,89 @@ pub async fn load_workflows(db: tauri::State<'_, DatabaseState>) -> Result<Vec<W
     // Decrypt webhook tokens for each workflow
     for workflow in &mut workflows {
         if let Some(ref mut incoming_webhook) = workflow.incoming_webhook {
+            println!(
+                "[load_workflows] Workflow {} has incoming_webhook: enabled={}, token_len={}, token_created_at={}",
+                workflow.id,
+                incoming_webhook.enabled,
+                incoming_webhook.token.len(),
+                incoming_webhook.token_created_at
+            );
             // Try to get encrypted token
-            if let Ok(Some((ciphertext, nonce))) = repo.get_webhook_token(&workflow.id) {
-                let encrypted = crypto::EncryptedData { ciphertext, nonce };
-                if let Ok(decrypted) = crypto::decrypt(&encrypted) {
-                    incoming_webhook.token = decrypted;
-                }
-            } else if !incoming_webhook.token.is_empty() {
-                // Legacy: token is still in plaintext in JSON, migrate it
-                log::info!(
-                    "Migrating webhook token for workflow {} to encrypted storage",
-                    workflow.id
-                );
-                if let Ok(encrypted) = crypto::encrypt(&incoming_webhook.token) {
-                    let _ = repo.store_webhook_token(
-                        &workflow.id,
-                        &encrypted.ciphertext,
-                        &encrypted.nonce,
+            match repo.get_webhook_token(&workflow.id) {
+                Ok(Some((ciphertext, nonce))) => {
+                    println!(
+                        "[load_workflows] Found encrypted token for workflow {}, decrypting...",
+                        workflow.id
                     );
-                    // Note: We keep the token in the workflow for this load,
-                    // it will be cleared on next save
+                    let encrypted = crypto::EncryptedData { ciphertext, nonce };
+                    match crypto::decrypt(&encrypted) {
+                        Ok(decrypted) => {
+                            println!(
+                                "[load_workflows] Successfully decrypted token for workflow {}, len={}",
+                                workflow.id,
+                                decrypted.len()
+                            );
+                            incoming_webhook.token = decrypted;
+                        }
+                        Err(e) => {
+                            println!(
+                                "[load_workflows] Failed to decrypt token for workflow {}: {}",
+                                workflow.id, e
+                            );
+                            // Decryption failed - token is unusable, reset enabled to false
+                            if incoming_webhook.enabled {
+                                println!(
+                                    "[load_workflows] Workflow {} has enabled=true but decryption failed, resetting enabled to false",
+                                    workflow.id
+                                );
+                                incoming_webhook.enabled = false;
+                            }
+                        }
+                    }
+                }
+                Ok(None) => {
+                    println!(
+                        "[load_workflows] No encrypted token found in webhook_tokens table for workflow {}",
+                        workflow.id
+                    );
+                    if !incoming_webhook.token.is_empty() {
+                        // Legacy: token is still in plaintext in JSON, migrate it
+                        log::info!(
+                            "Migrating webhook token for workflow {} to encrypted storage",
+                            workflow.id
+                        );
+                        if let Ok(encrypted) = crypto::encrypt(&incoming_webhook.token) {
+                            let _ = repo.store_webhook_token(
+                                &workflow.id,
+                                &encrypted.ciphertext,
+                                &encrypted.nonce,
+                            );
+                            // Note: We keep the token in the workflow for this load,
+                            // it will be cleared on next save
+                        }
+                    } else if incoming_webhook.enabled {
+                        // Token is missing but enabled is true - this is an invalid state
+                        // (likely caused by a previous bug where token wasn't saved properly)
+                        // Reset enabled to false to reflect the actual state
+                        println!(
+                            "[load_workflows] Workflow {} has enabled=true but no token, resetting enabled to false",
+                            workflow.id
+                        );
+                        incoming_webhook.enabled = false;
+                    }
+                }
+                Err(e) => {
+                    println!(
+                        "[load_workflows] Error getting webhook token for workflow {}: {}",
+                        workflow.id, e
+                    );
                 }
             }
+        } else {
+            println!(
+                "[load_workflows] Workflow {} has no incoming_webhook",
+                workflow.id
+            );
         }
     }
 
@@ -132,25 +193,35 @@ pub async fn save_workflows(
     }
 
     // Save all workflows (insert or update) with token encryption
+    // IMPORTANT: Save workflow FIRST, then token
+    // This is because webhook_tokens has ON DELETE CASCADE reference to workflows.
+    // INSERT OR REPLACE on workflows triggers DELETE + INSERT, which would cascade
+    // delete any existing token if we saved the token first.
     for workflow in &workflows {
         let mut workflow_to_save = workflow.clone();
 
-        // Handle incoming webhook token encryption
-        if let Some(ref incoming_webhook) = workflow.incoming_webhook {
-            if !incoming_webhook.token.is_empty() {
-                // Encrypt and store token separately
-                let encrypted = crypto::encrypt(&incoming_webhook.token)
-                    .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
-                repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
-
-                // Clear token from workflow before saving to main table
-                if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
-                    iw.token = String::new();
-                }
+        // Extract token before clearing it (we'll save it after workflow)
+        let token_to_save = if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
+            if !iw.token.is_empty() {
+                let token = iw.token.clone();
+                iw.token = String::new(); // Clear from JSON
+                Some(token)
+            } else {
+                None
             }
-        }
+        } else {
+            None
+        };
 
+        // Step 1: Save workflow first
         repo.save(&workflow_to_save)?;
+
+        // Step 2: Now save the token (after workflow exists in DB)
+        if let Some(token) = token_to_save {
+            let encrypted = crypto::encrypt(&token)
+                .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
+            repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
+        }
     }
 
     Ok(())

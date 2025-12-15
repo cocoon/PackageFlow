@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=rust,tauri,react" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=rust,tauri,react,ts,tailwind" alt="Tech Stack" />
 </p>
 
 <p align="center">
@@ -185,41 +185,36 @@ brew upgrade --cask packageflow
 ## ❓ 常見問題
 
 <details>
-<summary><strong>Q: PackageFlow 和 VS Code 終端機有什麼不同？</strong></summary>
+<summary><strong>需要是資深工程師嗎？</strong></summary>
 <br/>
 
-PackageFlow 專注於視覺化和效率：
-- 🎯 一鍵執行 scripts，不用記指令
-- 👁️ 所有 scripts 一目瞭然
-- 🚀 整合部署，直接取得預覽連結
-- 🌳 Worktree 視覺化管理
+不需要。
+
+只要你的專案有 `package.json`，就可以開始使用 PackageFlow。
+不用記指令。不用在終端間切換。只要點一下就好。
 
 </details>
 
 <details>
-<summary><strong>Q: 支援哪些作業系統？</strong></summary>
+<summary><strong>這與 VS Code 終端機有什麼不同？</strong></summary>
 <br/>
 
-目前支援 **macOS** (Apple Silicon 和 Intel)。
-Windows 和 Linux 支援正在開發中！
+PackageFlow 講求流程：
+
+- 內容一目了然
+- 一鍵操控
+- 視覺化工作流
+- 內建部署預覽
 
 </details>
 
 <details>
-<summary><strong>Q: 資料存在哪裡？安全嗎？</strong></summary>
+<summary><strong>我的資料安全嗎？</strong></summary>
 <br/>
 
-所有資料都儲存在本機 (`~/Library/Application Support/PackageFlow`)。
-不會上傳到任何伺服器。100% 本機優先設計。
-
-</details>
-
-<details>
-<summary><strong>Q: 可以用在 Monorepo 專案嗎？</strong></summary>
-<br/>
-
-可以！自動偵測 **Nx** 和 **Turborepo**，
-顯示 workspace 結構和依賴圖表。
+100% 本機優先。
+所有資料都保留在你的機器上。
+沒有追蹤。也不依賴雲端。
 
 </details>
 

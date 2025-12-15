@@ -394,6 +394,11 @@ export function WebhookSettingsDialog({
     }
 
     // Build incoming config
+    console.log('[WebhookSettingsDialog] handleSave - building incoming config');
+    console.log('[WebhookSettingsDialog] incomingToken:', incomingToken);
+    console.log('[WebhookSettingsDialog] incomingToken length:', incomingToken?.length);
+    console.log('[WebhookSettingsDialog] incomingEnabled:', incomingEnabled);
+    console.log('[WebhookSettingsDialog] incomingTokenCreatedAt:', incomingTokenCreatedAt);
     let newIncomingConfig: IncomingWebhookConfig | undefined;
     if (incomingToken) {
       newIncomingConfig = {
@@ -401,6 +406,9 @@ export function WebhookSettingsDialog({
         token: incomingToken,
         tokenCreatedAt: incomingTokenCreatedAt,
       };
+      console.log('[WebhookSettingsDialog] newIncomingConfig created:', newIncomingConfig);
+    } else {
+      console.log('[WebhookSettingsDialog] incomingToken is falsy, newIncomingConfig will be undefined');
     }
 
     // Save port settings FIRST if changed (this stops the old server)

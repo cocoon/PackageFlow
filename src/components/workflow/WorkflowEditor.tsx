@@ -708,12 +708,17 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
 
   const handleSaveWebhookSettings = useCallback(
     (webhookConfig: WebhookConfig | undefined, incomingConfig: IncomingWebhookConfig | undefined) => {
+      console.log('[WorkflowEditor] handleSaveWebhookSettings called');
+      console.log('[WorkflowEditor] incomingConfig:', incomingConfig);
+      console.log('[WorkflowEditor] incomingConfig?.token length:', incomingConfig?.token?.length);
       if (workflow) {
-        updateWorkflow({
+        const updatedWorkflow = {
           ...workflow,
           webhook: webhookConfig,
           incomingWebhook: incomingConfig,
-        });
+        };
+        console.log('[WorkflowEditor] updatedWorkflow.incomingWebhook:', updatedWorkflow.incomingWebhook);
+        updateWorkflow(updatedWorkflow);
       }
     },
     [workflow, updateWorkflow]

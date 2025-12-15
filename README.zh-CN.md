@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=rust,tauri,react" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=rust,tauri,react,ts,tailwind" alt="Tech Stack" />
 </p>
 
 <p align="center">
@@ -185,41 +185,36 @@ brew upgrade --cask packageflow
 ## ❓ 常见问题
 
 <details>
-<summary><strong>Q: PackageFlow 和 VS Code 终端有什么不同？</strong></summary>
+<summary><strong>需要是资深工程师吗？</strong></summary>
 <br/>
 
-PackageFlow 专注于可视化和效率：
-- 🎯 一键执行 scripts，不用记命令
-- 👁️ 所有 scripts 一目了然
-- 🚀 集成部署，直接获取预览链接
-- 🌳 Worktree 可视化管理
+不需要。
+
+只要你的项目有 `package.json`，就能用 PackageFlow。
+不用记命令。不用在终端间切换。点一下就好。
 
 </details>
 
 <details>
-<summary><strong>Q: 支持哪些操作系统？</strong></summary>
+<summary><strong>这与 VS Code 终端有什么不同？</strong></summary>
 <br/>
 
-目前支持 **macOS** (Apple Silicon 和 Intel)。
-Windows 和 Linux 支持正在开发中！
+PackageFlow 讲求流程：
+
+- 所有内容一目了然
+- 一键操作
+- 可视化工作流
+- 内建部署预览
 
 </details>
 
 <details>
-<summary><strong>Q: 数据存在哪里？安全吗？</strong></summary>
+<summary><strong>我的数据安全吗？</strong></summary>
 <br/>
 
-所有数据都储存在本地 (`~/Library/Application Support/PackageFlow`)。
-不会上传到任何服务器。100% 本地优先设计。
-
-</details>
-
-<details>
-<summary><strong>Q: 可以用在 Monorepo 项目吗？</strong></summary>
-<br/>
-
-可以！自动检测 **Nx** 和 **Turborepo**，
-显示 workspace 结构和依赖图表。
+100% 本地优先。
+所有数据都保留在你的机器上。
+没有追踪，也不依赖云端。
 
 </details>
 

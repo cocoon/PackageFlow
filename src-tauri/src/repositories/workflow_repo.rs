@@ -229,8 +229,14 @@ impl WorkflowRepository {
         ciphertext: &str,
         nonce: &str,
     ) -> Result<(), String> {
+        println!(
+            "[store_webhook_token] Attempting to store token for workflow {}, cipher_len={}, nonce_len={}",
+            workflow_id,
+            ciphertext.len(),
+            nonce.len()
+        );
         self.db.with_connection(|conn| {
-            conn.execute(
+            let rows_affected = conn.execute(
                 r#"
                 INSERT OR REPLACE INTO webhook_tokens
                 (workflow_id, ciphertext, nonce, updated_at)
@@ -240,6 +246,43 @@ impl WorkflowRepository {
             )
             .map_err(|e| format!("Failed to store webhook token: {}", e))?;
 
+            println!(
+                "[store_webhook_token] SQL executed, rows_affected={}",
+                rows_affected
+            );
+
+            // Force WAL checkpoint to ensure data is persisted to disk
+            // This prevents data loss if the app exits before automatic checkpoint
+            let checkpoint_result: Result<(i32, i32, i32), _> = conn.query_row(
+                "PRAGMA wal_checkpoint(PASSIVE)",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            );
+            match checkpoint_result {
+                Ok((busy, log, checkpointed)) => {
+                    println!(
+                        "[store_webhook_token] WAL checkpoint: busy={}, log={}, checkpointed={}",
+                        busy, log, checkpointed
+                    );
+                }
+                Err(e) => {
+                    println!("[store_webhook_token] WAL checkpoint error: {}", e);
+                }
+            }
+
+            // Verify the insert
+            let count: i64 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM webhook_tokens WHERE workflow_id = ?1",
+                    params![workflow_id],
+                    |row| row.get(0),
+                )
+                .unwrap_or(0);
+            println!(
+                "[store_webhook_token] Verification: count for workflow {} = {}",
+                workflow_id, count
+            );
+
             Ok(())
         })
     }
@@ -247,7 +290,35 @@ impl WorkflowRepository {
     /// Get encrypted webhook token data for a workflow
     /// Returns (ciphertext, nonce) if found
     pub fn get_webhook_token(&self, workflow_id: &str) -> Result<Option<(String, String)>, String> {
+        println!(
+            "[get_webhook_token] Looking up token for workflow {}",
+            workflow_id
+        );
         self.db.with_connection(|conn| {
+            // Debug: Count all rows in webhook_tokens
+            let total_count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM webhook_tokens", [], |row| row.get(0))
+                .unwrap_or(-1);
+            println!(
+                "[get_webhook_token] Total rows in webhook_tokens table: {}",
+                total_count
+            );
+
+            // Debug: List all workflow_ids in webhook_tokens
+            if total_count > 0 {
+                let mut stmt = conn
+                    .prepare("SELECT workflow_id FROM webhook_tokens")
+                    .ok();
+                if let Some(ref mut s) = stmt {
+                    let ids: Vec<String> = s
+                        .query_map([], |row| row.get(0))
+                        .ok()
+                        .map(|rows| rows.filter_map(|r| r.ok()).collect())
+                        .unwrap_or_default();
+                    println!("[get_webhook_token] Workflow IDs in table: {:?}", ids);
+                }
+            }
+
             let result = conn.query_row(
                 "SELECT ciphertext, nonce FROM webhook_tokens WHERE workflow_id = ?1",
                 params![workflow_id],
@@ -255,9 +326,29 @@ impl WorkflowRepository {
             );
 
             match result {
-                Ok(data) => Ok(Some(data)),
-                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-                Err(e) => Err(format!("Failed to get webhook token: {}", e)),
+                Ok(data) => {
+                    println!(
+                        "[get_webhook_token] Found token for workflow {}, cipher_len={}, nonce_len={}",
+                        workflow_id,
+                        data.0.len(),
+                        data.1.len()
+                    );
+                    Ok(Some(data))
+                }
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    println!(
+                        "[get_webhook_token] No rows returned for workflow {}",
+                        workflow_id
+                    );
+                    Ok(None)
+                }
+                Err(e) => {
+                    println!(
+                        "[get_webhook_token] Error querying for workflow {}: {}",
+                        workflow_id, e
+                    );
+                    Err(format!("Failed to get webhook token: {}", e))
+                }
             }
         })
     }

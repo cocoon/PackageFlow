@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>🚀 Stop juggling terminals.</strong><br/>
-  <sub>Run scripts, manage Git, switch worktrees, and deploy with preview links — all in one beautiful app.</sub>
+  <sub>Run scripts, manage your project, and deploy with preview links — all in one beautiful app.</sub>
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=rust,tauri,react" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=rust,tauri,react,ts,tailwind" alt="Tech Stack" />
 </p>
 
 <p align="center">
@@ -41,34 +41,58 @@
 
 ---
 
-## 📍 Why PackageFlow?
+## ✨ What is PackageFlow?
 
-Tired of switching between terminals, Git GUIs, and deployment dashboards?
+**PackageFlow is the app you open instead of your terminal.**
 
-PackageFlow brings your `package.json` to life — a single app that handles everything a frontend developer does daily. Built with **Tauri + Rust** for a tiny binary and instant startup.
+It turns your project into a visual control center —  
+run scripts, manage Git, switch worktrees, and deploy with preview links  
+**without memorizing commands or juggling tools**.
 
-Perfect for **vibe coding**: less terminal chaos, more building cool stuff.
+Built for **vibe coding**:  
+stay in flow, not in the terminal.
+
+Powered by **Tauri + Rust** for a tiny binary and instant startup.
 
 ## 🎬 Quick Start
 
 1. **Download** → [Get PackageFlow for macOS](https://github.com/runkids/PackageFlow/releases)
 2. **Open a project** → Drag any folder with `package.json` into the app
-3. **Start using** → Click any script card to run it!
+3. **Click to run** → Scripts, workflows, deploys — all one click away
 
-> 💡 **Pro tip**: Press <kbd>Cmd</kbd>+<kbd>K</kbd> to quickly switch between worktrees
+> 💡 Tip: Press <kbd>Cmd</kbd> + <kbd>K</kbd> to instantly switch worktrees
 
 ## ✨ Features
 
-| | Feature | Description |
-|:---:|---------|-------------|
-| 🎯 | **One-Click Scripts** | Run npm scripts from cards with live PTY terminal output |
-| 🔀 | **Git Powerhouse** | Full Git operations: commit, branch, stash, diff viewer |
-| 🌳 | **Worktree Magic** | Visual management, <kbd>Cmd</kbd>+<kbd>K</kbd> quick switch, session context |
-| 🚀 | **Instant Deploy** | One-click deploy to Netlify/Cloudflare with instant preview links |
-| 📦 | **Monorepo Ready** | Auto-detect Nx/Turborepo, workspace view, dependency graph |
-| 🔧 | **Toolchain Smart** | Auto-detect Volta/Corepack version conflicts |
+| | Feature | What it feels like |
+|:--:|--|--|
+| 🎯 | **One-Click Scripts** | Run npm scripts like buttons — live terminal included |
+| ⚡ | **Visual Workflow** | Build flows with drag-and-drop steps |
+| 🚀 | **Instant Deploy** | One click → preview link (Netlify / Cloudflare) |
+| 📦 | **Monorepo Ready** | Nx / Turborepo auto-detected |
+| 🔀 | **Git, Visualized** | Commit, branch, stash, diff — no CLI gymnastics |
+| 🌳 | **Worktree Magic** | See, switch, and resume worktrees instantly |
+| 🔧 | **Toolchain Smart** | Detect Volta / Corepack conflicts automatically |
 | 🛡️ | **Security Scan** | Visual npm audit with one-click fixes |
-| ⚡ | **Visual Workflow** | Drag-and-drop automation builder with webhook triggers |
+
+---
+
+## 🤖 AI-Native (Coming Soon)
+
+PackageFlow is becoming **AI-first**.
+
+- 🧠 **AI-assisted workflows** — explain, generate, and fix scripts
+- 🔌 **MCP Server support** — let AI tools control PackageFlow
+- 🤖 **Local-first AI** — no cloud lock-in, your code stays local
+
+> Think:  
+> **“Claude, deploy my feature branch.”**  
+> **“Fix the failing script and rerun.”**
+
+---
+
+
+## 📸 Screenshots
 
 <p align="center">
   <img src="docs/screenshots/commit-message-generated-by-AI.gif" width="720" alt="Deploy demo" />
@@ -81,9 +105,6 @@ Perfect for **vibe coding**: less terminal chaos, more building cool stuff.
   <br/>
   <em>👆 One-click deploy, instant preview link</em>
 </p>
-
-
-## 📸 Screenshots
 
 <details>
 <summary>🎯 Projects + Scripts</summary>
@@ -186,41 +207,39 @@ We're actively working on these features:
 ## ❓ FAQ
 
 <details>
-<summary><strong>Q: How is PackageFlow different from VS Code terminal?</strong></summary>
+<summary><strong>Do I need to be a hardcore engineer?</strong></summary>
 <br/>
 
-PackageFlow focuses on visualization and efficiency:
-- 🎯 One-click script execution, no commands to remember
-- 👁️ All scripts visible at a glance
-- 🚀 Integrated deployment with instant preview links
-- 🌳 Visual worktree management
+No.
+
+If your project has a `package.json`, you can use PackageFlow.
+No command memorization. No terminal juggling. Just click and go.
 
 </details>
 
 <details>
-<summary><strong>Q: Which operating systems are supported?</strong></summary>
+<summary><strong>How is this different from VS Code terminal?</strong></summary>
 <br/>
 
-Currently supports **macOS** (Apple Silicon & Intel).
-Windows and Linux support is in development!
+PackageFlow is about flow:
+
+- Everything visible at a glance
+
+- One-click actions
+
+- Visual workflows
+
+- Built-in deploy previews
 
 </details>
 
 <details>
-<summary><strong>Q: Where is my data stored? Is it secure?</strong></summary>
+<summary><strong>Is my data safe?</strong></summary>
 <br/>
 
-All data is stored locally (`~/Library/Application Support/PackageFlow`).
-Nothing is uploaded to any server. 100% local-first design.
-
-</details>
-
-<details>
-<summary><strong>Q: Does it work with Monorepos?</strong></summary>
-<br/>
-
-Yes! Auto-detects **Nx** and **Turborepo**,
-displays workspace structure and dependency graphs.
+100% local-first.
+All data stays on your machine.
+No tracking. No cloud dependency.
 
 </details>
 

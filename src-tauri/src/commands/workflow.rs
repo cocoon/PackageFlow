@@ -261,27 +261,65 @@ pub async fn save_workflow(
         workflow.id, workflow.name
     );
 
-    let repo = WorkflowRepository::new(db.0.as_ref().clone());
-
-    // Handle incoming webhook token encryption
-    let mut workflow_to_save = workflow.clone();
-    if let Some(ref incoming_webhook) = workflow.incoming_webhook {
-        if !incoming_webhook.token.is_empty() {
-            // Encrypt and store token separately
-            let encrypted = crypto::encrypt(&incoming_webhook.token)
-                .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
-            repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
-
-            // Clear token from workflow before saving to main table
-            if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
-                iw.token = String::new();
-            }
+    // Debug: Log incoming webhook info
+    match &workflow.incoming_webhook {
+        Some(iw) => {
+            println!(
+                "[workflow] incoming_webhook: enabled={}, token_len={}, token_created_at={}",
+                iw.enabled,
+                iw.token.len(),
+                iw.token_created_at
+            );
+        }
+        None => {
+            println!("[workflow] incoming_webhook: None");
         }
     }
 
-    repo.save(&workflow_to_save)?;
+    let repo = WorkflowRepository::new(db.0.as_ref().clone());
 
+    // IMPORTANT: Save workflow FIRST, then token
+    // This is because webhook_tokens has ON DELETE CASCADE reference to workflows.
+    // INSERT OR REPLACE on workflows triggers DELETE + INSERT, which would cascade
+    // delete any existing token if we saved the token first.
+
+    // Prepare workflow for saving (clear token from JSON, it goes in separate encrypted table)
+    let mut workflow_to_save = workflow.clone();
+    let token_to_save = if let Some(ref mut iw) = workflow_to_save.incoming_webhook {
+        if !iw.token.is_empty() {
+            let token = iw.token.clone();
+            iw.token = String::new(); // Clear from JSON
+            Some(token)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Step 1: Save workflow first (this may trigger cascade delete on old token)
+    repo.save(&workflow_to_save)?;
     println!("[workflow] Saved workflow to database: {}", workflow.name);
+
+    // Step 2: Now save the token (after workflow exists in DB)
+    if let Some(token) = token_to_save {
+        println!(
+            "[workflow] Encrypting and storing webhook token for workflow {}",
+            workflow.id
+        );
+        let encrypted = crypto::encrypt(&token)
+            .map_err(|e| format!("Failed to encrypt webhook token: {}", e))?;
+        repo.store_webhook_token(&workflow.id, &encrypted.ciphertext, &encrypted.nonce)?;
+        println!(
+            "[workflow] Successfully stored encrypted webhook token for workflow {}",
+            workflow.id
+        );
+    } else if workflow.incoming_webhook.is_some() {
+        println!(
+            "[workflow] incoming_webhook.token is empty, skipping encryption for workflow {}",
+            workflow.id
+        );
+    }
 
     // Sync incoming webhook server state
     if let Err(e) = crate::commands::incoming_webhook::sync_incoming_webhook_server(&app).await {
