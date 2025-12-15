@@ -1,6 +1,6 @@
 /**
  * Settings Context
- * Provides app-wide settings like path display format
+ * Provides app-wide settings like path display format and reduce motion
  */
 
 import {
@@ -30,6 +30,10 @@ interface SettingsContextValue {
   terminalHeight: number;
   setTerminalHeight: (height: number) => Promise<void>;
 
+  // Reduce motion preference
+  reduceMotion: boolean;
+  setReduceMotion: (reduce: boolean) => Promise<void>;
+
   // Helper function
   formatPath: (path: string) => string;
 
@@ -40,6 +44,7 @@ interface SettingsContextValue {
 const DEFAULT_SETTINGS: Partial<AppSettings> = {
   pathDisplayFormat: 'short',
   terminalHeight: 200,
+  reduceMotion: false,
 };
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -120,6 +125,51 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [settings]
   );
 
+  // Reduce motion - respects system preference as default
+  const reduceMotion = useMemo<boolean>(() => {
+    // If user has explicitly set a preference, use it
+    if (settings?.reduceMotion !== undefined) {
+      return settings.reduceMotion;
+    }
+    // Otherwise, respect system preference
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+    return DEFAULT_SETTINGS.reduceMotion ?? false;
+  }, [settings?.reduceMotion]);
+
+  const setReduceMotion = useCallback(
+    async (reduce: boolean) => {
+      if (!settings) return;
+
+      const newSettings: AppSettings = {
+        ...settings,
+        reduceMotion: reduce,
+      };
+
+      try {
+        await settingsAPI.saveSettings(newSettings);
+        setSettings(newSettings);
+        setError(null);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setError(msg);
+        throw e;
+      }
+    },
+    [settings]
+  );
+
+  // Apply reduce motion class to document
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (reduceMotion) {
+      root.classList.add('reduce-motion');
+    } else {
+      root.classList.remove('reduce-motion');
+    }
+  }, [reduceMotion]);
+
   // Path formatting function that respects the setting
   const formatPath = useCallback(
     (path: string): string => {
@@ -139,6 +189,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setPathDisplayFormat,
     terminalHeight,
     setTerminalHeight,
+    reduceMotion,
+    setReduceMotion,
     formatPath,
     reloadSettings: loadSettings,
   };

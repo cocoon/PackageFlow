@@ -40,6 +40,11 @@ fn default_path_display_format() -> String {
     String::from("short")
 }
 
+/// Default reduce motion setting
+fn default_reduce_motion() -> bool {
+    false
+}
+
 /// Custom shortcut binding configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -125,6 +130,9 @@ pub struct AppSettings {
     /// Path display format: "short" (with ~/...) | "full" (complete path)
     #[serde(default = "default_path_display_format")]
     pub path_display_format: String,
+    /// Reduce motion setting for accessibility
+    #[serde(default = "default_reduce_motion")]
+    pub reduce_motion: bool,
 }
 
 impl Default for AppSettings {
@@ -145,6 +153,7 @@ impl Default for AppSettings {
             custom_store_path: None,
             keyboard_shortcuts: KeyboardShortcutsSettings::default(),
             path_display_format: default_path_display_format(),
+            reduce_motion: default_reduce_motion(),
         }
     }
 }

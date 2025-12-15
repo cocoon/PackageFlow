@@ -155,6 +155,8 @@ export interface AppSettings {
   keyboardShortcuts?: import('./shortcuts').KeyboardShortcutsSettings;
   /** Path display format: "short" (default, shows ~/) or "full" (complete path) */
   pathDisplayFormat?: PathDisplayFormat;
+  /** Reduce motion preference for accessibility (default: follows system preference) */
+  reduceMotion?: boolean;
 }
 
 export interface StoreData {
