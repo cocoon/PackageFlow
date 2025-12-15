@@ -99,6 +99,26 @@ function StatusIcon({ status }: { status: string }) {
   }
 }
 
+/** Trigger source badge */
+function TriggerBadge({ triggeredBy }: { triggeredBy: string }) {
+  if (triggeredBy === 'mcp') {
+    return (
+      <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 uppercase">
+        MCP
+      </span>
+    );
+  }
+  if (triggeredBy === 'webhook') {
+    return (
+      <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-500/20 text-blue-600 dark:text-blue-400 uppercase">
+        Webhook
+      </span>
+    );
+  }
+  // manual or default - don't show badge
+  return null;
+}
+
 /** Single history item */
 function HistoryItem({
   item,
@@ -154,6 +174,7 @@ function HistoryItem({
         <div className="flex items-center gap-2">
           <StatusIcon status={item.status} />
           <span className="text-sm font-medium capitalize">{item.status}</span>
+          <TriggerBadge triggeredBy={item.triggeredBy} />
         </div>
         <span className="text-xs text-muted-foreground">
           {formatDate(item.finishedAt)}

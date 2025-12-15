@@ -35,6 +35,7 @@ use packageflow_lib::repositories::{
     ProjectRepository, WorkflowRepository, SettingsRepository,
     TemplateRepository, MCPRepository, McpLogEntry,
 };
+use rusqlite::params;
 
 // Import shared store utilities (for validation, rate limiting, etc.)
 use packageflow_lib::utils::shared_store::{
@@ -1638,6 +1639,10 @@ impl PackageFlowMcp {
             }
         };
 
+        // Record execution start time
+        let execution_id = format!("exec-{}", Uuid::new_v4());
+        let started_at = Utc::now();
+
         // Determine working directory
         let cwd = if let Some(ref path) = params.project_path {
             path.clone()
@@ -1750,6 +1755,27 @@ impl PackageFlowMcp {
             "completed"
         };
 
+        // Record execution end time and duration
+        let finished_at = Utc::now();
+        let duration_ms = (finished_at - started_at).num_milliseconds() as u64;
+
+        // Save execution history to database
+        if let Err(e) = Self::save_execution_history(
+            &execution_id,
+            &workflow.id,
+            &workflow.name,
+            status,
+            &started_at.to_rfc3339(),
+            &finished_at.to_rfc3339(),
+            duration_ms,
+            total_steps,
+            steps_executed,
+            failed_step.as_ref().map(|f| f.error_message.clone()),
+            &output_lines,
+        ) {
+            eprintln!("[MCP Server] Failed to save execution history: {}", e);
+        }
+
         let response = RunWorkflowResponse {
             success: failed_step.is_none(),
             workflow_id: workflow.id,
@@ -1765,6 +1791,68 @@ impl PackageFlowMcp {
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
         Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Save execution history to database
+    fn save_execution_history(
+        execution_id: &str,
+        workflow_id: &str,
+        workflow_name: &str,
+        status: &str,
+        started_at: &str,
+        finished_at: &str,
+        duration_ms: u64,
+        node_count: usize,
+        completed_node_count: usize,
+        error_message: Option<String>,
+        output_lines: &[String],
+    ) -> Result<(), String> {
+        let db_path = get_database_path()?;
+        let db = Database::new(db_path)?;
+
+        // Convert output lines to JSON format matching ExecutionHistoryItem.output
+        let output_json: Vec<serde_json::Value> = output_lines
+            .iter()
+            .map(|line| {
+                serde_json::json!({
+                    "timestamp": chrono::Utc::now().to_rfc3339(),
+                    "text": line,
+                    "stream": "stdout"
+                })
+            })
+            .collect();
+
+        let output_str = serde_json::to_string(&output_json)
+            .map_err(|e| format!("Failed to serialize output: {}", e))?;
+
+        db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                INSERT OR REPLACE INTO execution_history
+                (id, workflow_id, workflow_name, status, started_at, finished_at,
+                 duration_ms, node_count, completed_node_count, error_message,
+                 output, triggered_by)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                "#,
+                params![
+                    execution_id,
+                    workflow_id,
+                    workflow_name,
+                    status,
+                    started_at,
+                    finished_at,
+                    duration_ms as i64,
+                    node_count as i32,
+                    completed_node_count as i32,
+                    error_message,
+                    output_str,
+                    "mcp", // triggered_by
+                ],
+            )
+            .map_err(|e| format!("Failed to save execution history: {}", e))?;
+
+            Ok(())
+        })
     }
 }
 

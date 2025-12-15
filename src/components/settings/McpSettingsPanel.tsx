@@ -866,7 +866,6 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
     return grouped;
   }, [toolsWithPermissions]);
 
-  // Format path for display
   const formatPath = (path: string): string => {
     const homeMatch = path.match(/^\/Users\/[^/]+/) || path.match(/^\/home\/[^/]+/);
     if (homeMatch) {
@@ -1163,9 +1162,6 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                               </div>
                             )}
 
-                            <p className="text-[10px] text-muted-foreground truncate" title={logsResponse.logPath}>
-                              {formatPath(logsResponse.logPath)}
-                            </p>
                           </div>
                         )}
                       </div>

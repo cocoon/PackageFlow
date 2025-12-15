@@ -18,7 +18,8 @@ use commands::{
     ai, apk, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, project, script, security,
     settings, shortcuts, step_template, toolchain, version, webhook, workflow, worktree,
 };
-use services::{FileWatcherManager, IncomingWebhookManager};
+use services::{DatabaseWatcher, FileWatcherManager, IncomingWebhookManager};
+use tauri::Manager;
 use utils::database::{Database, get_database_path};
 
 /// Database state wrapper for Tauri
@@ -70,6 +71,7 @@ pub fn run() {
         .manage(WorkflowExecutionState::default())
         .manage(IncomingWebhookManager::new())
         .manage(FileWatcherManager::new())
+        .manage(DatabaseWatcher::new())
         // Register commands
         .invoke_handler(tauri::generate_handler![
             // Settings commands (US7)
@@ -336,9 +338,19 @@ pub fn run() {
             mcp::get_mcp_logs,
             mcp::clear_mcp_logs,
         ])
-        // Setup hook - sync incoming webhook server on app start
+        // Setup hook - sync incoming webhook server and start database watcher on app start
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // Start database watcher for MCP-triggered changes
+            if let Ok(db_path) = get_database_path() {
+                let db_watcher = app.handle().state::<DatabaseWatcher>();
+                if let Err(e) = db_watcher.start_watching(&handle, db_path) {
+                    log::warn!("[setup] Failed to start database watcher: {}", e);
+                }
+            }
+
+            // Sync incoming webhook server
             tauri::async_runtime::spawn(async move {
                 // Small delay to ensure store is ready
                 tokio::time::sleep(std::time::Duration::from_millis(500)).await;

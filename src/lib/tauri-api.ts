@@ -2263,7 +2263,6 @@ export interface McpLogEntry {
 export interface McpLogsResponse {
   entries: McpLogEntry[];
   totalCount: number;
-  logPath: string;
 }
 
 export const mcpAPI = {
