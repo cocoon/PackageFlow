@@ -5,7 +5,15 @@
  */
 use serde::{Deserialize, Serialize};
 
+/// Default port for incoming webhook server
+pub const DEFAULT_INCOMING_WEBHOOK_PORT: u16 = 9876;
+
+fn default_port() -> u16 {
+    DEFAULT_INCOMING_WEBHOOK_PORT
+}
+
 /// Incoming Webhook configuration (per workflow)
+/// Each workflow can have its own port and token
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IncomingWebhookConfig {
@@ -15,32 +23,33 @@ pub struct IncomingWebhookConfig {
     pub token: String,
     /// Token creation timestamp (ISO 8601)
     pub token_created_at: String,
-}
-
-/// Global incoming webhook server settings
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct IncomingWebhookServerSettings {
-    /// Server listening port (default: 9876)
+    /// Server listening port (per-workflow, default: 9876)
+    #[serde(default = "default_port")]
     pub port: u16,
 }
 
-impl Default for IncomingWebhookServerSettings {
-    fn default() -> Self {
-        Self { port: 9876 }
-    }
+/// Information about a running webhook server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RunningServerInfo {
+    /// Workflow ID this server serves
+    pub workflow_id: String,
+    /// Workflow name for display
+    pub workflow_name: String,
+    /// Port the server is listening on
+    pub port: u16,
+    /// Whether the server is running
+    pub running: bool,
 }
 
-/// Incoming webhook server status
+/// Incoming webhook server status (multi-server)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IncomingWebhookServerStatus {
-    /// Whether server is running
-    pub running: bool,
-    /// Current listening port
-    pub port: u16,
-    /// Number of active incoming webhooks
-    pub active_webhooks_count: u32,
+    /// List of all running servers
+    pub running_servers: Vec<RunningServerInfo>,
+    /// Total number of running servers
+    pub running_count: u32,
 }
 
 /// Webhook trigger response

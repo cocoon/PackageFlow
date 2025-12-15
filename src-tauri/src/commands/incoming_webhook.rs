@@ -2,16 +2,14 @@ use chrono::Utc;
 /**
  * Incoming Webhook Commands
  * Tauri IPC commands for managing incoming webhooks
- * Updated to use SQLite database for storage
+ * Per-workflow server architecture: each workflow has its own HTTP server
  * @see specs/012-workflow-webhook-support
  */
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
 
-use crate::models::{
-    IncomingWebhookConfig, IncomingWebhookServerSettings, IncomingWebhookServerStatus,
-};
-use crate::repositories::{SettingsRepository, WorkflowRepository};
+use crate::models::{IncomingWebhookConfig, IncomingWebhookServerStatus, DEFAULT_INCOMING_WEBHOOK_PORT};
+use crate::repositories::WorkflowRepository;
 use crate::services::IncomingWebhookManager;
 use crate::DatabaseState;
 
@@ -21,7 +19,7 @@ pub async fn generate_incoming_webhook_token() -> Result<String, String> {
     Ok(Uuid::new_v4().to_string())
 }
 
-/// Get incoming webhook server status
+/// Get incoming webhook server status (multi-server)
 #[tauri::command]
 pub async fn get_incoming_webhook_status(
     app: AppHandle,
@@ -34,46 +32,14 @@ pub async fn get_incoming_webhook_status(
     Ok(manager.get_status(&workflows).await)
 }
 
-const INCOMING_WEBHOOK_SERVER_KEY: &str = "incoming_webhook_server";
-
-/// Get incoming webhook server settings
-#[tauri::command]
-pub async fn get_incoming_webhook_settings(
-    db: tauri::State<'_, DatabaseState>,
-) -> Result<IncomingWebhookServerSettings, String> {
-    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
-    let settings: Option<IncomingWebhookServerSettings> =
-        settings_repo.get(INCOMING_WEBHOOK_SERVER_KEY)?;
-    Ok(settings.unwrap_or_default())
-}
-
-/// Save incoming webhook server settings
-#[tauri::command]
-pub async fn save_incoming_webhook_settings(
-    app: AppHandle,
-    db: tauri::State<'_, DatabaseState>,
-    settings: IncomingWebhookServerSettings,
-) -> Result<(), String> {
-    // Stop existing server first before changing port
-    let manager = app.state::<IncomingWebhookManager>();
-    manager.stop_server().await;
-
-    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
-    settings_repo.set(INCOMING_WEBHOOK_SERVER_KEY, &settings)?;
-
-    // Don't sync here - let workflow save trigger the sync
-    // This ensures we read the latest workflow data (including incoming webhook enabled state)
-
-    Ok(())
-}
-
-/// Create default incoming webhook config with new token
+/// Create default incoming webhook config with new token and default port
 #[tauri::command]
 pub async fn create_incoming_webhook_config() -> Result<IncomingWebhookConfig, String> {
     Ok(IncomingWebhookConfig {
         enabled: false,
         token: Uuid::new_v4().to_string(),
         token_created_at: Utc::now().to_rfc3339(),
+        port: DEFAULT_INCOMING_WEBHOOK_PORT,
     })
 }
 
@@ -92,27 +58,51 @@ pub async fn regenerate_incoming_webhook_token(
 pub enum PortStatus {
     /// Port is available for use
     Available,
-    /// Port is in use by our webhook server
-    InUseByWebhook,
-    /// Port is in use by another service
+    /// Port is in use by another workflow's webhook server
+    InUseByWorkflow(String), // Contains the workflow name using this port
+    /// Port is in use by another service (not our webhook)
     InUseByOther,
 }
 
 /// Check if a port is available for use
+/// workflow_id: Optional - exclude this workflow from the check (for editing existing webhook)
 #[tauri::command]
-pub async fn check_port_available(app: AppHandle, port: u16) -> Result<PortStatus, String> {
+pub async fn check_port_available(
+    app: AppHandle,
+    db: tauri::State<'_, DatabaseState>,
+    port: u16,
+    workflow_id: Option<String>,
+) -> Result<PortStatus, String> {
     use std::net::{SocketAddr, TcpListener, TcpStream};
     use std::time::Duration;
 
-    // Check if our server is running on this port
     let manager = app.state::<IncomingWebhookManager>();
-    if manager.is_running().await && manager.get_port().await == port {
-        return Ok(PortStatus::InUseByWebhook);
+
+    // Check if any of our webhook servers is using this port
+    let (is_available_in_manager, used_by_workflow_id) = manager
+        .check_port_usage(port, workflow_id.as_deref())
+        .await;
+
+    if !is_available_in_manager {
+        // Port is used by another workflow's webhook server
+        if let Some(wf_id) = used_by_workflow_id {
+            // Get workflow name for display
+            let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
+            let workflow_name = workflow_repo
+                .get(&wf_id)
+                .ok()
+                .flatten()
+                .map(|w| w.name)
+                .unwrap_or_else(|| wf_id.clone());
+            return Ok(PortStatus::InUseByWorkflow(workflow_name));
+        }
     }
 
     // Try to connect to the port - if something is listening, it's in use
     let addr: SocketAddr = format!("127.0.0.1:{}", port).parse().unwrap();
     if TcpStream::connect_timeout(&addr, Duration::from_millis(100)).is_ok() {
+        // Something is listening - check if it's one of our servers
+        // (This handles the case where manager check missed it due to timing)
         return Ok(PortStatus::InUseByOther);
     }
 
@@ -123,20 +113,15 @@ pub async fn check_port_available(app: AppHandle, port: u16) -> Result<PortStatu
     }
 }
 
-/// Sync incoming webhook server state
-/// Called after workflow save to start/stop server as needed
+/// Sync all incoming webhook servers
+/// Called after workflow save to start/stop servers as needed
 pub async fn sync_incoming_webhook_server(app: &AppHandle) -> Result<(), String> {
     let db = app.state::<DatabaseState>();
     let workflow_repo = WorkflowRepository::new(db.0.as_ref().clone());
-    let settings_repo = SettingsRepository::new(db.0.as_ref().clone());
-
     let workflows = workflow_repo.list()?;
-    let settings: Option<IncomingWebhookServerSettings> =
-        settings_repo.get(INCOMING_WEBHOOK_SERVER_KEY)?;
-    let port = settings.map(|s| s.port).unwrap_or(9527);
 
     let manager = app.state::<IncomingWebhookManager>();
-    manager.sync_server_state(app, &workflows, port).await;
+    manager.sync_all_servers(app, &workflows).await;
 
     Ok(())
 }

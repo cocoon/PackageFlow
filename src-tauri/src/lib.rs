@@ -246,10 +246,9 @@ pub fn run() {
             webhook::test_webhook,
             webhook::validate_template_variables,
             // Incoming webhook commands (012-workflow-webhook-support)
+            // Per-workflow server architecture: each workflow has its own HTTP server
             incoming_webhook::generate_incoming_webhook_token,
             incoming_webhook::get_incoming_webhook_status,
-            incoming_webhook::get_incoming_webhook_settings,
-            incoming_webhook::save_incoming_webhook_settings,
             incoming_webhook::create_incoming_webhook_config,
             incoming_webhook::regenerate_incoming_webhook_token,
             incoming_webhook::check_port_available,

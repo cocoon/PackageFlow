@@ -4,6 +4,9 @@
  * @see specs/012-workflow-webhook-support
  */
 
+/** Default server port */
+export const DEFAULT_INCOMING_WEBHOOK_PORT = 9876;
+
 /** Incoming Webhook configuration (per workflow) */
 export interface IncomingWebhookConfig {
   /** Whether incoming webhook is enabled */
@@ -12,22 +15,28 @@ export interface IncomingWebhookConfig {
   token: string;
   /** Token creation timestamp (ISO 8601) */
   tokenCreatedAt: string;
-}
-
-/** Global incoming webhook server settings */
-export interface IncomingWebhookServerSettings {
-  /** Server listening port (default: 9876) */
+  /** Server listening port (per-workflow, default: 9876) */
   port: number;
 }
 
-/** Incoming webhook server status */
-export interface IncomingWebhookServerStatus {
-  /** Whether server is running */
+/** Information about a running webhook server */
+export interface RunningServerInfo {
+  /** Workflow ID this server serves */
+  workflowId: string;
+  /** Workflow name for display */
+  workflowName: string;
+  /** Port the server is listening on */
+  port: number;
+  /** Whether the server is running */
   running: boolean;
-  /** Current listening port */
-  port: number;
-  /** Number of active incoming webhooks */
-  activeWebhooksCount: number;
+}
+
+/** Incoming webhook server status (multi-server) */
+export interface IncomingWebhookServerStatus {
+  /** List of all running servers */
+  runningServers: RunningServerInfo[];
+  /** Total number of running servers */
+  runningCount: number;
 }
 
 /** Webhook trigger response */
@@ -37,14 +46,7 @@ export interface WebhookTriggerResponse {
   message: string;
 }
 
-/** Default server port */
-export const DEFAULT_INCOMING_WEBHOOK_PORT = 9876;
-
-/** Generate webhook URL for a workflow */
-export function generateWebhookUrl(
-  port: number,
-  workflowId: string,
-  token: string
-): string {
-  return `http://localhost:${port}/webhook/${workflowId}?token=${token}`;
+/** Generate webhook URL for a workflow (simplified - no workflowId in path) */
+export function generateWebhookUrl(port: number, token: string): string {
+  return `http://localhost:${port}/webhook?token=${token}`;
 }

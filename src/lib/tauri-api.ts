@@ -1699,32 +1699,30 @@ export const stepTemplateAPI = {
 
 // ============================================================================
 // Incoming Webhook API
+// Per-workflow server architecture: each workflow has its own HTTP server
 // ============================================================================
 
 import type {
   IncomingWebhookConfig,
-  IncomingWebhookServerSettings,
   IncomingWebhookServerStatus,
 } from '../types/incoming-webhook';
+
+/** Port status returned by check_port_available */
+export type PortStatus =
+  | 'Available'
+  | { InUseByWorkflow: string } // Contains workflow name using this port
+  | 'InUseByOther';
 
 export const incomingWebhookAPI = {
   /** Generate a new API token */
   generateToken: (): Promise<string> =>
     invoke<string>('generate_incoming_webhook_token'),
 
-  /** Get incoming webhook server status */
+  /** Get incoming webhook server status (multi-server) */
   getServerStatus: (): Promise<IncomingWebhookServerStatus> =>
     invoke<IncomingWebhookServerStatus>('get_incoming_webhook_status'),
 
-  /** Get incoming webhook server settings */
-  getServerSettings: (): Promise<IncomingWebhookServerSettings> =>
-    invoke<IncomingWebhookServerSettings>('get_incoming_webhook_settings'),
-
-  /** Save incoming webhook server settings */
-  saveServerSettings: (settings: IncomingWebhookServerSettings): Promise<void> =>
-    invoke('save_incoming_webhook_settings', { settings }),
-
-  /** Create a new incoming webhook config with fresh token */
+  /** Create a new incoming webhook config with fresh token and default port */
   createConfig: (): Promise<IncomingWebhookConfig> =>
     invoke<IncomingWebhookConfig>('create_incoming_webhook_config'),
 
@@ -1732,9 +1730,13 @@ export const incomingWebhookAPI = {
   regenerateToken: (config: IncomingWebhookConfig): Promise<IncomingWebhookConfig> =>
     invoke<IncomingWebhookConfig>('regenerate_incoming_webhook_token', { config }),
 
-  /** Check if a port is available */
-  checkPortAvailable: (port: number): Promise<'Available' | 'InUseByWebhook' | 'InUseByOther'> =>
-    invoke<'Available' | 'InUseByWebhook' | 'InUseByOther'>('check_port_available', { port }),
+  /**
+   * Check if a port is available
+   * @param port - Port number to check
+   * @param workflowId - Optional workflow ID to exclude from check (for editing existing webhook)
+   */
+  checkPortAvailable: (port: number, workflowId?: string): Promise<PortStatus> =>
+    invoke<PortStatus>('check_port_available', { port, workflowId }),
 };
 
 // ============================================================================

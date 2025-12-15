@@ -1,6 +1,7 @@
 /**
  * Webhook Settings Dialog
  * Dialog for configuring webhook notifications for a workflow
+ * Per-workflow server architecture: each workflow has its own HTTP server
  * @see specs/012-workflow-webhook-support
  */
 
@@ -28,7 +29,7 @@ import type { WebhookConfig, WebhookTrigger, WebhookTestResult } from '../../typ
 import type { IncomingWebhookConfig, IncomingWebhookServerStatus } from '../../types/incoming-webhook';
 import { DEFAULT_PAYLOAD_TEMPLATE, SUPPORTED_VARIABLES } from '../../types/webhook';
 import { generateWebhookUrl, DEFAULT_INCOMING_WEBHOOK_PORT } from '../../types/incoming-webhook';
-import { webhookAPI, incomingWebhookAPI } from '../../lib/tauri-api';
+import { webhookAPI, incomingWebhookAPI, type PortStatus } from '../../lib/tauri-api';
 
 // Payload format presets
 type PayloadFormat = 'discord' | 'slack' | 'telegram' | 'custom';
@@ -96,12 +97,12 @@ export function WebhookSettingsDialog({
   const [incomingEnabled, setIncomingEnabled] = useState(false);
   const [incomingToken, setIncomingToken] = useState('');
   const [incomingTokenCreatedAt, setIncomingTokenCreatedAt] = useState('');
-  const [serverPort, setServerPort] = useState(DEFAULT_INCOMING_WEBHOOK_PORT);
+  const [incomingPort, setIncomingPort] = useState(DEFAULT_INCOMING_WEBHOOK_PORT);
   const [serverStatus, setServerStatus] = useState<IncomingWebhookServerStatus | null>(null);
   const [isLoadingServerStatus, setIsLoadingServerStatus] = useState(false);
   const [isRegeneratingToken, setIsRegeneratingToken] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [portStatus, setPortStatus] = useState<'Available' | 'InUseByWebhook' | 'InUseByOther' | null>(null);
+  const [portStatus, setPortStatus] = useState<PortStatus | null>(null);
   const [isCheckingPort, setIsCheckingPort] = useState(false);
 
   // Detect payload format from template
@@ -113,28 +114,24 @@ export function WebhookSettingsDialog({
     return 'custom';
   };
 
-  // Load incoming webhook settings
-  const loadIncomingSettings = async () => {
+  // Load incoming webhook server status
+  const loadServerStatus = async () => {
     setIsLoadingServerStatus(true);
     try {
-      const [settings, status] = await Promise.all([
-        incomingWebhookAPI.getServerSettings(),
-        incomingWebhookAPI.getServerStatus(),
-      ]);
-      setServerPort(settings.port);
+      const status = await incomingWebhookAPI.getServerStatus();
       setServerStatus(status);
     } catch (error) {
-      console.error('Failed to load incoming webhook settings:', error);
+      console.error('Failed to load incoming webhook status:', error);
     } finally {
       setIsLoadingServerStatus(false);
     }
   };
 
-  // Check port availability
+  // Check port availability (with current workflow excluded)
   const checkPortAvailability = async (port: number) => {
     setIsCheckingPort(true);
     try {
-      const status = await incomingWebhookAPI.checkPortAvailable(port);
+      const status = await incomingWebhookAPI.checkPortAvailable(port, workflowId);
       setPortStatus(status);
     } catch (error) {
       console.error('Failed to check port availability:', error);
@@ -144,15 +141,39 @@ export function WebhookSettingsDialog({
     }
   };
 
+  // Helper to extract workflow name from port status
+  const getPortStatusWorkflowName = (status: PortStatus): string | null => {
+    if (typeof status === 'object' && 'InUseByWorkflow' in status) {
+      return status.InUseByWorkflow;
+    }
+    return null;
+  };
+
+  // Helper to check if port is available
+  const isPortAvailable = (status: PortStatus | null): boolean => {
+    return status === 'Available';
+  };
+
+  // Helper to check if port is used by other workflow
+  const isPortUsedByOtherWorkflow = (status: PortStatus | null): boolean => {
+    if (status === null) return false;
+    return typeof status === 'object' && 'InUseByWorkflow' in status;
+  };
+
+  // Helper to check if port is used by external service
+  const isPortUsedByOther = (status: PortStatus | null): boolean => {
+    return status === 'InUseByOther';
+  };
+
   // Check port when it changes
   useEffect(() => {
-    if (isOpen && serverPort >= 1024 && serverPort <= 65535) {
+    if (isOpen && incomingPort >= 1024 && incomingPort <= 65535) {
       const timer = setTimeout(() => {
-        checkPortAvailability(serverPort);
+        checkPortAvailability(incomingPort);
       }, 300); // Debounce
       return () => clearTimeout(timer);
     }
-  }, [isOpen, serverPort]);
+  }, [isOpen, incomingPort, workflowId]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -181,24 +202,27 @@ export function WebhookSettingsDialog({
         setShowAdvanced(false);
       }
 
-      // Reset incoming webhook state
+      // Reset incoming webhook state from incomingConfig (includes port)
       if (incomingConfig) {
         setIncomingEnabled(incomingConfig.enabled);
         setIncomingToken(incomingConfig.token);
         setIncomingTokenCreatedAt(incomingConfig.tokenCreatedAt);
+        setIncomingPort(incomingConfig.port || DEFAULT_INCOMING_WEBHOOK_PORT);
       } else {
         setIncomingEnabled(false);
         setIncomingToken('');
         setIncomingTokenCreatedAt('');
+        setIncomingPort(DEFAULT_INCOMING_WEBHOOK_PORT);
       }
 
       setUrlError(null);
       setJsonError(null);
       setTestResult(null);
       setCopySuccess(false);
+      setPortStatus(null);
 
-      // Load incoming webhook settings
-      loadIncomingSettings();
+      // Load server status
+      loadServerStatus();
     }
   }, [isOpen, config, incomingConfig]);
 
@@ -322,12 +346,13 @@ export function WebhookSettingsDialog({
   // Incoming Webhook Handlers
   // ========================
 
-  // Initialize incoming webhook config
+  // Initialize incoming webhook config (with default port)
   const handleInitIncomingConfig = async () => {
     try {
       const newConfig = await incomingWebhookAPI.createConfig();
       setIncomingToken(newConfig.token);
       setIncomingTokenCreatedAt(newConfig.tokenCreatedAt);
+      setIncomingPort(newConfig.port);
       setIncomingEnabled(true);
     } catch (error) {
       console.error('Failed to create incoming webhook config:', error);
@@ -344,6 +369,7 @@ export function WebhookSettingsDialog({
         enabled: incomingEnabled,
         token: incomingToken,
         tokenCreatedAt: incomingTokenCreatedAt,
+        port: incomingPort,
       });
       setIncomingToken(updatedConfig.token);
       setIncomingTokenCreatedAt(updatedConfig.tokenCreatedAt);
@@ -354,9 +380,9 @@ export function WebhookSettingsDialog({
     }
   };
 
-  // Copy webhook URL
+  // Copy webhook URL (using simplified URL format)
   const handleCopyUrl = async () => {
-    const webhookUrl = generateWebhookUrl(serverPort, workflowId, incomingToken);
+    const webhookUrl = generateWebhookUrl(incomingPort, incomingToken);
     try {
       await navigator.clipboard.writeText(webhookUrl);
       setCopySuccess(true);
@@ -369,6 +395,12 @@ export function WebhookSettingsDialog({
   // Toggle incoming webhook enabled (only updates local state, saved on Save button)
   const handleToggleIncoming = (newEnabled: boolean) => {
     setIncomingEnabled(newEnabled);
+  };
+
+  // Get this workflow's server status
+  const getWorkflowServerStatus = () => {
+    if (!serverStatus) return null;
+    return serverStatus.runningServers.find(s => s.workflowId === workflowId);
   };
 
   // Save configuration
@@ -393,34 +425,25 @@ export function WebhookSettingsDialog({
       };
     }
 
-    // Build incoming config
+    // Build incoming config (now includes port)
     console.log('[WebhookSettingsDialog] handleSave - building incoming config');
     console.log('[WebhookSettingsDialog] incomingToken:', incomingToken);
-    console.log('[WebhookSettingsDialog] incomingToken length:', incomingToken?.length);
     console.log('[WebhookSettingsDialog] incomingEnabled:', incomingEnabled);
-    console.log('[WebhookSettingsDialog] incomingTokenCreatedAt:', incomingTokenCreatedAt);
+    console.log('[WebhookSettingsDialog] incomingPort:', incomingPort);
     let newIncomingConfig: IncomingWebhookConfig | undefined;
     if (incomingToken) {
       newIncomingConfig = {
         enabled: incomingEnabled,
         token: incomingToken,
         tokenCreatedAt: incomingTokenCreatedAt,
+        port: incomingPort,
       };
       console.log('[WebhookSettingsDialog] newIncomingConfig created:', newIncomingConfig);
     } else {
       console.log('[WebhookSettingsDialog] incomingToken is falsy, newIncomingConfig will be undefined');
     }
 
-    // Save port settings FIRST if changed (this stops the old server)
-    if (serverPort !== serverStatus?.port) {
-      try {
-        await incomingWebhookAPI.saveServerSettings({ port: serverPort });
-      } catch (error) {
-        console.error('Failed to save port settings:', error);
-      }
-    }
-
-    // Then save workflow (this triggers sync which may start server on new port)
+    // Save workflow (this triggers server sync which will start/stop/restart servers as needed)
     onSave(outgoingConfig, newIncomingConfig);
     onClose();
   };
@@ -428,6 +451,8 @@ export function WebhookSettingsDialog({
   // ========================
   // Render
   // ========================
+
+  const workflowServerStatus = getWorkflowServerStatus();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -747,26 +772,26 @@ export function WebhookSettingsDialog({
                 </div>
               )}
 
-              {/* Server Status */}
+              {/* Server Status for this workflow */}
               <div className="p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-foreground">Server Status</span>
                   {isLoadingServerStatus ? (
                     <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                  ) : serverStatus?.running ? (
+                  ) : workflowServerStatus?.running ? (
                     <span className="flex items-center gap-1 text-xs text-green-400">
                       <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      Running on port {serverStatus.port}
+                      Running on port {workflowServerStatus.port}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <span className="w-2 h-2 bg-muted rounded-full"></span>
-                      Stopped
+                      {incomingEnabled ? 'Will start on save' : 'Not running'}
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Server starts automatically when any workflow has incoming webhook enabled.
+                  Each workflow has its own dedicated server on the configured port.
                 </p>
               </div>
 
@@ -776,39 +801,36 @@ export function WebhookSettingsDialog({
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    value={serverPort}
-                    onChange={(e) => setServerPort(parseInt(e.target.value) || DEFAULT_INCOMING_WEBHOOK_PORT)}
+                    value={incomingPort}
+                    onChange={(e) => setIncomingPort(parseInt(e.target.value) || DEFAULT_INCOMING_WEBHOOK_PORT)}
                     min={1024}
                     max={65535}
                     className={`bg-background border-border text-foreground flex-1 ${
-                      portStatus === 'InUseByOther' ? 'border-red-500' : ''
+                      isPortUsedByOther(portStatus) ? 'border-red-500' : ''
                     }`}
                   />
                   {isCheckingPort && (
                     <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
                   )}
-                  {!isCheckingPort && portStatus === 'Available' && (
+                  {!isCheckingPort && isPortAvailable(portStatus) && (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
-                  {!isCheckingPort && portStatus === 'InUseByWebhook' && incomingEnabled && (
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  )}
-                  {!isCheckingPort && portStatus === 'InUseByWebhook' && !incomingEnabled && (
+                  {!isCheckingPort && isPortUsedByOtherWorkflow(portStatus) && (
                     <AlertCircle className="w-4 h-4 text-yellow-500" />
                   )}
-                  {!isCheckingPort && portStatus === 'InUseByOther' && (
+                  {!isCheckingPort && isPortUsedByOther(portStatus) && (
                     <AlertCircle className="w-4 h-4 text-red-500" />
                   )}
                 </div>
                 <p className={`text-xs ${
-                  portStatus === 'InUseByOther' ? 'text-red-400' :
-                  portStatus === 'InUseByWebhook' && !incomingEnabled ? 'text-yellow-400' : 'text-muted-foreground'
+                  isPortUsedByOther(portStatus) ? 'text-red-400' :
+                  isPortUsedByOtherWorkflow(portStatus) ? 'text-yellow-400' : 'text-muted-foreground'
                 }`}>
-                  {portStatus === 'InUseByOther'
+                  {isPortUsedByOther(portStatus)
                     ? 'This port is in use by another service. Choose a different port.'
-                    : portStatus === 'InUseByWebhook' && !incomingEnabled
-                    ? 'This port is used by another workflow. It will be shared if you enable.'
-                    : 'Port number for the webhook server (1024-65535). Changes apply on Save.'}
+                    : isPortUsedByOtherWorkflow(portStatus)
+                    ? `This port is used by workflow "${getPortStatusWorkflowName(portStatus!)}". Choose a different port.`
+                    : 'Port number for this workflow\'s webhook server (1024-65535).'}
                 </p>
               </div>
 
@@ -882,7 +904,7 @@ export function WebhookSettingsDialog({
                     <label className="text-sm font-medium text-foreground">Webhook URL</label>
                     <div className="flex gap-2">
                       <Input
-                        value={generateWebhookUrl(serverPort, workflowId, incomingToken)}
+                        value={generateWebhookUrl(incomingPort, incomingToken)}
                         readOnly
                         className="bg-background border-border text-muted-foreground font-mono text-xs flex-1"
                       />
@@ -912,7 +934,7 @@ export function WebhookSettingsDialog({
                     <label className="text-sm font-medium text-foreground">Usage Example</label>
                     <div className="bg-background border border-border rounded-lg p-3">
                       <code className="text-xs text-foreground font-mono whitespace-pre-wrap break-all">
-{`curl -X POST "${generateWebhookUrl(serverPort, workflowId, incomingToken)}"`}
+{`curl -X POST "${generateWebhookUrl(incomingPort, incomingToken)}"`}
                       </code>
                     </div>
                   </div>
@@ -952,7 +974,7 @@ export function WebhookSettingsDialog({
             </Button>
             <Button
               onClick={handleSave}
-              disabled={enabled && (!url || !!urlError || !!jsonError)}
+              disabled={(enabled && (!url || !!urlError || !!jsonError)) || isPortUsedByOther(portStatus) || isPortUsedByOtherWorkflow(portStatus)}
               className="bg-purple-600 hover:bg-purple-500 text-white"
             >
               <Webhook className="w-4 h-4 mr-1.5" />

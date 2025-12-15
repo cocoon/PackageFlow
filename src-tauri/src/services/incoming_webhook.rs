@@ -1,6 +1,7 @@
 /**
  * Incoming Webhook Server
  * HTTP server for receiving external webhook triggers
+ * Per-workflow server architecture: each workflow has its own HTTP server
  * @see specs/012-workflow-webhook-support
  */
 use std::collections::HashMap;
@@ -8,7 +9,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::StatusCode,
     response::Json,
     routing::post,
@@ -17,27 +18,34 @@ use axum::{
 use tauri::{AppHandle, Manager};
 use tokio::sync::{oneshot, RwLock};
 
-use crate::models::{IncomingWebhookServerStatus, WebhookTriggerResponse, Workflow};
+use crate::models::{IncomingWebhookServerStatus, RunningServerInfo, WebhookTriggerResponse, Workflow};
 use crate::services::notification::{send_webhook_notification, WebhookNotificationType};
 use crate::DatabaseState;
 
-/// Server shared state
-pub struct IncomingWebhookServerState {
+/// Server shared state (per-workflow)
+/// Each server only serves one workflow
+pub struct WorkflowWebhookServerState {
     /// Tauri AppHandle for invoking commands
     pub app: AppHandle,
-    /// Token -> Workflow ID mapping for quick lookup
-    pub token_map: RwLock<HashMap<String, String>>,
+    /// Workflow ID this server serves
+    pub workflow_id: String,
+    /// Expected token for authentication
+    pub expected_token: String,
+}
+
+/// Handle for a running server
+struct ServerHandle {
+    /// Shutdown signal sender
+    shutdown_tx: oneshot::Sender<()>,
+    /// Port the server is listening on
+    port: u16,
 }
 
 /// Incoming Webhook Server Manager
-/// Manages the lifecycle of the HTTP server
+/// Manages multiple HTTP servers (one per workflow)
 pub struct IncomingWebhookManager {
-    /// Shutdown signal sender
-    shutdown_tx: RwLock<Option<oneshot::Sender<()>>>,
-    /// Current port
-    port: RwLock<u16>,
-    /// Whether server is running
-    running: RwLock<bool>,
+    /// Running servers: workflow_id -> ServerHandle
+    servers: RwLock<HashMap<String, ServerHandle>>,
 }
 
 impl Default for IncomingWebhookManager {
@@ -49,105 +57,122 @@ impl Default for IncomingWebhookManager {
 impl IncomingWebhookManager {
     pub fn new() -> Self {
         Self {
-            shutdown_tx: RwLock::new(None),
-            port: RwLock::new(9876),
-            running: RwLock::new(false),
+            servers: RwLock::new(HashMap::new()),
         }
     }
 
-    /// Check if any workflow has incoming webhook enabled
-    fn has_active_webhooks(workflows: &[Workflow]) -> bool {
-        workflows.iter().any(|w| {
-            w.incoming_webhook
-                .as_ref()
-                .map(|c| c.enabled)
-                .unwrap_or(false)
-        })
-    }
+    /// Sync all servers based on workflow configurations
+    /// - Starts servers for newly enabled webhooks
+    /// - Stops servers for disabled webhooks
+    /// - Restarts servers if port changed
+    pub async fn sync_all_servers(&self, app: &AppHandle, workflows: &[Workflow]) {
+        let mut servers = self.servers.write().await;
 
-    /// Build workflow_id -> token mapping
-    fn build_token_map(workflows: &[Workflow]) -> HashMap<String, String> {
-        let mut map = HashMap::new();
-        for workflow in workflows {
-            if let Some(config) = &workflow.incoming_webhook {
-                if config.enabled {
-                    // Key is workflow_id, value is token
-                    // This prevents issues if tokens somehow collide
-                    map.insert(workflow.id.clone(), config.token.clone());
+        // Collect active webhook configs: workflow_id -> (token, port)
+        let active_configs: HashMap<String, (String, u16)> = workflows
+            .iter()
+            .filter_map(|w| {
+                w.incoming_webhook.as_ref().and_then(|config| {
+                    if config.enabled {
+                        Some((w.id.clone(), (config.token.clone(), config.port)))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        // Stop servers for workflows that no longer have active webhooks
+        let to_stop: Vec<String> = servers
+            .keys()
+            .filter(|id| !active_configs.contains_key(*id))
+            .cloned()
+            .collect();
+
+        for workflow_id in to_stop {
+            if let Some(handle) = servers.remove(&workflow_id) {
+                let _ = handle.shutdown_tx.send(());
+                log::info!(
+                    "[incoming-webhook] Stopped server for workflow {} (port {})",
+                    workflow_id,
+                    handle.port
+                );
+            }
+        }
+
+        // Start or restart servers for active webhooks
+        for (workflow_id, (token, port)) in active_configs {
+            let needs_restart = servers.get(&workflow_id).map(|h| h.port != port).unwrap_or(false);
+
+            if needs_restart {
+                // Port changed, stop old server
+                if let Some(handle) = servers.remove(&workflow_id) {
+                    let _ = handle.shutdown_tx.send(());
+                    log::info!(
+                        "[incoming-webhook] Stopping server for workflow {} (port changed)",
+                        workflow_id
+                    );
+                }
+            }
+
+            if !servers.contains_key(&workflow_id) {
+                // Start new server
+                if let Some(handle) = self.start_server_for_workflow(
+                    app.clone(),
+                    workflow_id.clone(),
+                    token,
+                    port,
+                ).await {
+                    servers.insert(workflow_id, handle);
                 }
             }
         }
-        map
     }
 
-    /// Sync server state based on workflow configurations
-    /// Starts server if any workflow has incoming webhook enabled
-    /// Stops server if no workflow has incoming webhook enabled
-    pub async fn sync_server_state(&self, app: &AppHandle, workflows: &[Workflow], port: u16) {
-        let has_active = Self::has_active_webhooks(workflows);
-        let currently_running = *self.running.read().await;
-        let current_port = *self.port.read().await;
-
-        if has_active && (!currently_running || current_port != port) {
-            // Need to start or restart server
-            if currently_running {
-                self.stop_server().await;
-            }
-            self.start_server(app.clone(), workflows, port).await;
-        } else if !has_active && currently_running {
-            // No active webhooks, stop server
-            self.stop_server().await;
-        } else if has_active && currently_running {
-            // Server running, just update token map
-            self.update_token_map(app, workflows).await;
-        }
-    }
-
-    /// Update token map without restarting server
-    async fn update_token_map(&self, app: &AppHandle, workflows: &[Workflow]) {
-        if let Some(state) = app.try_state::<Arc<IncomingWebhookServerState>>() {
-            let new_map = Self::build_token_map(workflows);
-            *state.token_map.write().await = new_map;
-            log::info!("[incoming-webhook] Token map updated");
-        }
-    }
-
-    /// Start the HTTP server
-    async fn start_server(&self, app: AppHandle, workflows: &[Workflow], port: u16) {
-        let token_map = Self::build_token_map(workflows);
-
-        let state = Arc::new(IncomingWebhookServerState {
+    /// Start a server for a specific workflow
+    async fn start_server_for_workflow(
+        &self,
+        app: AppHandle,
+        workflow_id: String,
+        token: String,
+        port: u16,
+    ) -> Option<ServerHandle> {
+        let state = Arc::new(WorkflowWebhookServerState {
             app: app.clone(),
-            token_map: RwLock::new(token_map),
+            workflow_id: workflow_id.clone(),
+            expected_token: token,
         });
 
-        // Store state in app for later access
-        app.manage(state.clone());
-
-        // Build router
+        // Build router with simplified path (no workflow_id needed)
         let router = Router::new()
-            .route("/webhook/{workflow_id}", post(handle_webhook_trigger))
+            .route("/webhook", post(handle_webhook_trigger))
             .with_state(state);
 
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
 
-        // Store shutdown sender
-        *self.shutdown_tx.write().await = Some(shutdown_tx);
-        *self.port.write().await = port;
-        *self.running.write().await = true;
+        let wf_id = workflow_id.clone();
 
         // Spawn server task
         tokio::spawn(async move {
             let listener = match tokio::net::TcpListener::bind(addr).await {
                 Ok(l) => l,
                 Err(e) => {
-                    log::error!("[incoming-webhook] Failed to bind to {}: {}", addr, e);
+                    log::error!(
+                        "[incoming-webhook] Failed to bind to {} for workflow {}: {}",
+                        addr,
+                        wf_id,
+                        e
+                    );
                     return;
                 }
             };
 
-            log::info!("[incoming-webhook] Server started on http://{}", addr);
+            log::info!(
+                "[incoming-webhook] Server started on http://{} for workflow {}",
+                addr,
+                wf_id
+            );
 
             axum::serve(listener, router)
                 .with_graceful_shutdown(async {
@@ -156,46 +181,101 @@ impl IncomingWebhookManager {
                 .await
                 .ok();
 
-            log::info!("[incoming-webhook] Server stopped");
+            log::info!(
+                "[incoming-webhook] Server stopped for workflow {}",
+                wf_id
+            );
         });
+
+        Some(ServerHandle {
+            shutdown_tx,
+            port,
+        })
     }
 
-    /// Stop the HTTP server
-    pub async fn stop_server(&self) {
-        if let Some(tx) = self.shutdown_tx.write().await.take() {
-            let _ = tx.send(());
+    /// Stop server for a specific workflow
+    pub async fn stop_server_for_workflow(&self, workflow_id: &str) {
+        let mut servers = self.servers.write().await;
+        if let Some(handle) = servers.remove(workflow_id) {
+            let _ = handle.shutdown_tx.send(());
+            log::info!(
+                "[incoming-webhook] Server shutdown requested for workflow {}",
+                workflow_id
+            );
         }
-        *self.running.write().await = false;
-        log::info!("[incoming-webhook] Server shutdown requested");
     }
 
-    /// Check if server is running
-    pub async fn is_running(&self) -> bool {
-        *self.running.read().await
+    /// Stop all servers
+    pub async fn stop_all_servers(&self) {
+        let mut servers = self.servers.write().await;
+        for (workflow_id, handle) in servers.drain() {
+            let _ = handle.shutdown_tx.send(());
+            log::info!(
+                "[incoming-webhook] Server shutdown requested for workflow {}",
+                workflow_id
+            );
+        }
     }
 
-    /// Get current port
-    pub async fn get_port(&self) -> u16 {
-        *self.port.read().await
+    /// Check if a specific workflow has a running server
+    pub async fn is_workflow_server_running(&self, workflow_id: &str) -> bool {
+        self.servers.read().await.contains_key(workflow_id)
     }
 
-    /// Get server status
+    /// Get port for a specific workflow's server
+    pub async fn get_workflow_port(&self, workflow_id: &str) -> Option<u16> {
+        self.servers.read().await.get(workflow_id).map(|h| h.port)
+    }
+
+    /// Get server status for all workflows
     pub async fn get_status(&self, workflows: &[Workflow]) -> IncomingWebhookServerStatus {
-        let active_count = workflows
+        let servers = self.servers.read().await;
+
+        let running_servers: Vec<RunningServerInfo> = workflows
             .iter()
-            .filter(|w| {
-                w.incoming_webhook
-                    .as_ref()
-                    .map(|c| c.enabled)
-                    .unwrap_or(false)
+            .filter_map(|w| {
+                w.incoming_webhook.as_ref().and_then(|config| {
+                    if config.enabled {
+                        let is_running = servers.contains_key(&w.id);
+                        Some(RunningServerInfo {
+                            workflow_id: w.id.clone(),
+                            workflow_name: w.name.clone(),
+                            port: config.port,
+                            running: is_running,
+                        })
+                    } else {
+                        None
+                    }
+                })
             })
-            .count();
+            .collect();
+
+        let running_count = running_servers.iter().filter(|s| s.running).count() as u32;
 
         IncomingWebhookServerStatus {
-            running: *self.running.read().await,
-            port: *self.port.read().await,
-            active_webhooks_count: active_count as u32,
+            running_servers,
+            running_count,
         }
+    }
+
+    /// Check if a port is available or in use
+    /// Returns: (is_available, used_by_workflow_id)
+    pub async fn check_port_usage(&self, port: u16, exclude_workflow_id: Option<&str>) -> (bool, Option<String>) {
+        let servers = self.servers.read().await;
+
+        for (wf_id, handle) in servers.iter() {
+            if handle.port == port {
+                // Check if this is the excluded workflow
+                if let Some(exclude_id) = exclude_workflow_id {
+                    if wf_id == exclude_id {
+                        continue; // Skip self
+                    }
+                }
+                return (false, Some(wf_id.clone()));
+            }
+        }
+
+        (true, None)
     }
 }
 
@@ -215,23 +295,17 @@ fn get_workflow_name(app: &AppHandle, workflow_id: &str) -> Option<String> {
 }
 
 /// Handle incoming webhook trigger request
-/// POST /webhook/{workflow_id}?token={token}
+/// POST /webhook?token={token}
+/// Each server only serves one workflow, so no workflow_id in path
 async fn handle_webhook_trigger(
-    State(state): State<Arc<IncomingWebhookServerState>>,
-    Path(workflow_id): Path<String>,
+    State(state): State<Arc<WorkflowWebhookServerState>>,
     Query(params): Query<TriggerQueryParams>,
 ) -> (StatusCode, Json<WebhookTriggerResponse>) {
     // Validate token
     let token = params.token.unwrap_or_default();
+    let workflow_id = &state.workflow_id;
 
-    // token_map is now workflow_id -> token
-    let token_map = state.token_map.read().await;
-    let is_valid = token_map
-        .get(&workflow_id)
-        .map(|expected_token| expected_token == &token)
-        .unwrap_or(false);
-
-    if !is_valid {
+    if token != state.expected_token {
         log::warn!(
             "[incoming-webhook] Invalid token for workflow {}",
             workflow_id
@@ -241,12 +315,10 @@ async fn handle_webhook_trigger(
             Json(WebhookTriggerResponse {
                 success: false,
                 execution_id: None,
-                message: "Invalid token or workflow ID".to_string(),
+                message: "Invalid token".to_string(),
             }),
         );
     }
-
-    drop(token_map);
 
     // Trigger workflow execution
     log::info!(
@@ -275,7 +347,7 @@ async fn handle_webhook_trigger(
             );
 
             // Send desktop notification for incoming webhook
-            if let Some(workflow_name) = get_workflow_name(&state.app, &workflow_id) {
+            if let Some(workflow_name) = get_workflow_name(&state.app, workflow_id) {
                 let _ = send_webhook_notification(
                     &state.app,
                     WebhookNotificationType::IncomingTriggered { workflow_name },
