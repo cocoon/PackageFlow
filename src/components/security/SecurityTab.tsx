@@ -19,10 +19,13 @@ import {
   Terminal,
   Wrench,
 } from 'lucide-react';
-import type { VulnScanResult, VulnSummary, ScanError } from '../../types/security';
+import type { VulnScanResult, VulnSummary, ScanError, VulnItem } from '../../types/security';
 import { VulnerabilityList } from './VulnerabilityList';
 import { SeveritySummaryBar, RiskLevelIndicator } from './SeverityBadge';
 import { Button } from '../ui/Button';
+import { AIReviewDialog } from '../ui/AIReviewDialog';
+import { useAISecurityAnalysis } from '../../hooks/useAISecurityAnalysis';
+import { useAIService } from '../../hooks/useAIService';
 import { cn } from '../../lib/utils';
 import { formatDate } from '../../lib/utils';
 
@@ -31,8 +34,10 @@ interface SecurityTabProps {
   projectId?: string;
   /** Project name for display */
   projectName: string;
-  /** Project path (reserved for future use) */
+  /** Project path for AI analysis */
   projectPath?: string;
+  /** Package manager for AI context */
+  packageManager?: string;
   /** Current scan result (null if never scanned) */
   scanResult: VulnScanResult | null;
   /** Whether a scan is currently in progress */
@@ -45,6 +50,8 @@ interface SecurityTabProps {
   onCancelScan?: () => void;
   /** Callback to navigate to Scripts tab */
   onNavigateToScripts?: () => void;
+  /** Callback to open AI settings when AI is not configured */
+  onOpenAISettings?: () => void;
   /** Additional CSS classes */
   className?: string;
 }
@@ -468,16 +475,38 @@ function ScanningState({ projectName, onCancel }: ScanningStateProps) {
  */
 export function SecurityTab({
   projectName,
+  projectPath,
+  packageManager,
   scanResult,
   isScanning,
   error,
   onScan,
   onCancelScan,
   onNavigateToScripts,
+  onOpenAISettings,
   className,
 }: SecurityTabProps) {
   // Local state for UI
   const [showSkeleton, setShowSkeleton] = useState(false);
+
+  // AI state
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [aiAnalysisContent, setAIAnalysisContent] = useState('');
+  const [aiDialogTitle, setAIDialogTitle] = useState('');
+  const [aiDialogSubtitle, setAIDialogSubtitle] = useState<string | undefined>();
+
+  // Check if AI is configured
+  const { hasConfiguredService } = useAIService({ autoLoad: true });
+
+  // AI Security Analysis hook
+  const aiAnalysis = useAISecurityAnalysis({
+    projectPath: projectPath || '',
+    projectName,
+    packageManager: packageManager || scanResult?.packageManager || 'unknown',
+  });
+
+  // AI enabled check
+  const aiEnabled = hasConfiguredService && !!projectPath;
 
   // Handle scan with skeleton display
   const handleScan = useCallback(() => {
@@ -504,6 +533,51 @@ export function SecurityTab({
       setShowSkeleton(false);
     }
   }, [isScanning, showSkeleton]);
+
+  // Handle single vulnerability AI analysis
+  const handleAnalyzeVulnerability = useCallback(async (vulnerability: VulnItem) => {
+    const result = await aiAnalysis.generateAnalysis(vulnerability);
+    if (result) {
+      setAIAnalysisContent(result);
+      setAIDialogTitle('Security Analysis');
+      setAIDialogSubtitle(`${vulnerability.packageName}@${vulnerability.installedVersion} - ${vulnerability.title}`);
+      setShowAIDialog(true);
+    }
+  }, [aiAnalysis]);
+
+  // Handle all vulnerabilities AI summary
+  const handleAnalyzeAll = useCallback(async () => {
+    console.log('[SecurityTab] handleAnalyzeAll called', {
+      hasScanResult: !!scanResult,
+      vulnCount: scanResult?.vulnerabilities.length,
+      aiEnabled,
+      hasConfiguredService,
+    });
+
+    if (!scanResult) {
+      console.warn('[SecurityTab] No scanResult, returning early');
+      return;
+    }
+
+    console.log('[SecurityTab] Calling aiAnalysis.generateSummary...');
+    const result = await aiAnalysis.generateSummary(
+      scanResult.vulnerabilities,
+      scanResult.summary
+    );
+
+    console.log('[SecurityTab] generateSummary result:', {
+      hasResult: !!result,
+      resultLength: result?.length,
+      error: aiAnalysis.error,
+    });
+
+    if (result) {
+      setAIAnalysisContent(result);
+      setAIDialogTitle('Security Summary');
+      setAIDialogSubtitle(`${scanResult.summary.total} vulnerabilities analyzed`);
+      setShowAIDialog(true);
+    }
+  }, [aiAnalysis, scanResult, aiEnabled, hasConfiguredService]);
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -553,12 +627,39 @@ export function SecurityTab({
             isScanning={isScanning}
           />
 
-          {/* Vulnerability List */}
+          {/* Vulnerability List with AI */}
           {scanResult.vulnerabilities.length > 0 && (
-            <VulnerabilityList vulnerabilities={scanResult.vulnerabilities} />
+            <VulnerabilityList
+              vulnerabilities={scanResult.vulnerabilities}
+              summary={scanResult.summary}
+              aiEnabled={aiEnabled}
+              aiConfigured={hasConfiguredService}
+              isAIGenerating={aiAnalysis.isGenerating}
+              activeAIVulnerabilityId={aiAnalysis.activeVulnerabilityId}
+              isAISummaryActive={aiAnalysis.isSummaryActive}
+              aiError={aiAnalysis.error}
+              onAnalyzeVulnerability={handleAnalyzeVulnerability}
+              onAnalyzeAll={handleAnalyzeAll}
+              onOpenAISettings={onOpenAISettings}
+              onClearAIError={aiAnalysis.clearError}
+            />
           )}
         </>
       )}
+
+      {/* AI Analysis Dialog */}
+      <AIReviewDialog
+        open={showAIDialog}
+        onOpenChange={setShowAIDialog}
+        title={aiDialogTitle}
+        subtitle={aiDialogSubtitle}
+        content={aiAnalysisContent}
+        tokensUsed={aiAnalysis.tokensUsed}
+        isTruncated={aiAnalysis.isTruncated}
+        variant="security-advisory"
+        onRegenerate={undefined}
+        isRegenerating={aiAnalysis.isGenerating}
+      />
     </div>
   );
 }
@@ -593,17 +694,18 @@ export function SecurityIndicator({
 
   if (!scanResult) {
     return (
-      <button
+      <Button
+        variant="ghost"
         onClick={onClick}
         className={cn(
-          'flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground',
+          'h-auto p-0 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground',
           className
         )}
         title="Not scanned - click to scan"
       >
         <Shield className="w-3.5 h-3.5" aria-hidden="true" />
         <span>Not scanned</span>
-      </button>
+      </Button>
     );
   }
 
@@ -612,10 +714,11 @@ export function SecurityIndicator({
   const hasCritical = summary.critical > 0;
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1.5 text-xs',
+        'h-auto p-0 flex items-center gap-1.5 text-xs',
         !hasIssues && 'text-green-400',
         hasIssues && !hasCritical && 'text-yellow-400',
         hasCritical && 'text-red-400',
@@ -629,6 +732,6 @@ export function SecurityIndicator({
         <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
       )}
       <span>{hasIssues ? summary.total : 'Secure'}</span>
-    </button>
+    </Button>
   );
 }

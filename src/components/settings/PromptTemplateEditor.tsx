@@ -30,6 +30,7 @@ import {
   GitCommit,
   GitPullRequest,
   Sparkles,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAIService } from '../../hooks/useAIService';
 import {
@@ -40,6 +41,7 @@ import {
   DialogClose,
   DialogFooter,
 } from '../ui/Dialog';
+import { Button } from '../ui/Button';
 import { DeleteConfirmDialog } from '../ui/ConfirmDialog';
 import type {
   PromptTemplate,
@@ -95,6 +97,7 @@ const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
   code_review: <Code className="w-4 h-4" />,
   documentation: <BookOpen className="w-4 h-4" />,
   release_notes: <FileCode className="w-4 h-4" />,
+  security_advisory: <ShieldAlert className="w-4 h-4" />,
   custom: <Sparkles className="w-4 h-4" />,
 };
 
@@ -200,9 +203,23 @@ File: {file_path}
 {diff}
 
 Provide feedback on:
-1. Code quality
-2. Potential issues
-3. Suggestions for improvement`;
+1. Code quality and maintainability
+2. Potential bugs or logic errors
+3. Security vulnerabilities (check for):
+   - Injection attacks (SQL, command, XSS)
+   - Sensitive data exposure (API keys, passwords, tokens)
+   - Insecure deserialization
+   - Missing input validation
+   - Hardcoded secrets or credentials
+   - Path traversal vulnerabilities
+   - Unsafe use of user-controlled data
+4. Performance considerations
+5. Suggestions for improvement
+
+For each issue found, specify:
+- Severity (Critical/High/Medium/Low)
+- Location (line number if possible)
+- Recommended fix`;
       case 'documentation':
         return `Generate documentation for the following code:
 
@@ -356,6 +373,7 @@ ${outputInstructions}`;
       code_review: 0,
       documentation: 0,
       release_notes: 0,
+      security_advisory: 0,
       custom: 0,
     };
     templates.forEach(t => {
@@ -382,13 +400,15 @@ ${outputInstructions}`;
               <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
                 <p className="text-sm text-red-400">{templatesError}</p>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={loadTemplates}
-                  className="ml-auto p-1 hover:bg-red-500/20 rounded transition-colors"
+                  className="ml-auto h-auto p-1 hover:bg-red-500/20"
                   aria-label="Retry loading templates"
                 >
                   <RefreshCw className="w-4 h-4 text-red-400" />
-                </button>
+                </Button>
               </div>
             )}
 

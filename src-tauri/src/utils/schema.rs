@@ -4,7 +4,7 @@
 use rusqlite::{Connection, params};
 
 /// Current schema version
-pub const CURRENT_VERSION: i32 = 7;
+pub const CURRENT_VERSION: i32 = 8;
 
 /// Migration struct containing version and SQL statements
 struct Migration {
@@ -318,6 +318,44 @@ const MIGRATIONS: &[Migration] = &[
             ALTER TABLE projects ADD COLUMN monorepo_tool TEXT;
             ALTER TABLE projects ADD COLUMN framework TEXT;
             ALTER TABLE projects ADD COLUMN ui_framework TEXT;
+        "#,
+    },
+    Migration {
+        version: 8,
+        description: "Add security_advisory to ai_templates category constraint",
+        up: r#"
+            -- SQLite doesn't support ALTER TABLE to modify CHECK constraints
+            -- We need to recreate the table with the new constraint
+
+            -- 1. Create new table with updated CHECK constraint
+            CREATE TABLE ai_templates_new (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                category TEXT NOT NULL DEFAULT 'git_commit' CHECK(category IN (
+                    'git_commit', 'pull_request', 'code_review',
+                    'documentation', 'release_notes', 'security_advisory', 'custom'
+                )),
+                template TEXT NOT NULL,
+                output_format TEXT,
+                is_default INTEGER DEFAULT 0,
+                is_builtin INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            -- 2. Copy existing data
+            INSERT INTO ai_templates_new
+                SELECT * FROM ai_templates;
+
+            -- 3. Drop old table
+            DROP TABLE ai_templates;
+
+            -- 4. Rename new table
+            ALTER TABLE ai_templates_new RENAME TO ai_templates;
+
+            -- 5. Recreate index
+            CREATE INDEX IF NOT EXISTS idx_ai_templates_category ON ai_templates(category);
         "#,
     },
 ];

@@ -275,6 +275,7 @@ pub fn run() {
             deploy::clear_deployment_history,
             deploy::get_deployment_config,
             deploy::save_deployment_config,
+            deploy::delete_deployment_config,
             deploy::detect_framework,
             deploy::redeploy,
             // Multi Deploy Accounts (016-multi-deploy-accounts)

@@ -103,6 +103,15 @@ export default {
           '0%, 100%': { boxShadow: '0 0 6px rgba(59, 130, 246, 0.4)' },
           '50%': { boxShadow: '0 0 14px rgba(59, 130, 246, 0.6)' },
         },
+        // AI Security - Amber glow for security analysis
+        'ai-security-glow': {
+          '0%, 100%': { boxShadow: '0 0 6px rgba(245, 158, 11, 0.4)' },
+          '50%': { boxShadow: '0 0 14px rgba(245, 158, 11, 0.6)' },
+        },
+        'security-sparkle': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.15)', opacity: '0.85' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -118,6 +127,9 @@ export default {
         'scan-glow': 'scan-glow 1.2s ease-in-out infinite',
         'scan-line': 'scan-line 1s ease-in-out infinite',
         'ai-review-glow': 'ai-review-glow 1.5s ease-in-out infinite',
+        // AI Security animations
+        'ai-security-glow': 'ai-security-glow 1.5s ease-in-out infinite',
+        'security-sparkle': 'security-sparkle 1.2s ease-in-out infinite',
       },
     },
   },

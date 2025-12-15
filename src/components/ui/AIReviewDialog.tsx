@@ -4,12 +4,12 @@
  */
 
 import * as React from 'react';
-import { Sparkles, Copy, Check, RefreshCw, X, FileSearch, AlertTriangle } from 'lucide-react';
+import { Sparkles, Copy, Check, RefreshCw, X, FileSearch, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { marked } from 'marked';
 import { cn } from '../../lib/utils';
 import { isTopModal, registerModal, unregisterModal } from './modalStack';
 
-type DialogVariant = 'code-review' | 'staged-review';
+type DialogVariant = 'code-review' | 'staged-review' | 'security-advisory';
 
 interface AIReviewDialogProps {
   /** Whether the dialog is open */
@@ -60,6 +60,14 @@ const variantConfig: Record<
     iconColor: 'text-blue-400',
     iconBg: 'bg-blue-500/10 border-blue-500/20',
     accentBorder: 'border-blue-500/30',
+  },
+  'security-advisory': {
+    icon: ShieldAlert,
+    gradient: 'from-amber-500/20 via-amber-600/10 to-transparent',
+    gradientLight: 'from-amber-500/10 via-amber-600/5 to-transparent',
+    iconColor: 'text-amber-400',
+    iconBg: 'bg-amber-500/10 border-amber-500/20',
+    accentBorder: 'border-amber-500/30',
   },
 };
 

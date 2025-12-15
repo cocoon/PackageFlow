@@ -96,6 +96,8 @@ pub enum TemplateCategory {
     Documentation,
     /// Release notes generation
     ReleaseNotes,
+    /// Security vulnerability analysis
+    SecurityAdvisory,
     /// Custom/general purpose
     Custom,
 }
@@ -109,6 +111,7 @@ impl TemplateCategory {
             TemplateCategory::CodeReview => vec!["diff", "file_path", "code"],
             TemplateCategory::Documentation => vec!["code", "file_path", "function_name"],
             TemplateCategory::ReleaseNotes => vec!["commits", "version", "previous_version"],
+            TemplateCategory::SecurityAdvisory => vec!["vulnerability_json", "project_context", "severity_summary"],
             TemplateCategory::Custom => vec!["input"],
         }
     }
@@ -121,6 +124,7 @@ impl TemplateCategory {
             TemplateCategory::CodeReview => "Code Review",
             TemplateCategory::Documentation => "Documentation",
             TemplateCategory::ReleaseNotes => "Release Notes",
+            TemplateCategory::SecurityAdvisory => "Security Advisory",
             TemplateCategory::Custom => "Custom",
         }
     }
@@ -389,6 +393,57 @@ Use markdown formatting. Be concise but informative."#.to_string(),
         }
     }
 
+    /// Get the built-in security advisory template
+    pub fn builtin_security_advisory() -> Self {
+        Self {
+            id: "builtin-security-advisory".to_string(),
+            name: "Security Advisory".to_string(),
+            description: Some("Analyze security vulnerabilities and provide remediation guidance".to_string()),
+            category: TemplateCategory::SecurityAdvisory,
+            template: r#"You are a security advisor analyzing package vulnerabilities for a software project.
+
+## Project Context
+{project_context}
+
+## Vulnerability Details
+{vulnerability_json}
+
+## Severity Summary
+{severity_summary}
+
+Provide a comprehensive security analysis with the following sections:
+
+### 1. Risk Assessment
+- Overall risk level (Critical/High/Medium/Low)
+- Business impact analysis
+- Likelihood of exploitation
+- Attack vectors and prerequisites
+
+### 2. Priority Actions
+- Immediate steps to mitigate critical issues
+- Short-term remediation tasks
+- Long-term security improvements
+
+### 3. Remediation Strategy
+- Specific upgrade paths for affected packages
+- Alternative packages if upgrades are not available
+- Workarounds for vulnerabilities without fixes
+- Code changes if applicable
+
+### 4. Breaking Change Warnings
+- Potential compatibility issues with suggested fixes
+- Migration notes for major version upgrades
+- Testing recommendations
+
+Be specific, actionable, and prioritize by severity. Use markdown formatting."#.to_string(),
+            output_format: None,
+            is_default: true,
+            is_builtin: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
     /// Get all built-in templates
     pub fn all_builtins() -> Vec<Self> {
         vec![
@@ -397,6 +452,7 @@ Use markdown formatting. Be concise but informative."#.to_string(),
             Self::builtin_pr_description(),
             Self::builtin_code_review(),
             Self::builtin_release_notes(),
+            Self::builtin_security_advisory(),
         ]
     }
 
@@ -680,4 +736,55 @@ pub struct UpdateProjectSettingsRequest {
     pub preferred_service_id: Option<String>,
     /// Preferred template ID (null to clear)
     pub preferred_template_id: Option<String>,
+}
+
+/// Request to generate security analysis for a single vulnerability
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateSecurityAnalysisRequest {
+    /// Project path
+    pub project_path: String,
+    /// Project name for context
+    pub project_name: String,
+    /// Package manager (npm, pnpm, yarn, bun)
+    pub package_manager: String,
+    /// Vulnerability data as JSON
+    pub vulnerability: serde_json::Value,
+    /// Service ID (if not specified, use default)
+    pub service_id: Option<String>,
+    /// Template ID (if not specified, use default security advisory template)
+    pub template_id: Option<String>,
+}
+
+/// Request to generate security summary for all vulnerabilities
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateSecuritySummaryRequest {
+    /// Project path
+    pub project_path: String,
+    /// Project name for context
+    pub project_name: String,
+    /// Package manager (npm, pnpm, yarn, bun)
+    pub package_manager: String,
+    /// All vulnerabilities as JSON array
+    pub vulnerabilities: Vec<serde_json::Value>,
+    /// Vulnerability summary counts
+    pub summary: serde_json::Value,
+    /// Service ID (if not specified, use default)
+    pub service_id: Option<String>,
+    /// Template ID (if not specified, use default security advisory template)
+    pub template_id: Option<String>,
+}
+
+/// Result from AI security analysis generation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateSecurityAnalysisResult {
+    /// Generated analysis content (markdown)
+    pub analysis: String,
+    /// Tokens used (if available)
+    pub tokens_used: Option<u32>,
+    /// Whether the response was truncated due to token limit
+    #[serde(default)]
+    pub is_truncated: bool,
 }

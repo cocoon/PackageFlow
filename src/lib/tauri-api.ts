@@ -1109,6 +1109,24 @@ export const settingsAPI = {
 };
 
 // ============================================================================
+// Notification Settings Commands
+// ============================================================================
+
+import type { NotificationSettings } from '../types/notification';
+
+export type { NotificationSettings };
+
+export const notificationAPI = {
+  /** Load notification settings from database */
+  loadSettings: (): Promise<NotificationSettings> =>
+    invoke<NotificationSettings>('load_notification_settings'),
+
+  /** Save notification settings to database */
+  saveSettings: (settings: NotificationSettings): Promise<void> =>
+    invoke('save_notification_settings', { settings }),
+};
+
+// ============================================================================
 // Event Listeners
 // ============================================================================
 
@@ -1831,6 +1849,9 @@ export const deployAPI = {
   saveDeploymentConfig: (config: DeploymentConfig): Promise<void> =>
     invoke('save_deployment_config', { config }),
 
+  deleteDeploymentConfig: (projectId: string): Promise<boolean> =>
+    invoke<boolean>('delete_deployment_config', { projectId }),
+
   detectFramework: (projectPath: string): Promise<string | null> =>
     invoke<string | null>('detect_framework', { projectPath }),
 
@@ -2080,6 +2101,9 @@ import type {
   GenerateStagedReviewRequest,
   UpdateProjectSettingsRequest,
   ProbeModelsRequest,
+  GenerateSecurityAnalysisRequest,
+  GenerateSecuritySummaryRequest,
+  GenerateSecurityAnalysisResult,
 } from '../types/ai';
 
 export type {
@@ -2100,6 +2124,9 @@ export type {
   GenerateStagedReviewRequest,
   UpdateProjectSettingsRequest,
   ProbeModelsRequest,
+  GenerateSecurityAnalysisRequest,
+  GenerateSecuritySummaryRequest,
+  GenerateSecurityAnalysisResult,
 };
 
 /** Generic API response type */
@@ -2201,6 +2228,18 @@ export const aiAPI = {
   /** Generate a code review for all staged changes */
   generateStagedReview: (request: GenerateStagedReviewRequest): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
     invoke<AIApiResponse<GenerateCodeReviewResult>>('ai_generate_staged_review', { request }),
+
+  // ============================================================================
+  // Security Analysis Generation
+  // ============================================================================
+
+  /** Generate security analysis for a single vulnerability */
+  generateSecurityAnalysis: (request: GenerateSecurityAnalysisRequest): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
+    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_analysis', { request }),
+
+  /** Generate security summary for all vulnerabilities */
+  generateSecuritySummary: (request: GenerateSecuritySummaryRequest): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
+    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_summary', { request }),
 
   // ============================================================================
   // Diagnostic
@@ -2338,6 +2377,7 @@ export const tauriAPI = {
   ...securityAPI,
   ...versionAPI,
   ...settingsAPI,
+  ...notificationAPI,
   ...monorepoAPI,
   ...gitAPI,
   ...stepTemplateAPI,

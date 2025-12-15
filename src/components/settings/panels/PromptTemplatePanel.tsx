@@ -26,11 +26,13 @@ import {
   Sparkles,
   Settings2,
   Layers,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAIService } from '../../../hooks/useAIService';
 import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
 import { Skeleton } from '../../ui/Skeleton';
+import { TemplatePreviewDialog } from '../TemplatePreviewDialog';
 import type {
   PromptTemplate,
   TemplateCategory,
@@ -87,6 +89,13 @@ const CATEGORY_COLOR_SCHEMES: Record<TemplateCategory, {
     iconBg: 'bg-cyan-500/10',
     badge: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
   },
+  security_advisory: {
+    bg: 'bg-amber-500/5',
+    border: 'border-amber-500/20',
+    text: 'text-amber-600 dark:text-amber-400',
+    iconBg: 'bg-amber-500/10',
+    badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  },
   custom: {
     bg: 'bg-pink-500/5',
     border: 'border-pink-500/20',
@@ -103,6 +112,7 @@ const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
   code_review: <Code className="w-4 h-4" />,
   documentation: <BookOpen className="w-4 h-4" />,
   release_notes: <FileCode className="w-4 h-4" />,
+  security_advisory: <ShieldAlert className="w-4 h-4" />,
   custom: <Sparkles className="w-4 h-4" />,
 };
 
@@ -176,6 +186,23 @@ Create release notes with sections for:
 - Bug Fixes
 - Improvements
 - Breaking Changes`;
+    case 'security_advisory':
+      return `Analyze the following security vulnerability and provide a comprehensive assessment:
+
+Project Context:
+{project_context}
+
+Vulnerability Details:
+{vulnerability_json}
+
+Severity Summary:
+{severity_summary}
+
+Provide analysis including:
+1. Risk Assessment - Impact on the project
+2. Remediation Steps - How to fix this issue
+3. Priority Level - Urgency of the fix
+4. Dependencies - Any affected dependencies`;
     default:
       return `Process the following input:
 
@@ -982,125 +1009,6 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
 };
 
 // ============================================================================
-// Preview Dialog Content
-// ============================================================================
-
-interface PreviewContentProps {
-  template: PromptTemplate | null;
-  onClose: () => void;
-}
-
-const PreviewContent: React.FC<PreviewContentProps> = ({ template, onClose }) => {
-  if (!template) return null;
-
-  const colorScheme = getCategoryColorScheme(template.category);
-  const categoryInfo = getCategoryInfo(template.category);
-
-  // Sample values for preview
-  const sampleValues: Record<string, string> = {
-    diff: `diff --git a/src/Button.tsx b/src/Button.tsx
-index 1234567..abcdef0 100644
---- a/src/Button.tsx
-+++ b/src/Button.tsx
-@@ -5,7 +5,12 @@ interface ButtonProps {
-   children: React.ReactNode;
-+  variant?: 'primary' | 'secondary';
- }`,
-    commits: `feat: add dark mode support
-fix: resolve memory leak in useEffect
-docs: update README with examples`,
-    branch: 'feature/dark-mode',
-    base_branch: 'main',
-    code: `function calculateTotal(items) {
-  return items.reduce((sum, item) => sum + item.price, 0);
-}`,
-    file_path: 'src/utils/calculate.ts',
-    function_name: 'calculateTotal',
-    version: '1.2.0',
-    previous_version: '1.1.0',
-    input: 'User provided input content',
-  };
-
-  // Generate preview by replacing variables
-  let previewContent = template.template;
-  Object.entries(sampleValues).forEach(([key, value]) => {
-    previewContent = previewContent.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
-  });
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-          <div className="flex items-center gap-3">
-            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', colorScheme.iconBg, colorScheme.text)}>
-              {CATEGORY_ICONS[template.category]}
-            </div>
-            <div>
-              <h3 className="font-medium text-foreground">{template.name}</h3>
-              <p className="text-xs text-muted-foreground">{categoryInfo?.name} Template Preview</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className={cn(
-              'p-2 rounded-lg transition-colors',
-              'text-muted-foreground hover:text-foreground hover:bg-accent',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
-          >
-            <XCircle className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Original Template */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-foreground">Template Content</h4>
-              <span className="text-xs text-muted-foreground">
-                {template.template.length} characters
-              </span>
-            </div>
-            <pre className="p-4 bg-muted rounded-lg text-sm font-mono whitespace-pre-wrap overflow-x-auto max-h-48 border border-border">
-              {template.template}
-            </pre>
-          </div>
-
-          {/* Expanded Preview */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-medium text-foreground">Expanded Preview</h4>
-              <span className={cn('text-xs px-2 py-0.5 rounded', colorScheme.badge)}>
-                with sample values
-              </span>
-            </div>
-            <pre className="p-4 bg-card border border-border rounded-lg text-sm font-mono whitespace-pre-wrap overflow-x-auto max-h-80">
-              {previewContent}
-            </pre>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-border shrink-0">
-          <button
-            onClick={onClose}
-            className={cn(
-              'w-full px-4 py-2 rounded-lg text-sm font-medium',
-              'bg-secondary text-secondary-foreground',
-              'hover:bg-secondary/80 transition-colors'
-            )}
-          >
-            Close Preview
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
 // Main Component
 // ============================================================================
 
@@ -1148,6 +1056,7 @@ export function PromptTemplatePanel() {
       code_review: [],
       documentation: [],
       release_notes: [],
+      security_advisory: [],
       custom: [],
     };
     templates.forEach((t) => {
@@ -1163,6 +1072,7 @@ export function PromptTemplatePanel() {
       code_review: 0,
       documentation: 0,
       release_notes: 0,
+      security_advisory: 0,
       custom: 0,
     };
     templates.forEach((t) => {
@@ -1178,6 +1088,7 @@ export function PromptTemplatePanel() {
       code_review: undefined,
       documentation: undefined,
       release_notes: undefined,
+      security_advisory: undefined,
       custom: undefined,
     };
     templates.forEach((t) => {
@@ -1195,6 +1106,7 @@ export function PromptTemplatePanel() {
       code_review: undefined,
       documentation: undefined,
       release_notes: undefined,
+      security_advisory: undefined,
       custom: undefined,
     };
     Object.entries(defaultTemplates).forEach(([key, template]) => {
@@ -1461,9 +1373,11 @@ export function PromptTemplatePanel() {
       </Tabs>
 
       {/* Preview Dialog */}
-      {previewTemplate && (
-        <PreviewContent template={previewTemplate} onClose={() => setPreviewTemplate(null)} />
-      )}
+      <TemplatePreviewDialog
+        open={previewTemplate !== null}
+        onOpenChange={(open) => !open && setPreviewTemplate(null)}
+        template={previewTemplate}
+      />
 
       {/* Delete Confirmation */}
       <DeleteConfirmDialog

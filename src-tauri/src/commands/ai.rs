@@ -11,9 +11,10 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::models::ai::{
     AIProvider, AIServiceConfig, AddServiceRequest, AddTemplateRequest, ChatMessage, ChatOptions,
     FinishReason, GenerateCodeReviewRequest, GenerateCodeReviewResult, GenerateCommitMessageRequest,
-    GenerateResult, GenerateStagedReviewRequest, ModelInfo, PromptTemplate, ProjectAISettings,
-    TemplateCategory, TestConnectionResult, UpdateProjectSettingsRequest, UpdateServiceRequest,
-    UpdateTemplateRequest,
+    GenerateResult, GenerateStagedReviewRequest, GenerateSecurityAnalysisRequest,
+    GenerateSecurityAnalysisResult, GenerateSecuritySummaryRequest, ModelInfo, PromptTemplate,
+    ProjectAISettings, TemplateCategory, TestConnectionResult, UpdateProjectSettingsRequest,
+    UpdateServiceRequest, UpdateTemplateRequest,
 };
 use crate::repositories::AIRepository;
 use crate::services::ai::{
@@ -960,6 +961,258 @@ pub async fn ai_generate_staged_review(
 
             Ok(ApiResponse::success(GenerateCodeReviewResult {
                 review: response.content.trim().to_string(),
+                tokens_used: response.tokens_used,
+                is_truncated,
+            }))
+        }
+        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+// ============================================================================
+// Security Analysis Commands
+// ============================================================================
+
+/// Generate AI security analysis for a single vulnerability
+#[tauri::command]
+pub async fn ai_generate_security_analysis(
+    app: AppHandle,
+    request: GenerateSecurityAnalysisRequest,
+) -> Result<ApiResponse<GenerateSecurityAnalysisResult>, String> {
+    let repo = get_ai_repo(&app);
+    let keychain = AIKeychain::new(app);
+
+    // Get project settings for preferred service/template
+    let project_settings = repo.get_project_settings(&request.project_path)
+        .unwrap_or_default();
+
+    // Determine which service to use
+    let service_id = request.service_id
+        .or(project_settings.preferred_service_id);
+
+    let service = if let Some(id) = service_id {
+        match repo.get_service(&id) {
+            Ok(Some(s)) if s.is_enabled => s,
+            Ok(Some(_)) => return Ok(ApiResponse::error("The specified AI service is disabled")),
+            Ok(None) => return Ok(ApiResponse::error(format!("AI service not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_service() {
+            Ok(Some(s)) => s,
+            Ok(None) => return Ok(ApiResponse::error("No default AI service configured")),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Determine which template to use - default to SecurityAdvisory category
+    let template = if let Some(id) = request.template_id {
+        match repo.get_template(&id) {
+            Ok(Some(t)) => t,
+            Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_template(Some(&TemplateCategory::SecurityAdvisory)) {
+            Ok(Some(t)) => t,
+            Ok(None) => PromptTemplate::builtin_security_advisory(),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Get API key
+    let api_key = match keychain.get_api_key(&service.id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service.id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
+
+    // Format vulnerability as pretty JSON
+    let vulnerability_json = serde_json::to_string_pretty(&request.vulnerability)
+        .unwrap_or_else(|_| "{}".to_string());
+
+    // Build project context
+    let project_context = format!(
+        "Project: {}\nPackage Manager: {}",
+        request.project_name,
+        request.package_manager
+    );
+
+    // Single vulnerability - no summary needed
+    let severity_summary = "Analyzing single vulnerability.".to_string();
+
+    // Prepare the prompt with variables
+    let mut vars = std::collections::HashMap::new();
+    vars.insert("vulnerability_json".to_string(), vulnerability_json);
+    vars.insert("project_context".to_string(), project_context);
+    vars.insert("severity_summary".to_string(), severity_summary);
+    let prompt = template.render(&vars);
+
+    // Calculate dynamic max_tokens
+    let max_tokens = calculate_max_output_tokens(
+        &prompt,
+        &service.provider,
+        2000,  // minimum output tokens
+        8000,  // maximum output tokens for security analysis
+    );
+
+    // Create provider
+    let provider = match create_provider(service, api_key) {
+        Ok(p) => p,
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
+    // Call the AI service
+    let messages = vec![ChatMessage::user(prompt)];
+    let options = ChatOptions {
+        temperature: Some(0.5),
+        max_tokens: Some(max_tokens),
+        top_p: None,
+    };
+
+    match provider.chat_completion(messages, options).await {
+        Ok(response) => {
+            let is_truncated = response.finish_reason
+                .as_ref()
+                .map(|r| *r == FinishReason::Length)
+                .unwrap_or(false);
+
+            Ok(ApiResponse::success(GenerateSecurityAnalysisResult {
+                analysis: response.content.trim().to_string(),
+                tokens_used: response.tokens_used,
+                is_truncated,
+            }))
+        }
+        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+/// Generate AI security summary for all vulnerabilities
+#[tauri::command]
+pub async fn ai_generate_security_summary(
+    app: AppHandle,
+    request: GenerateSecuritySummaryRequest,
+) -> Result<ApiResponse<GenerateSecurityAnalysisResult>, String> {
+    let repo = get_ai_repo(&app);
+    let keychain = AIKeychain::new(app);
+
+    if request.vulnerabilities.is_empty() {
+        return Ok(ApiResponse::error("No vulnerabilities to analyze"));
+    }
+
+    // Get project settings for preferred service/template
+    let project_settings = repo.get_project_settings(&request.project_path)
+        .unwrap_or_default();
+
+    // Determine which service to use
+    let service_id = request.service_id
+        .or(project_settings.preferred_service_id);
+
+    let service = if let Some(id) = service_id {
+        match repo.get_service(&id) {
+            Ok(Some(s)) if s.is_enabled => s,
+            Ok(Some(_)) => return Ok(ApiResponse::error("The specified AI service is disabled")),
+            Ok(None) => return Ok(ApiResponse::error(format!("AI service not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_service() {
+            Ok(Some(s)) => s,
+            Ok(None) => return Ok(ApiResponse::error("No default AI service configured")),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Determine which template to use - default to SecurityAdvisory category
+    let template = if let Some(id) = request.template_id {
+        match repo.get_template(&id) {
+            Ok(Some(t)) => t,
+            Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_template(Some(&TemplateCategory::SecurityAdvisory)) {
+            Ok(Some(t)) => t,
+            Ok(None) => PromptTemplate::builtin_security_advisory(),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Get API key
+    let api_key = match keychain.get_api_key(&service.id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service.id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
+
+    // Format all vulnerabilities as pretty JSON
+    let vulnerability_json = serde_json::to_string_pretty(&request.vulnerabilities)
+        .unwrap_or_else(|_| "[]".to_string());
+
+    // Build project context
+    let project_context = format!(
+        "Project: {}\nPackage Manager: {}",
+        request.project_name,
+        request.package_manager
+    );
+
+    // Build severity summary from the provided summary JSON
+    let severity_summary = if let Some(obj) = request.summary.as_object() {
+        format!(
+            "Total: {} vulnerabilities\n- Critical: {}\n- High: {}\n- Moderate: {}\n- Low: {}\n- Info: {}",
+            obj.get("total").and_then(|v| v.as_u64()).unwrap_or(0),
+            obj.get("critical").and_then(|v| v.as_u64()).unwrap_or(0),
+            obj.get("high").and_then(|v| v.as_u64()).unwrap_or(0),
+            obj.get("moderate").and_then(|v| v.as_u64()).unwrap_or(0),
+            obj.get("low").and_then(|v| v.as_u64()).unwrap_or(0),
+            obj.get("info").and_then(|v| v.as_u64()).unwrap_or(0)
+        )
+    } else {
+        format!("Total: {} vulnerabilities", request.vulnerabilities.len())
+    };
+
+    // Prepare the prompt with variables
+    let mut vars = std::collections::HashMap::new();
+    vars.insert("vulnerability_json".to_string(), vulnerability_json);
+    vars.insert("project_context".to_string(), project_context);
+    vars.insert("severity_summary".to_string(), severity_summary);
+    let prompt = template.render(&vars);
+
+    // Calculate dynamic max_tokens - larger for summary of multiple vulnerabilities
+    let max_tokens = calculate_max_output_tokens(
+        &prompt,
+        &service.provider,
+        3000,   // minimum output tokens
+        12000,  // higher maximum for summary (multiple vulnerabilities)
+    );
+
+    // Create provider
+    let provider = match create_provider(service, api_key) {
+        Ok(p) => p,
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
+    // Call the AI service
+    let messages = vec![ChatMessage::user(prompt)];
+    let options = ChatOptions {
+        temperature: Some(0.5),
+        max_tokens: Some(max_tokens),
+        top_p: None,
+    };
+
+    match provider.chat_completion(messages, options).await {
+        Ok(response) => {
+            let is_truncated = response.finish_reason
+                .as_ref()
+                .map(|r| *r == FinishReason::Length)
+                .unwrap_or(false);
+
+            Ok(ApiResponse::success(GenerateSecurityAnalysisResult {
+                analysis: response.content.trim().to_string(),
                 tokens_used: response.tokens_used,
                 is_truncated,
             }))

@@ -744,6 +744,7 @@ impl TemplateRow {
             "code_review" => TemplateCategory::CodeReview,
             "documentation" => TemplateCategory::Documentation,
             "release_notes" => TemplateCategory::ReleaseNotes,
+            "security_advisory" => TemplateCategory::SecurityAdvisory,
             "custom" => TemplateCategory::Custom,
             _ => TemplateCategory::Custom,
         };
@@ -800,6 +801,7 @@ fn template_category_to_string(category: &TemplateCategory) -> &'static str {
         TemplateCategory::CodeReview => "code_review",
         TemplateCategory::Documentation => "documentation",
         TemplateCategory::ReleaseNotes => "release_notes",
+        TemplateCategory::SecurityAdvisory => "security_advisory",
         TemplateCategory::Custom => "custom",
     }
 }

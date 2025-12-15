@@ -11,6 +11,7 @@ export type TemplateCategory =
   | 'code_review'
   | 'documentation'
   | 'release_notes'
+  | 'security_advisory'
   | 'custom';
 
 /** Commit message format types (for GitCommit category) */
@@ -55,6 +56,12 @@ export const TEMPLATE_CATEGORIES: CategoryInfo[] = [
     name: 'Release Notes',
     description: 'Generate release notes',
     variables: ['commits', 'version', 'previous_version'],
+  },
+  {
+    id: 'security_advisory',
+    name: 'Security Advisory',
+    description: 'Analyze security vulnerabilities',
+    variables: ['vulnerability_json', 'project_context', 'severity_summary'],
   },
   {
     id: 'custom',
@@ -349,4 +356,43 @@ export function getProviderInfo(providerId: AIProvider): ProviderInfo | undefine
 /** Check if provider requires API key */
 export function providerRequiresApiKey(providerId: AIProvider): boolean {
   return providerId === 'openai' || providerId === 'anthropic' || providerId === 'gemini';
+}
+
+// ============================================================================
+// Security Analysis Types (Security Advisory Feature)
+// ============================================================================
+
+/** Request to generate security analysis for a single vulnerability */
+export interface GenerateSecurityAnalysisRequest {
+  projectPath: string;
+  projectName: string;
+  packageManager: string;
+  vulnerability: unknown; // VulnItem from security.ts - use unknown to avoid circular dependency
+  /** Service ID (if not specified, use default) */
+  serviceId?: string;
+  /** Template ID (if not specified, use default security_advisory template) */
+  templateId?: string;
+}
+
+/** Request to generate security summary for all vulnerabilities */
+export interface GenerateSecuritySummaryRequest {
+  projectPath: string;
+  projectName: string;
+  packageManager: string;
+  vulnerabilities: unknown[]; // VulnItem[] from security.ts
+  summary: unknown; // VulnSummary from security.ts
+  /** Service ID (if not specified, use default) */
+  serviceId?: string;
+  /** Template ID (if not specified, use default security_advisory template) */
+  templateId?: string;
+}
+
+/** Result from AI security analysis generation */
+export interface GenerateSecurityAnalysisResult {
+  /** Generated analysis content (markdown) */
+  analysis: string;
+  /** Tokens used (if available) */
+  tokensUsed?: number;
+  /** Whether the response was truncated due to token limit */
+  isTruncated: boolean;
 }
