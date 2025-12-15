@@ -292,12 +292,12 @@ function App() {
     {
       id: 'refresh',
       key: getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']),
-      description: 'Refresh data',
+      description: 'Reload projects & workflows',
       category: 'General',
       enabled: isShortcutEnabled('refresh'),
       action: () => {
         setDataVersion((prev) => prev + 1);
-        showShortcutToast('Refreshed', getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']));
+        showShortcutToast('Reloaded', getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']));
       },
     },
     {
@@ -431,7 +431,7 @@ function App() {
   ], [activeTab, showShortcutToast, runningProcessInfo.count, handleKillAllNodeProcesses, getEffectiveKey, isShortcutEnabled, openSettings]);
 
   const displayShortcuts: KeyboardShortcut[] = useMemo(() => [
-    { id: 'refresh', key: DEFAULT_SHORTCUT_KEYS['refresh'], description: 'Refresh data', category: 'General', action: () => {} },
+    { id: 'refresh', key: DEFAULT_SHORTCUT_KEYS['refresh'], description: 'Reload projects & workflows', category: 'General', action: () => {} },
     { id: 'new', key: DEFAULT_SHORTCUT_KEYS['new'], description: 'New item (context-aware)', category: 'General', action: () => {} },
     { id: 'save', key: DEFAULT_SHORTCUT_KEYS['save'], description: 'Save current workflow', category: 'General', action: () => {} },
     { id: 'search', key: DEFAULT_SHORTCUT_KEYS['search'], description: 'Focus search', category: 'General', action: () => {} },

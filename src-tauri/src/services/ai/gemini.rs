@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use super::{AIError, AIProvider, AIResult};
 use crate::models::ai::{
-    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, ModelInfo,
+    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, FinishReason, ModelInfo,
 };
 
 /// Gemini Provider
@@ -83,8 +83,10 @@ struct GeminiResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct GeminiCandidate {
     content: GeminiContent,
+    finish_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -243,21 +245,34 @@ impl AIProvider for GeminiProvider {
 
         let gemini_response: GeminiResponse = serde_json::from_str(&body)?;
 
-        let content = gemini_response
-            .candidates
-            .and_then(|c| c.into_iter().next())
-            .and_then(|c| c.content.parts.into_iter().next())
-            .map(|p| p.text)
+        let first_candidate = gemini_response.candidates.and_then(|c| c.into_iter().next());
+
+        let content = first_candidate
+            .as_ref()
+            .and_then(|c| c.content.parts.first())
+            .map(|p| p.text.clone())
             .unwrap_or_default();
 
         let tokens_used = gemini_response
             .usage_metadata
             .and_then(|u| u.total_token_count);
 
+        // Parse finish_reason from Gemini response
+        let finish_reason = first_candidate
+            .and_then(|c| c.finish_reason)
+            .map(|r| match r.as_str() {
+                "STOP" => FinishReason::Stop,
+                "MAX_TOKENS" => FinishReason::Length,
+                "SAFETY" => FinishReason::ContentFilter,
+                "RECITATION" => FinishReason::ContentFilter,
+                _ => FinishReason::Unknown,
+            });
+
         Ok(ChatResponse {
             content,
             tokens_used,
             model: self.config.model.clone(),
+            finish_reason,
         })
     }
 

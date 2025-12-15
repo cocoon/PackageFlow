@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use super::{AIError, AIProvider, AIResult};
 use crate::models::ai::{
-    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, ModelInfo,
+    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, FinishReason, ModelInfo,
 };
 
 /// LM Studio Provider
@@ -65,6 +65,7 @@ struct OpenAIChatResponse {
 #[derive(Debug, Deserialize)]
 struct OpenAIChoice {
     message: OpenAIResponseMessage,
+    finish_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -174,9 +175,9 @@ impl AIProvider for LMStudioProvider {
 
         let openai_response: OpenAIChatResponse = response.json().await?;
 
-        let content = openai_response
-            .choices
-            .first()
+        let first_choice = openai_response.choices.first();
+
+        let content = first_choice
             .map(|c| c.message.content.clone())
             .unwrap_or_default();
 
@@ -184,10 +185,21 @@ impl AIProvider for LMStudioProvider {
             .usage
             .and_then(|u| u.total_tokens);
 
+        // Parse finish_reason from OpenAI-compatible response
+        let finish_reason = first_choice
+            .and_then(|c| c.finish_reason.as_ref())
+            .map(|r| match r.as_str() {
+                "stop" => FinishReason::Stop,
+                "length" => FinishReason::Length,
+                "content_filter" => FinishReason::ContentFilter,
+                _ => FinishReason::Unknown,
+            });
+
         Ok(ChatResponse {
             content,
             tokens_used,
             model: openai_response.model,
+            finish_reason,
         })
     }
 

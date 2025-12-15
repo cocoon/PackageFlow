@@ -4,10 +4,12 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, RefreshCw, Loader2, FileCode, FilePlus, FileX, FileSymlink, Columns2, AlignJustify } from 'lucide-react';
+import { X, RefreshCw, Loader2, FileCode, FilePlus, FileX, FileSymlink, Columns2, AlignJustify, Sparkles } from 'lucide-react';
 import { useDiff, type DiffType } from '../../../hooks/useDiff';
+import { useAICodeReview } from '../../../hooks/useAIService';
 import { DiffUnifiedView } from './DiffUnifiedView';
 import { DiffSplitView } from './DiffSplitView';
+import { AIReviewDialog } from '../../ui/AIReviewDialog';
 import { cn } from '../../../lib/utils';
 import type { FileDiffStatus } from '../../../types/git';
 
@@ -43,6 +45,18 @@ export function GitDiffViewer({
   const [focusedHunkIndex, setFocusedHunkIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
   const scrollPositionRef = useRef<number>(0);
+
+  // AI Code Review state
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewContent, setReviewContent] = useState<string | null>(null);
+  const {
+    generate: generateReview,
+    isGenerating: isReviewGenerating,
+    error: reviewError,
+    tokensUsed: reviewTokensUsed,
+    isTruncated: reviewIsTruncated,
+    clearError: clearReviewError,
+  } = useAICodeReview({ projectPath });
 
   const { diff, isLoading, error, refetch } = useDiff({
     projectPath,
@@ -104,6 +118,13 @@ export function GitDiffViewer({
         return;
       }
 
+      // 'a' for AI Review
+      if (e.key === 'a' && !e.ctrlKey && !e.metaKey && !isReviewGenerating && !showReviewDialog) {
+        e.preventDefault();
+        handleAIReview();
+        return;
+      }
+
       // Navigation with n/p for hunks
       if (diff && diff.hunks.length > 0) {
         if (e.key === 'n') {
@@ -124,12 +145,28 @@ export function GitDiffViewer({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, diff, viewMode, handleViewModeToggle]);
+  }, [isOpen, onClose, diff, viewMode, handleViewModeToggle, isReviewGenerating, showReviewDialog]);
 
   const handleRefresh = useCallback(() => {
     refetch();
     onStagingChange?.();
   }, [refetch, onStagingChange]);
+
+  // AI Code Review handler
+  const handleAIReview = useCallback(async () => {
+    if (!diff || diff.isBinary || isReviewGenerating) return;
+
+    clearReviewError();
+    const review = await generateReview({
+      filePath,
+      staged: diffType === 'staged',
+    });
+
+    if (review) {
+      setReviewContent(review);
+      setShowReviewDialog(true);
+    }
+  }, [diff, filePath, diffType, generateReview, clearReviewError, isReviewGenerating]);
 
   // Get file icon based on status
   const getFileIcon = (status?: FileDiffStatus) => {
@@ -225,6 +262,25 @@ export function GitDiffViewer({
               </button>
             </div>
 
+            {/* AI Review Button */}
+            <button
+              onClick={handleAIReview}
+              disabled={isReviewGenerating || !diff || diff.isBinary}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-colors',
+                'bg-purple-600 hover:bg-purple-500 text-white',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              title="AI Code Review (a)"
+            >
+              {isReviewGenerating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              AI Review
+            </button>
+
             {/* Refresh Button */}
             <button
               onClick={handleRefresh}
@@ -295,10 +351,38 @@ export function GitDiffViewer({
             <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">v</kbd> Toggle View Mode
           </span>
           <span>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">a</kbd> AI Review
+          </span>
+          <span>
             <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">n</kbd> / <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">p</kbd> Navigate Hunks
           </span>
         </div>
+
+        {/* AI Review Error Toast */}
+        {reviewError && (
+          <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] flex items-center gap-2">
+            <span className="text-sm">{reviewError}</span>
+            <button
+              onClick={clearReviewError}
+              className="text-white/80 hover:text-white underline text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* AI Review Dialog */}
+      <AIReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        title="AI Code Review"
+        subtitle={filePath}
+        content={reviewContent || ''}
+        variant="code-review"
+        tokensUsed={reviewTokensUsed}
+        isTruncated={reviewIsTruncated}
+      />
     </div>
   );
 }

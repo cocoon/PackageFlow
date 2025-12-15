@@ -5,8 +5,9 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Loader2, ChevronDown, Sparkles, AlertCircle, X, Settings } from 'lucide-react';
-import { useAICommitMessage, useAIService } from '../../../hooks/useAIService';
+import { Check, Loader2, ChevronDown, Sparkles, AlertCircle, X, Settings, FileSearch } from 'lucide-react';
+import { useAICommitMessage, useAIService, useAIStagedReview } from '../../../hooks/useAIService';
+import { AIReviewDialog } from '../../ui/AIReviewDialog';
 
 interface GitCommitFormProps {
   /** Whether there are staged changes */
@@ -53,6 +54,11 @@ export function GitCommitForm({
   // AI commit message generation
   const aiCommit = useAICommitMessage({ projectPath });
 
+  // AI staged review
+  const aiReview = useAIStagedReview({ projectPath });
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewContent, setReviewContent] = useState<string | null>(null);
+
   // Check if AI service is configured
   const { defaultService, isLoadingServices } = useAIService({ autoLoad: true });
 
@@ -70,6 +76,17 @@ export function GitCommitForm({
       }, 0);
     }
   }, [hasStagedChanges, aiCommit]);
+
+  // Handle AI staged review
+  const handleAIReview = useCallback(async () => {
+    if (!hasStagedChanges) return;
+
+    const review = await aiReview.generate();
+    if (review) {
+      setReviewContent(review);
+      setShowReviewDialog(true);
+    }
+  }, [hasStagedChanges, aiReview]);
 
   // Handle commit submission
   const handleSubmit = useCallback(async () => {
@@ -197,22 +214,39 @@ export function GitCommitForm({
                 <span className="text-muted-foreground">Setup AI</span>
               </button>
             ) : (
-              // AI service configured - show generate button
-              <button
-                onClick={handleAIGenerate}
-                disabled={!hasStagedChanges || aiCommit.isGenerating || isLoadingServices}
-                title={!hasStagedChanges ? 'Stage files first' : 'Generate commit message with AI'}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors border border-purple-500/30"
-              >
-                {aiCommit.isGenerating ? (
-                  <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-                ) : (
-                  <Sparkles className="w-4 h-4 text-purple-400" />
-                )}
-                <span className="text-purple-400">
-                  {aiCommit.isGenerating ? 'Generating...' : 'AI Generate'}
-                </span>
-              </button>
+              // AI service configured - show generate and review buttons
+              <>
+                <button
+                  onClick={handleAIGenerate}
+                  disabled={!hasStagedChanges || aiCommit.isGenerating || isLoadingServices}
+                  title={!hasStagedChanges ? 'Stage files first' : 'Generate commit message with AI'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors border border-purple-500/30"
+                >
+                  {aiCommit.isGenerating ? (
+                    <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                  )}
+                  <span className="text-purple-400">
+                    {aiCommit.isGenerating ? 'Generating...' : 'AI Generate'}
+                  </span>
+                </button>
+                <button
+                  onClick={handleAIReview}
+                  disabled={!hasStagedChanges || aiReview.isGenerating || isLoadingServices}
+                  title={!hasStagedChanges ? 'Stage files first' : 'Review all staged changes with AI'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors border border-blue-500/30"
+                >
+                  {aiReview.isGenerating ? (
+                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                  ) : (
+                    <FileSearch className="w-4 h-4 text-blue-400" />
+                  )}
+                  <span className="text-blue-400">
+                    {aiReview.isGenerating ? 'Reviewing...' : 'AI Review'}
+                  </span>
+                </button>
+              </>
             )}
           </>
         )}
@@ -274,6 +308,31 @@ export function GitCommitForm({
           </kbd>
         </button>
       </div>
+
+      {/* AI Review Error Toast */}
+      {aiReview.error && (
+        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-[60] flex items-center gap-2">
+          <span className="text-sm">{aiReview.error}</span>
+          <button
+            onClick={aiReview.clearError}
+            className="text-white/80 hover:text-white underline text-sm"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* AI Review Dialog */}
+      <AIReviewDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        title="AI Code Review"
+        subtitle="All Staged Changes"
+        content={reviewContent || ''}
+        tokensUsed={aiReview.tokensUsed}
+        isTruncated={aiReview.isTruncated}
+        variant="staged-review"
+      />
     </div>
   );
 }

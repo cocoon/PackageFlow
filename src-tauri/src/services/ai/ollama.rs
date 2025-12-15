@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use super::{AIError, AIProvider, AIResult};
 use crate::models::ai::{
-    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, ModelInfo,
+    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, FinishReason, ModelInfo,
 };
 
 /// Ollama Provider
@@ -66,6 +66,8 @@ struct OllamaChatResponse {
     message: OllamaResponseMessage,
     #[serde(default)]
     eval_count: Option<u32>,
+    #[serde(default)]
+    done_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -181,10 +183,18 @@ impl AIProvider for OllamaProvider {
 
         let ollama_response: OllamaChatResponse = response.json().await?;
 
+        // Parse done_reason from Ollama response
+        let finish_reason = ollama_response.done_reason.map(|r| match r.as_str() {
+            "stop" => FinishReason::Stop,
+            "length" => FinishReason::Length,
+            _ => FinishReason::Unknown,
+        });
+
         Ok(ChatResponse {
             content: ollama_response.message.content,
             tokens_used: ollama_response.eval_count,
             model: self.config.model.clone(),
+            finish_reason,
         })
     }
 

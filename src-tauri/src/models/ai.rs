@@ -56,6 +56,29 @@ impl AIProvider {
             AIProvider::LMStudio => "local-model",
         }
     }
+
+    /// Returns the typical context window size for this provider (in tokens)
+    /// Used for dynamic max_tokens calculation
+    pub fn context_window(&self) -> u32 {
+        match self {
+            AIProvider::OpenAI => 128_000,     // GPT-4o supports 128K
+            AIProvider::Anthropic => 200_000,  // Claude 3 supports 200K
+            AIProvider::Gemini => 1_000_000,   // Gemini 1.5 supports 1M
+            AIProvider::Ollama => 8_000,       // Conservative default for local models
+            AIProvider::LMStudio => 8_000,     // Conservative default for local models
+        }
+    }
+
+    /// Returns the maximum output tokens recommended for this provider
+    pub fn max_output_tokens(&self) -> u32 {
+        match self {
+            AIProvider::OpenAI => 16_384,      // GPT-4o max output
+            AIProvider::Anthropic => 8_192,    // Claude 3 max output
+            AIProvider::Gemini => 8_192,       // Gemini typical max
+            AIProvider::Ollama => 4_096,       // Conservative for local
+            AIProvider::LMStudio => 4_096,     // Conservative for local
+        }
+    }
 }
 
 /// Template category for different AI use cases
@@ -483,6 +506,22 @@ pub struct ChatOptions {
     pub top_p: Option<f32>,
 }
 
+/// Reason why the AI stopped generating
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FinishReason {
+    /// Normal completion
+    Stop,
+    /// Hit max_tokens limit (response may be truncated)
+    Length,
+    /// Content filtered
+    ContentFilter,
+    /// Tool/function call
+    ToolCalls,
+    /// Unknown or not provided
+    Unknown,
+}
+
 /// Response from chat completion
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -493,6 +532,9 @@ pub struct ChatResponse {
     pub tokens_used: Option<u32>,
     /// Model used
     pub model: String,
+    /// Why the model stopped generating
+    #[serde(default)]
+    pub finish_reason: Option<FinishReason>,
 }
 
 /// Result from AI commit message generation
@@ -587,6 +629,45 @@ pub struct GenerateCommitMessageRequest {
     /// Service ID (if not specified, use default)
     pub service_id: Option<String>,
     /// Template ID (if not specified, use default)
+    pub template_id: Option<String>,
+}
+
+/// Request to generate a code review
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateCodeReviewRequest {
+    pub project_path: String,
+    /// File path relative to repository root
+    pub file_path: String,
+    /// Whether to review staged or unstaged diff
+    pub staged: bool,
+    /// Service ID (if not specified, use default)
+    pub service_id: Option<String>,
+    /// Template ID (if not specified, use default code review template)
+    pub template_id: Option<String>,
+}
+
+/// Result from AI code review generation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateCodeReviewResult {
+    /// Generated review content (markdown)
+    pub review: String,
+    /// Tokens used (if available)
+    pub tokens_used: Option<u32>,
+    /// Whether the response was truncated due to token limit
+    #[serde(default)]
+    pub is_truncated: bool,
+}
+
+/// Request to generate a review of all staged changes
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GenerateStagedReviewRequest {
+    pub project_path: String,
+    /// Service ID (if not specified, use default)
+    pub service_id: Option<String>,
+    /// Template ID (if not specified, use default code review template)
     pub template_id: Option<String>,
 }
 

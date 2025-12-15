@@ -79,7 +79,6 @@ export const AppearanceSettingsPanel: React.FC = () => {
             label="System"
             isActive={themeMode === 'system'}
             onClick={() => handleThemeModeChange('system')}
-            subtitle={themeMode === 'system' ? `(${resolvedTheme})` : undefined}
           />
         </div>
       </SettingSection>

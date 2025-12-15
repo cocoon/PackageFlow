@@ -2075,6 +2075,9 @@ import type {
   AddTemplateRequest,
   UpdateTemplateRequest,
   GenerateCommitMessageRequest,
+  GenerateCodeReviewRequest,
+  GenerateCodeReviewResult,
+  GenerateStagedReviewRequest,
   UpdateProjectSettingsRequest,
   ProbeModelsRequest,
 } from '../types/ai';
@@ -2092,6 +2095,9 @@ export type {
   AddTemplateRequest,
   UpdateTemplateRequest,
   GenerateCommitMessageRequest,
+  GenerateCodeReviewRequest,
+  GenerateCodeReviewResult,
+  GenerateStagedReviewRequest,
   UpdateProjectSettingsRequest,
   ProbeModelsRequest,
 };
@@ -2183,6 +2189,18 @@ export const aiAPI = {
   /** Generate a commit message using AI */
   generateCommitMessage: (request: GenerateCommitMessageRequest): Promise<AIApiResponse<GenerateResult>> =>
     invoke<AIApiResponse<GenerateResult>>('ai_generate_commit_message', { request }),
+
+  // ============================================================================
+  // Code Review Generation
+  // ============================================================================
+
+  /** Generate a code review using AI */
+  generateCodeReview: (request: GenerateCodeReviewRequest): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
+    invoke<AIApiResponse<GenerateCodeReviewResult>>('ai_generate_code_review', { request }),
+
+  /** Generate a code review for all staged changes */
+  generateStagedReview: (request: GenerateStagedReviewRequest): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
+    invoke<AIApiResponse<GenerateCodeReviewResult>>('ai_generate_staged_review', { request }),
 
   // ============================================================================
   // Diagnostic

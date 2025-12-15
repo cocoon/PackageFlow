@@ -10,7 +10,8 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::models::ai::{
     AIProvider, AIServiceConfig, AddServiceRequest, AddTemplateRequest, ChatMessage, ChatOptions,
-    GenerateCommitMessageRequest, GenerateResult, ModelInfo, PromptTemplate, ProjectAISettings,
+    FinishReason, GenerateCodeReviewRequest, GenerateCodeReviewResult, GenerateCommitMessageRequest,
+    GenerateResult, GenerateStagedReviewRequest, ModelInfo, PromptTemplate, ProjectAISettings,
     TemplateCategory, TestConnectionResult, UpdateProjectSettingsRequest, UpdateServiceRequest,
     UpdateTemplateRequest,
 };
@@ -667,6 +668,300 @@ pub async fn ai_generate_commit_message(
             Ok(ApiResponse::success(GenerateResult {
                 message,
                 tokens_used: response.tokens_used,
+            }))
+        }
+        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+// ============================================================================
+// Code Review Generation
+// ============================================================================
+
+/// Get raw diff text for a specific file (staged or unstaged)
+fn get_file_diff_text(
+    repo_path: &Path,
+    file_path: &str,
+    staged: bool,
+) -> Result<String, String> {
+    use crate::utils::path_resolver;
+
+    let args: Vec<&str> = if staged {
+        vec!["diff", "--cached", "--", file_path]
+    } else {
+        vec!["diff", "--", file_path]
+    };
+
+    let output = path_resolver::create_command("git")
+        .args(&args)
+        .current_dir(repo_path)
+        .output()
+        .map_err(|e| format!("Failed to execute git diff: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git diff failed: {}", stderr));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+/// Estimate the number of tokens in a text string
+/// Using a rough approximation: ~4 characters per token for English/code
+fn estimate_tokens(text: &str) -> u32 {
+    (text.len() as f64 / 4.0).ceil() as u32
+}
+
+/// Calculate appropriate max_tokens for output based on input size and provider limits
+fn calculate_max_output_tokens(
+    prompt: &str,
+    provider: &AIProvider,
+    min_output: u32,
+    max_output: u32,
+) -> u32 {
+    let estimated_input = estimate_tokens(prompt);
+    let context_window = provider.context_window();
+    let provider_max_output = provider.max_output_tokens();
+
+    // Calculate available space for output
+    // Leave 10% buffer for safety
+    let available = context_window
+        .saturating_sub(estimated_input)
+        .saturating_mul(90) / 100;
+
+    // Clamp between min_output and the smaller of max_output or provider limit
+    let upper_limit = max_output.min(provider_max_output);
+    available.clamp(min_output, upper_limit)
+}
+
+/// Generate a code review using AI
+#[tauri::command]
+pub async fn ai_generate_code_review(
+    app: AppHandle,
+    request: GenerateCodeReviewRequest,
+) -> Result<ApiResponse<GenerateCodeReviewResult>, String> {
+    let repo = get_ai_repo(&app);
+    let keychain = AIKeychain::new(app);
+
+    // Get the file diff
+    let diff_text = match get_file_diff_text(
+        Path::new(&request.project_path),
+        &request.file_path,
+        request.staged,
+    ) {
+        Ok(diff) => diff,
+        Err(e) => return Ok(ApiResponse::error(e)),
+    };
+
+    if diff_text.is_empty() {
+        return Ok(ApiResponse::error("No changes to review for this file"));
+    }
+
+    // Get project settings for preferred service/template
+    let project_settings = repo.get_project_settings(&request.project_path)
+        .unwrap_or_default();
+
+    // Determine which service to use
+    let service_id = request.service_id
+        .or(project_settings.preferred_service_id);
+
+    let service = if let Some(id) = service_id {
+        match repo.get_service(&id) {
+            Ok(Some(s)) if s.is_enabled => s,
+            Ok(Some(_)) => return Ok(ApiResponse::error("The specified AI service is disabled")),
+            Ok(None) => return Ok(ApiResponse::error(format!("AI service not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_service() {
+            Ok(Some(s)) => s,
+            Ok(None) => return Ok(ApiResponse::error("No default AI service configured")),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Determine which template to use - default to CodeReview category
+    let template = if let Some(id) = request.template_id {
+        match repo.get_template(&id) {
+            Ok(Some(t)) => t,
+            Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_template(Some(&TemplateCategory::CodeReview)) {
+            Ok(Some(t)) => t,
+            Ok(None) => PromptTemplate::builtin_code_review(),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Get API key
+    let api_key = match keychain.get_api_key(&service.id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service.id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
+
+    // Prepare the prompt with variables
+    let mut vars = std::collections::HashMap::new();
+    vars.insert("diff".to_string(), diff_text);
+    vars.insert("file_path".to_string(), request.file_path);
+    let prompt = template.render(&vars);
+
+    // Calculate dynamic max_tokens based on input size and provider limits
+    let max_tokens = calculate_max_output_tokens(
+        &prompt,
+        &service.provider,
+        2000,  // minimum output tokens
+        8000,  // maximum output tokens for code review
+    );
+
+    // Create provider (after calculating max_tokens since it consumes service)
+    let provider = match create_provider(service, api_key) {
+        Ok(p) => p,
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
+    // Call the AI service
+    let messages = vec![ChatMessage::user(prompt)];
+    let options = ChatOptions {
+        temperature: Some(0.5),
+        max_tokens: Some(max_tokens),
+        top_p: None,
+    };
+
+    match provider.chat_completion(messages, options).await {
+        Ok(response) => {
+            // Check if response was truncated due to token limit
+            let is_truncated = response.finish_reason
+                .as_ref()
+                .map(|r| *r == FinishReason::Length)
+                .unwrap_or(false);
+
+            Ok(ApiResponse::success(GenerateCodeReviewResult {
+                review: response.content.trim().to_string(),
+                tokens_used: response.tokens_used,
+                is_truncated,
+            }))
+        }
+        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+/// Generate a code review for all staged changes
+#[tauri::command]
+pub async fn ai_generate_staged_review(
+    app: AppHandle,
+    request: GenerateStagedReviewRequest,
+) -> Result<ApiResponse<GenerateCodeReviewResult>, String> {
+    let repo = get_ai_repo(&app);
+    let keychain = AIKeychain::new(app);
+
+    // Get all staged changes using the existing diff utility
+    let diff_result = match get_staged_diff(Path::new(&request.project_path)) {
+        Ok(diff) => diff,
+        Err(AIError::NoStagedChanges) => {
+            return Ok(ApiResponse::error("No staged changes to review"));
+        }
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
+    // Get project settings for preferred service/template
+    let project_settings = repo.get_project_settings(&request.project_path)
+        .unwrap_or_default();
+
+    // Determine which service to use
+    let service_id = request.service_id
+        .or(project_settings.preferred_service_id);
+
+    let service = if let Some(id) = service_id {
+        match repo.get_service(&id) {
+            Ok(Some(s)) if s.is_enabled => s,
+            Ok(Some(_)) => return Ok(ApiResponse::error("The specified AI service is disabled")),
+            Ok(None) => return Ok(ApiResponse::error(format!("AI service not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_service() {
+            Ok(Some(s)) => s,
+            Ok(None) => return Ok(ApiResponse::error("No default AI service configured")),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Determine which template to use - default to CodeReview category
+    let template = if let Some(id) = request.template_id {
+        match repo.get_template(&id) {
+            Ok(Some(t)) => t,
+            Ok(None) => return Ok(ApiResponse::error(format!("Template not found: {}", id))),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    } else {
+        match repo.get_default_template(Some(&TemplateCategory::CodeReview)) {
+            Ok(Some(t)) => t,
+            Ok(None) => PromptTemplate::builtin_code_review(),
+            Err(e) => return Ok(ApiResponse::error(e)),
+        }
+    };
+
+    // Get API key
+    let api_key = match keychain.get_api_key(&service.id) {
+        Ok(key) => key,
+        Err(e) => {
+            log::error!("Failed to get API key for service {}: {}", service.id, e);
+            return Ok(ApiResponse::error(format!("Failed to retrieve API key: {}", e)));
+        }
+    };
+
+    // Prepare the prompt with variables
+    // For staged review, we use "all staged files" as the file_path context
+    let mut vars = std::collections::HashMap::new();
+    vars.insert("diff".to_string(), diff_result.diff);
+    vars.insert("file_path".to_string(), format!(
+        "{} files changed (+{} -{})",
+        diff_result.files_changed,
+        diff_result.insertions,
+        diff_result.deletions
+    ));
+    let prompt = template.render(&vars);
+
+    // Calculate dynamic max_tokens based on input size and provider limits
+    // Staged reviews may need more output for multiple files
+    let max_tokens = calculate_max_output_tokens(
+        &prompt,
+        &service.provider,
+        2000,   // minimum output tokens
+        12000,  // higher maximum for staged review (multiple files)
+    );
+
+    // Create provider (after calculating max_tokens since it consumes service)
+    let provider = match create_provider(service, api_key) {
+        Ok(p) => p,
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
+    // Call the AI service
+    let messages = vec![ChatMessage::user(prompt)];
+    let options = ChatOptions {
+        temperature: Some(0.5),
+        max_tokens: Some(max_tokens),
+        top_p: None,
+    };
+
+    match provider.chat_completion(messages, options).await {
+        Ok(response) => {
+            // Check if response was truncated due to token limit
+            let is_truncated = response.finish_reason
+                .as_ref()
+                .map(|r| *r == FinishReason::Length)
+                .unwrap_or(false);
+
+            Ok(ApiResponse::success(GenerateCodeReviewResult {
+                review: response.content.trim().to_string(),
+                tokens_used: response.tokens_used,
+                is_truncated,
             }))
         }
         Err(e) => Ok(ApiResponse::error(e.to_string())),

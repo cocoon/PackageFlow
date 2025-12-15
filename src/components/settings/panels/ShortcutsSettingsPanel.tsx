@@ -19,7 +19,7 @@ import { formatShortcutKey, type KeyboardShortcut } from '../../../hooks/useKeyb
 
 // Default shortcuts - these match App.tsx DEFAULT_SHORTCUT_KEYS
 const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
-  { id: 'refresh', key: 'cmd+r', description: 'Refresh data', category: 'General', action: () => {} },
+  { id: 'refresh', key: 'cmd+r', description: 'Reload projects & workflows', category: 'General', action: () => {} },
   { id: 'new', key: 'cmd+n', description: 'New item (context-aware)', category: 'General', action: () => {} },
   { id: 'save', key: 'cmd+s', description: 'Save current workflow', category: 'General', action: () => {} },
   { id: 'search', key: 'cmd+f', description: 'Focus search', category: 'General', action: () => {} },

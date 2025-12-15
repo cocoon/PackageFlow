@@ -261,7 +261,7 @@ const MIGRATIONS: &[Migration] = &[
     },
     Migration {
         version: 4,
-        description: "Add AI API keys and app settings tables",
+        description: "Add AI API keys table",
         up: r#"
             -- AI API keys (encrypted)
             CREATE TABLE IF NOT EXISTS ai_api_keys (
@@ -272,12 +272,8 @@ const MIGRATIONS: &[Migration] = &[
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
 
-            -- App settings (for notification preferences, etc.)
-            CREATE TABLE IF NOT EXISTS app_settings (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL,
-                updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-            );
+            -- Drop unused app_settings table if exists (was redundant with settings table)
+            DROP TABLE IF EXISTS app_settings;
         "#,
     },
     Migration {

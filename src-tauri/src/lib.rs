@@ -327,6 +327,8 @@ pub fn run() {
             ai::ai_get_project_settings,
             ai::ai_update_project_settings,
             ai::ai_generate_commit_message,
+            ai::ai_generate_code_review,
+            ai::ai_generate_staged_review,
             ai::ai_store_api_key,
             ai::ai_check_api_key_status,
             // MCP Server Integration

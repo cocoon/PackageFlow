@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.556.0",
+    "marked": "^17.0.1",
     "path-browserify": "^1.0.1",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.1",
@@ -46,7 +47,9 @@
     "tauri-pty": "^0.1.1"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@tauri-apps/cli": "^2",
+    "@types/marked": "^6.0.0",
     "@types/path-browserify": "^1.0.3",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

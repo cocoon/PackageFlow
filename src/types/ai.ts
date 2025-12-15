@@ -232,6 +232,38 @@ export interface GenerateCommitMessageRequest {
   templateId?: string;
 }
 
+/** Request to generate a code review */
+export interface GenerateCodeReviewRequest {
+  projectPath: string;
+  /** File path relative to repository root */
+  filePath: string;
+  /** Whether to review staged or unstaged diff */
+  staged: boolean;
+  /** Service ID (if not specified, use default) */
+  serviceId?: string;
+  /** Template ID (if not specified, use default code review template) */
+  templateId?: string;
+}
+
+/** Result from AI code review generation */
+export interface GenerateCodeReviewResult {
+  /** Generated review content (markdown) */
+  review: string;
+  /** Tokens used (if available) */
+  tokensUsed?: number;
+  /** Whether the response was truncated due to token limit */
+  isTruncated?: boolean;
+}
+
+/** Request to generate a review of all staged changes */
+export interface GenerateStagedReviewRequest {
+  projectPath: string;
+  /** Service ID (if not specified, use default) */
+  serviceId?: string;
+  /** Template ID (if not specified, use default code review template) */
+  templateId?: string;
+}
+
 /** Request to update project AI settings */
 export interface UpdateProjectSettingsRequest {
   projectPath: string;

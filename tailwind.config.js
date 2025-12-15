@@ -1,4 +1,5 @@
 import tailwindcssAnimate from 'tailwindcss-animate';
+import tailwindcssTypography from '@tailwindcss/typography';
 import colors from 'tailwindcss/colors';
 
 export default {
@@ -86,5 +87,5 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [tailwindcssAnimate, tailwindcssTypography],
 }

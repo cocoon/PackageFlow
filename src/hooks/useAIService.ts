@@ -18,6 +18,8 @@ import type {
   AddTemplateRequest,
   UpdateTemplateRequest,
   GenerateCommitMessageRequest,
+  GenerateCodeReviewRequest,
+  GenerateStagedReviewRequest,
   ProjectAISettings,
   UpdateProjectSettingsRequest,
   ProbeModelsRequest,
@@ -618,6 +620,207 @@ export function useAICommitMessage(options: UseAICommitMessageOptions): UseAICom
     isGenerating,
     error,
     tokensUsed,
+    clearError,
+  };
+}
+
+// ============================================================================
+// Simplified Hook for Code Review Generation
+// ============================================================================
+
+export interface UseAICodeReviewOptions {
+  projectPath: string;
+}
+
+export interface UseAICodeReviewResult {
+  /** Generate a code review for a file */
+  generate: (options: {
+    filePath: string;
+    staged: boolean;
+    serviceId?: string;
+    templateId?: string;
+  }) => Promise<string | null>;
+  /** Whether generation is in progress */
+  isGenerating: boolean;
+  /** Error message if generation failed */
+  error: string | null;
+  /** Number of tokens used in the last generation */
+  tokensUsed: number | null;
+  /** Whether the last response was truncated */
+  isTruncated: boolean;
+  /** Clear the current error */
+  clearError: () => void;
+}
+
+/**
+ * Hook for AI code review generation.
+ * Use this to generate code reviews for file diffs.
+ */
+export function useAICodeReview(options: UseAICodeReviewOptions): UseAICodeReviewResult {
+  const { projectPath } = options;
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tokensUsed, setTokensUsed] = useState<number | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const generate = useCallback(async (
+    genOptions: {
+      filePath: string;
+      staged: boolean;
+      serviceId?: string;
+      templateId?: string;
+    }
+  ): Promise<string | null> => {
+    if (!projectPath) {
+      setError('Project path is required');
+      return null;
+    }
+
+    if (!genOptions.filePath) {
+      setError('File path is required');
+      return null;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    setTokensUsed(null);
+    setIsTruncated(false);
+
+    try {
+      const request: GenerateCodeReviewRequest = {
+        projectPath,
+        filePath: genOptions.filePath,
+        staged: genOptions.staged,
+        serviceId: genOptions.serviceId,
+        templateId: genOptions.templateId,
+      };
+
+      const response = await aiAPI.generateCodeReview(request);
+
+      if (response.success && response.data) {
+        setTokensUsed(response.data.tokensUsed ?? null);
+        setIsTruncated(response.data.isTruncated ?? false);
+        return response.data.review;
+      } else {
+        const errorMsg = response.error || 'Failed to generate code review';
+        setError(errorMsg);
+        return null;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error generating code review';
+      setError(message);
+      console.error('Generate code review error:', err);
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [projectPath]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    generate,
+    isGenerating,
+    error,
+    tokensUsed,
+    isTruncated,
+    clearError,
+  };
+}
+
+// ============================================================================
+// Simplified Hook for Staged Review Generation
+// ============================================================================
+
+export interface UseAIStagedReviewOptions {
+  projectPath: string;
+}
+
+export interface UseAIStagedReviewResult {
+  /** Generate a code review for all staged changes */
+  generate: (options?: {
+    serviceId?: string;
+    templateId?: string;
+  }) => Promise<string | null>;
+  /** Whether generation is in progress */
+  isGenerating: boolean;
+  /** Error message if generation failed */
+  error: string | null;
+  /** Number of tokens used in the last generation */
+  tokensUsed: number | null;
+  /** Whether the last response was truncated */
+  isTruncated: boolean;
+  /** Clear the current error */
+  clearError: () => void;
+}
+
+/**
+ * Hook for AI staged review generation.
+ * Use this to generate code reviews for all staged changes before committing.
+ */
+export function useAIStagedReview(options: UseAIStagedReviewOptions): UseAIStagedReviewResult {
+  const { projectPath } = options;
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tokensUsed, setTokensUsed] = useState<number | null>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const generate = useCallback(async (
+    genOptions?: {
+      serviceId?: string;
+      templateId?: string;
+    }
+  ): Promise<string | null> => {
+    if (!projectPath) {
+      setError('Project path is required');
+      return null;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+    setTokensUsed(null);
+    setIsTruncated(false);
+
+    try {
+      const request: GenerateStagedReviewRequest = {
+        projectPath,
+        serviceId: genOptions?.serviceId,
+        templateId: genOptions?.templateId,
+      };
+
+      const response = await aiAPI.generateStagedReview(request);
+
+      if (response.success && response.data) {
+        setTokensUsed(response.data.tokensUsed ?? null);
+        setIsTruncated(response.data.isTruncated ?? false);
+        return response.data.review;
+      } else {
+        const errorMsg = response.error || 'Failed to generate staged review';
+        setError(errorMsg);
+        return null;
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error generating staged review';
+      setError(message);
+      console.error('Generate staged review error:', err);
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [projectPath]);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return {
+    generate,
+    isGenerating,
+    error,
+    tokensUsed,
+    isTruncated,
     clearError,
   };
 }

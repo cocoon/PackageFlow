@@ -2120,14 +2120,17 @@ impl PackageFlowMcp {
         let db_path = get_database_path()?;
         let db = Database::new(db_path)?;
 
-        // Convert output lines to JSON format matching ExecutionHistoryItem.output
+        // Convert output lines to JSON format matching WorkflowOutputLine interface
+        // Frontend expects: { nodeId, nodeName, content, stream, timestamp }
         let output_json: Vec<serde_json::Value> = output_lines
             .iter()
             .map(|line| {
                 serde_json::json!({
-                    "timestamp": chrono::Utc::now().to_rfc3339(),
-                    "text": line,
-                    "stream": "stdout"
+                    "nodeId": "mcp",
+                    "nodeName": "MCP Execution",
+                    "content": line,
+                    "stream": "stdout",
+                    "timestamp": chrono::Utc::now().to_rfc3339()
                 })
             })
             .collect();

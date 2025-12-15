@@ -12,7 +12,7 @@ use std::time::Instant;
 
 use super::{AIError, AIProvider, AIResult};
 use crate::models::ai::{
-    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, ModelInfo,
+    AIServiceConfig, ChatMessage, ChatOptions, ChatResponse, FinishReason, ModelInfo,
 };
 
 /// Anthropic API version header value
@@ -80,6 +80,7 @@ struct AnthropicMessagesResponse {
     content: Vec<AnthropicContent>,
     usage: Option<AnthropicUsage>,
     model: String,
+    stop_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -233,10 +234,20 @@ impl AIProvider for AnthropicProvider {
                 u.input_tokens.unwrap_or(0) + u.output_tokens.unwrap_or(0)
             });
 
+        // Parse stop_reason from Anthropic response
+        let finish_reason = anthropic_response.stop_reason.map(|r| match r.as_str() {
+            "end_turn" => FinishReason::Stop,
+            "stop_sequence" => FinishReason::Stop,
+            "max_tokens" => FinishReason::Length,
+            "tool_use" => FinishReason::ToolCalls,
+            _ => FinishReason::Unknown,
+        });
+
         Ok(ChatResponse {
             content,
             tokens_used,
             model: anthropic_response.model,
+            finish_reason,
         })
     }
 
