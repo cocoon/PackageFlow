@@ -18,6 +18,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
+import { Button } from '../../ui/Button';
 import type {
   PlatformType,
   DeployAccount,

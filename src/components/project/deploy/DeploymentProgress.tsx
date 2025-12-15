@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { deployEvents } from '../../../lib/tauri-api';
 import type { Deployment, DeploymentStatus, DeploymentProgressEvent } from '../../../types/deploy';
+import { buttonVariants } from '../../ui/Button';
 
 interface DeploymentProgressProps {
   deployment: Deployment;
@@ -243,7 +244,7 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
             href={deployment.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-2 flex shrink-0 items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+            className={buttonVariants({ variant: 'success', size: 'sm', className: 'ml-2 gap-1.5' })}
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Open Site

@@ -8,7 +8,6 @@ import { ExternalLink, HardDrive } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { settingsAPI } from '../../../lib/tauri-api';
 import type { StorePathInfo } from '../../../types/tauri';
-import { cn } from '../../../lib/utils';
 
 export const StorageSettingsPanel: React.FC = () => {
   const [storePathInfo, setStorePathInfo] = useState<StorePathInfo | null>(null);

@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react';
 import { GitBranch, Code2, FolderOpen, Trash2, ChevronDown, ArrowDownToLine, RefreshCw, Archive, Bookmark, MoreHorizontal } from 'lucide-react';
 import type { Worktree, WorktreeStatus, EditorDefinition } from '../../lib/tauri-api';
 import type { WorktreeSessionStatus } from '../../types/worktree-sessions';
+import { Button } from '../ui/Button';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '../ui/ContextMenu';
 import { Dropdown, DropdownItem, DropdownSection, DropdownSeparator } from '../ui/Dropdown';
 import { WorktreeStatusBadge } from './WorktreeStatusBadge';

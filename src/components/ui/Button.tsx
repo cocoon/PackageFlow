@@ -13,9 +13,9 @@ const buttonVariants = cva(
         // Destructive action - red theme
         destructive:
           'bg-red-600 text-white shadow-sm hover:bg-red-500 active:bg-red-700 dark:bg-red-600 dark:hover:bg-red-500',
-        // Success action - green theme with translucent style
+        // Success action - green theme (solid)
         success:
-          'bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30 hover:text-green-300 active:bg-green-600/40 dark:bg-green-600/20 dark:text-green-400 dark:border-green-500/30 dark:hover:bg-green-600/30',
+          'bg-green-600 text-white shadow-sm hover:bg-green-500 active:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500',
         // Warning action - amber theme
         warning:
           'bg-amber-500 text-white shadow-sm hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-400',

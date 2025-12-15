@@ -6,7 +6,6 @@
 import React from 'react';
 import { Download, Upload, ArrowLeftRight } from 'lucide-react';
 import { Button } from '../../ui/Button';
-import { cn } from '../../../lib/utils';
 
 // Keyboard shortcut display helper
 const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;

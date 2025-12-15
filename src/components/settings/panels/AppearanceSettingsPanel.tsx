@@ -7,7 +7,6 @@ import React, { useCallback } from 'react';
 import { Palette, Sun, Moon, Monitor, FolderTree, Sparkles } from 'lucide-react';
 import { useSettings } from '../../../contexts/SettingsContext';
 import { useTheme, type ThemeMode } from '../../../contexts/ThemeContext';
-import { Button } from '../../ui/Button';
 import { Toggle } from '../../ui/Toggle';
 import { SettingSection } from '../ui/SettingSection';
 import { SettingRow } from '../ui/SettingRow';

@@ -21,7 +21,6 @@ import {
   DialogFooter,
 } from '../../ui/Dialog';
 import { Button } from '../../ui/Button';
-import { cn } from '../../../lib/utils';
 import type { GitHubWorkflowResult } from '../../../types/deploy';
 
 interface GitHubPagesSetupDialogProps {

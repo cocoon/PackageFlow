@@ -291,22 +291,26 @@ function LabeledSelect({
   value,
   options,
   onChange,
+  width = 'w-[85px]',
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  width?: string;
 }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-[11px] text-muted-foreground whitespace-nowrap">{label}:</span>
-      <Select
-        value={value}
-        onValueChange={onChange}
-        options={options}
-        size="sm"
-        className="h-6 min-w-[70px] text-xs"
-      />
+      {/* Wrapper with min-width for dropdown panel */}
+      <div className={cn(width, '[&_[role=listbox]]:min-w-[140px]')}>
+        <Select
+          value={value}
+          onValueChange={onChange}
+          options={options}
+          size="sm"
+        />
+      </div>
     </div>
   );
 }
@@ -710,6 +714,7 @@ export function DeploymentHistory({
                 { value: 'cancelled', label: 'Cancelled' },
               ]}
               onChange={(v) => setFilterStatus(v as FilterStatus)}
+              width="w-[95px]"
             />
 
             {/* Platform Filter (only show if multiple platforms) */}
@@ -722,6 +727,7 @@ export function DeploymentHistory({
                   ...availablePlatforms.map((p) => ({ value: p, label: getPlatformName(p) })),
                 ]}
                 onChange={(v) => setFilterPlatform(v as FilterPlatform)}
+                width="w-[95px]"
               />
             )}
 
@@ -738,6 +744,7 @@ export function DeploymentHistory({
                 { value: 'deployTime', label: 'Time' },
               ]}
               onChange={(v) => setSortBy(v as SortBy)}
+              width="w-[75px]"
             />
 
             {/* Sort Order Toggle */}
