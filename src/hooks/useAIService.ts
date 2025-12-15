@@ -19,6 +19,7 @@ import type {
   GenerateCommitMessageRequest,
   ProjectAISettings,
   UpdateProjectSettingsRequest,
+  ProbeModelsRequest,
 } from '../types/ai';
 
 // ============================================================================
@@ -44,6 +45,7 @@ export interface UseAIServiceResult {
   setDefaultService: (id: string) => Promise<boolean>;
   testConnection: (id: string) => Promise<TestConnectionResult | null>;
   listModels: (serviceId: string) => Promise<ModelInfo[]>;
+  probeModels: (request: ProbeModelsRequest) => Promise<ModelInfo[]>;
 
   // Templates
   templates: PromptTemplate[];
@@ -227,6 +229,20 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
       }
     } catch (err) {
       console.error('List models error:', err);
+      return [];
+    }
+  }, []);
+
+  const probeModels = useCallback(async (request: ProbeModelsRequest): Promise<ModelInfo[]> => {
+    try {
+      const response = await aiAPI.probeModels(request);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      console.error('Probe models error:', response.error);
+      return [];
+    } catch (err) {
+      console.error('Probe models error:', err);
       return [];
     }
   }, []);
@@ -481,6 +497,7 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
     setDefaultService: setDefaultServiceHandler,
     testConnection: testConnectionHandler,
     listModels: listModelsHandler,
+    probeModels,
 
     // Templates
     templates,

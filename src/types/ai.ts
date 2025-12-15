@@ -241,6 +241,16 @@ export interface UpdateProjectSettingsRequest {
   preferredTemplateId?: string | null;
 }
 
+/** Request to probe models from a provider/endpoint without persisting a service */
+export interface ProbeModelsRequest {
+  provider: AIProvider;
+  endpoint: string;
+  /** Optional model name to use when calling the provider */
+  model?: string;
+  /** API key when required by provider */
+  apiKey?: string;
+}
+
 // ============================================================================
 // Helper types
 // ============================================================================

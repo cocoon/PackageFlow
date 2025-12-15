@@ -9,7 +9,7 @@
  * - List available models (for local services)
  */
 
-import { useState, useCallback, useEffect, useId } from 'react';
+import { useState, useCallback, useEffect, useId, useMemo } from 'react';
 import {
   Bot,
   Plus,
@@ -38,6 +38,7 @@ import {
   DialogFooter,
 } from '../ui/Dialog';
 import { DeleteConfirmDialog } from '../ui/ConfirmDialog';
+import { Select, type SelectOption } from '../ui/Select';
 import type {
   AIProvider,
   AIServiceConfig,
@@ -65,6 +66,7 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
     setDefaultService,
     testConnection,
     listModels,
+    probeModels,
   } = useAIService({ autoLoad: isOpen });
 
   // UI state
@@ -74,6 +76,9 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
   const [testResult, setTestResult] = useState<Record<string, TestConnectionResult>>({});
   const [loadingModels, setLoadingModels] = useState<string | null>(null);
   const [availableModels, setAvailableModels] = useState<Record<string, ModelInfo[]>>({});
+  const [formModels, setFormModels] = useState<ModelInfo[]>([]);
+  const [probeError, setProbeError] = useState<string | null>(null);
+  const [isProbingModels, setIsProbingModels] = useState(false);
 
   // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<AIServiceConfig | null>(null);
@@ -98,6 +103,9 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
       setFormError(null);
       setTestResult({});
       setDeleteTarget(null);
+      setFormModels([]);
+      setProbeError(null);
+      setIsProbingModels(false);
     }
   }, [isOpen]);
 
@@ -113,6 +121,8 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
         apiKey: '',
       }));
     }
+    setFormModels([]);
+    setProbeError(null);
   }, []);
 
   // Start adding new service
@@ -120,6 +130,8 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
     setShowAddForm(true);
     setEditingService(null);
     setFormError(null);
+    setFormModels([]);
+    setProbeError(null);
     const defaultProvider = AI_PROVIDERS[3]; // Ollama - local first for privacy
     setFormData({
       name: '',
@@ -135,6 +147,8 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
     setEditingService(service);
     setShowAddForm(false);
     setFormError(null);
+    setFormModels([]);
+    setProbeError(null);
     setFormData({
       name: service.name,
       provider: service.provider,
@@ -149,6 +163,8 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
     setShowAddForm(false);
     setEditingService(null);
     setFormError(null);
+    setFormModels([]);
+    setProbeError(null);
   }, []);
 
   // Submit form (add or update)
@@ -241,6 +257,39 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
       setLoadingModels(null);
     }
   }, [listModels]);
+
+  // Probe models for the current form (before saving local services)
+  const handleProbeModels = useCallback(async () => {
+    setProbeError(null);
+    setIsProbingModels(true);
+    try {
+      if (!formData.endpoint.trim()) {
+        setProbeError('Please enter an API endpoint first');
+        return;
+      }
+
+      const needsKey = providerRequiresApiKey(formData.provider);
+
+      const models = await probeModels({
+        provider: formData.provider,
+        endpoint: formData.endpoint,
+        model: formData.model || undefined,
+        apiKey: needsKey ? formData.apiKey : undefined,
+      });
+
+      setFormModels(models);
+
+      if (models.length === 0) {
+        setProbeError('No models found at this endpoint');
+      } else if (!formData.model || !models.some((m) => m.name === formData.model)) {
+        setFormData((prev) => ({ ...prev, model: models[0].name }));
+      }
+    } catch (err) {
+      setProbeError(err instanceof Error ? err.message : 'Failed to load models');
+    } finally {
+      setIsProbingModels(false);
+    }
+  }, [formData, probeModels]);
 
   // Set as default
   const handleSetDefault = useCallback(async (id: string) => {
@@ -378,6 +427,10 @@ export function AIServiceSettingsDialog({ isOpen, onClose }: AIServiceSettingsDi
                 isSubmitting={isSubmitting}
                 isEditing={!!editingService}
                 onProviderChange={handleProviderChange}
+                availableModels={formModels}
+                onProbeModels={handleProbeModels}
+                probeError={probeError}
+                isProbingModels={isProbingModels}
                 onSubmit={handleSubmit}
                 onCancel={handleCancelForm}
               />
@@ -634,6 +687,10 @@ interface ServiceFormProps {
   isSubmitting: boolean;
   isEditing: boolean;
   onProviderChange: (provider: AIProvider) => void;
+  availableModels: ModelInfo[];
+  onProbeModels: () => void;
+  probeError: string | null;
+  isProbingModels: boolean;
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -645,6 +702,10 @@ function ServiceForm({
   isSubmitting,
   isEditing,
   onProviderChange,
+   availableModels,
+   onProbeModels,
+   probeError,
+   isProbingModels,
   onSubmit,
   onCancel,
 }: ServiceFormProps) {
@@ -656,6 +717,20 @@ function ServiceForm({
   const endpointId = useId();
   const modelId = useId();
   const apiKeyId = useId();
+  const modelOptions = useMemo<SelectOption[]>(() => {
+    const values = new Map<string, SelectOption>();
+    availableModels.forEach((model) => {
+      values.set(model.name, {
+        value: model.name,
+        label: model.name,
+        description: model.modifiedAt ? `Updated ${model.modifiedAt}` : undefined,
+      });
+    });
+    if (formData.model && !values.has(formData.model)) {
+      values.set(formData.model, { value: formData.model, label: formData.model });
+    }
+    return Array.from(values.values());
+  }, [availableModels, formData.model]);
 
   // Group providers by type
   const cloudProviders = AI_PROVIDERS.filter(p => p.requiresApiKey);
@@ -752,20 +827,55 @@ function ServiceForm({
 
       {/* Model */}
       <div>
-        <label htmlFor={modelId} className="block text-sm font-medium text-foreground mb-1">
-          Model Name
-        </label>
-        <input
-          id={modelId}
-          type="text"
-          value={formData.model}
-          onChange={(e) => setFormData((prev) => ({ ...prev, model: e.target.value }))}
-          placeholder="e.g., gpt-4o-mini, llama3.2"
-          className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          The model identifier to use for AI generation
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor={modelId} className="block text-sm font-medium text-foreground">
+            Model Name
+          </label>
+          <button
+            type="button"
+            onClick={onProbeModels}
+            disabled={isProbingModels || (needsApiKey && !formData.apiKey)}
+            className="text-xs px-2 py-1 border border-border rounded hover:border-primary hover:text-primary disabled:opacity-50"
+          >
+            {isProbingModels ? 'Loading…' : 'Load installed models'}
+          </button>
+        </div>
+
+        {modelOptions.length > 0 && (
+          <div className="space-y-1">
+            <Select
+              value={formData.model}
+              onValueChange={(val) => setFormData((prev) => ({ ...prev, model: val }))}
+              options={modelOptions}
+              placeholder="Choose an installed model"
+              aria-label="Installed model"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Pick from models discovered at the endpoint.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <input
+            id={modelId}
+            type="text"
+            value={formData.model}
+            onChange={(e) => setFormData((prev) => ({ ...prev, model: e.target.value }))}
+            placeholder="e.g., gpt-4o-mini, llama3.2"
+            className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-colors"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            {modelOptions.length > 0 ? 'Or type a custom model name.' : 'Enter the model name (or load installed models).'}
+          </p>
+        </div>
+
+        {probeError && (
+          <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            {probeError}
+          </p>
+        )}
       </div>
 
       {/* API Key (for cloud providers) */}

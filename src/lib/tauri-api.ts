@@ -2075,6 +2075,7 @@ import type {
   UpdateTemplateRequest,
   GenerateCommitMessageRequest,
   UpdateProjectSettingsRequest,
+  ProbeModelsRequest,
 } from '../types/ai';
 
 export type {
@@ -2091,6 +2092,7 @@ export type {
   UpdateTemplateRequest,
   GenerateCommitMessageRequest,
   UpdateProjectSettingsRequest,
+  ProbeModelsRequest,
 };
 
 /** Generic API response type */
@@ -2132,6 +2134,10 @@ export const aiAPI = {
   /** List available models for a service (Ollama/LMStudio) */
   listModels: (serviceId: string): Promise<AIApiResponse<ModelInfo[]>> =>
     invoke<AIApiResponse<ModelInfo[]>>('ai_list_models', { serviceId }),
+
+  /** Probe models for a provider/endpoint without saving a service */
+  probeModels: (request: ProbeModelsRequest): Promise<AIApiResponse<ModelInfo[]>> =>
+    invoke<AIApiResponse<ModelInfo[]>>('ai_probe_models', { request }),
 
   // ============================================================================
   // Prompt Template Management

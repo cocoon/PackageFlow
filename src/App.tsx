@@ -9,8 +9,10 @@ import { scriptAPI, confirm } from './lib/tauri-api';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ExportDialog } from './components/settings/ExportDialog';
 import { ImportDialog } from './components/settings/ImportDialog';
-import { SettingsDropdown } from './components/settings/SettingsDropdown';
+import { SettingsButton } from './components/settings/SettingsButton';
 import { KeyboardShortcutsDialog } from './components/settings/KeyboardShortcutsDialog';
+import { SettingsPage } from './components/settings/SettingsPage';
+import type { SettingsSection } from './types/settings';
 import { useKeyboardShortcuts, type KeyboardShortcut } from './hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsHint, ShortcutToast } from './components/ui/KeyboardShortcutsHint';
 import { ScriptPtyTerminal, type ScriptPtyTerminalRef } from './components/terminal';
@@ -30,6 +32,7 @@ const DEFAULT_SHORTCUT_KEYS: Record<string, string> = {
   'stop-all': 'cmd+shift+k',
   'deploy': 'cmd+shift+d',
   'help': 'cmd+/',
+  'settings': 'cmd+,',
 };
 
 interface WorkflowNavState {
@@ -82,6 +85,8 @@ function App() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
+  const [settingsPageOpen, setSettingsPageOpen] = useState(false);
+  const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection>('storage');
   const [dataVersion, setDataVersion] = useState(0);
   const [shortcutToast, setShortcutToast] = useState<{ message: string; key: string } | null>(null);
 
@@ -91,6 +96,13 @@ function App() {
 
   const handleImportComplete = useCallback(() => {
     setDataVersion((prev) => prev + 1);
+  }, []);
+
+  const openSettings = useCallback((section?: SettingsSection) => {
+    if (section) {
+      setSettingsInitialSection(section);
+    }
+    setSettingsPageOpen(true);
   }, []);
 
   const {
@@ -404,13 +416,25 @@ function App() {
         window.dispatchEvent(new CustomEvent('open-shortcuts-hint'));
       },
     },
-  ], [activeTab, showShortcutToast, runningProcessInfo.count, handleKillAllNodeProcesses, getEffectiveKey, isShortcutEnabled]);
+    {
+      id: 'settings',
+      key: getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings']),
+      description: 'Open Settings',
+      category: 'General',
+      enabled: isShortcutEnabled('settings'),
+      action: () => {
+        openSettings();
+        showShortcutToast('Settings', getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings']));
+      },
+    },
+  ], [activeTab, showShortcutToast, runningProcessInfo.count, handleKillAllNodeProcesses, getEffectiveKey, isShortcutEnabled, openSettings]);
 
   const displayShortcuts: KeyboardShortcut[] = useMemo(() => [
     { id: 'refresh', key: DEFAULT_SHORTCUT_KEYS['refresh'], description: 'Refresh data', category: 'General', action: () => {} },
     { id: 'new', key: DEFAULT_SHORTCUT_KEYS['new'], description: 'New item (context-aware)', category: 'General', action: () => {} },
     { id: 'save', key: DEFAULT_SHORTCUT_KEYS['save'], description: 'Save current workflow', category: 'General', action: () => {} },
     { id: 'search', key: DEFAULT_SHORTCUT_KEYS['search'], description: 'Focus search', category: 'General', action: () => {} },
+    { id: 'settings', key: DEFAULT_SHORTCUT_KEYS['settings'], description: 'Open Settings', category: 'General', action: () => {} },
     { id: 'export', key: DEFAULT_SHORTCUT_KEYS['export'], description: 'Export data', category: 'Data', action: () => {} },
     { id: 'import', key: DEFAULT_SHORTCUT_KEYS['import'], description: 'Import data', category: 'Data', action: () => {} },
     { id: 'tab-projects', key: DEFAULT_SHORTCUT_KEYS['tab-projects'], description: 'Switch to Projects tab', category: 'Navigation', action: () => {} },
@@ -455,11 +479,7 @@ function App() {
         </div>
 
         <div className="flex items-center gap-1 px-2">
-          <SettingsDropdown
-            onExport={() => setExportDialogOpen(true)}
-            onImport={() => setImportDialogOpen(true)}
-            onKeyboardShortcuts={() => setShortcutsDialogOpen(true)}
-          />
+          <SettingsButton onClick={() => openSettings()} />
 
           <div className="w-px h-5 bg-border mx-1" />
 
@@ -597,6 +617,20 @@ function App() {
         open={shortcutsDialogOpen}
         onOpenChange={setShortcutsDialogOpen}
         shortcuts={displayShortcuts}
+      />
+
+      <SettingsPage
+        isOpen={settingsPageOpen}
+        onClose={() => setSettingsPageOpen(false)}
+        initialSection={settingsInitialSection}
+        onExport={() => {
+          setSettingsPageOpen(false);
+          setExportDialogOpen(true);
+        }}
+        onImport={() => {
+          setSettingsPageOpen(false);
+          setImportDialogOpen(true);
+        }}
       />
 
       <KeyboardShortcutsHint

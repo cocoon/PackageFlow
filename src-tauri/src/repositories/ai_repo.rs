@@ -133,7 +133,7 @@ impl AIRepository {
 
     /// Save an AI service
     pub fn save_service(&self, service: &AIServiceConfig) -> Result<(), String> {
-        let provider_str = format!("{:?}", service.provider).to_lowercase();
+        let provider_str = service.provider.to_string();
         let now = Utc::now().to_rfc3339();
 
         self.db.with_connection(|conn| {

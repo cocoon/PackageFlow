@@ -318,6 +318,7 @@ pub fn run() {
             ai::ai_set_default_service,
             ai::ai_test_connection,
             ai::ai_list_models,
+            ai::ai_probe_models,
             ai::ai_list_templates,
             ai::ai_add_template,
             ai::ai_update_template,

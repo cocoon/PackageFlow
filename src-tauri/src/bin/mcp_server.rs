@@ -856,13 +856,59 @@ pub struct RunWorkflowParams {
 // ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ProjectInfo {
+    /// Project ID (if registered in PackageFlow, null if not registered)
+    pub id: Option<String>,
+    /// Project path
     pub path: String,
+    /// Project name
     pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Project description
+    pub description: Option<String>,
+    /// Git remote URL
     pub git_remote: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Current git branch
     pub current_branch: Option<String>,
+    /// Package manager detected (npm, yarn, pnpm, bun)
+    pub package_manager: Option<String>,
+    /// Available scripts from package.json
+    pub scripts: Option<HashMap<String, String>>,
+    /// Project type (node, rust, python, etc.)
+    pub project_type: Option<String>,
+    /// Node.js version from .nvmrc, .node-version, or package.json engines
+    pub node_version: Option<String>,
+    /// Associated workflows in PackageFlow
+    pub workflows: Option<Vec<WorkflowRef>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowRef {
+    pub id: String,
+    pub name: String,
+}
+
+/// Project summary for list_projects response
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectListItem {
+    /// Project ID
+    pub id: String,
+    /// Project name
+    pub name: String,
+    /// Project path
+    pub path: String,
+    /// Project description
+    pub description: Option<String>,
+    /// Project type (node, rust, python, tauri, nextjs, etc.)
+    pub project_type: Option<String>,
+    /// Package manager (npm, yarn, pnpm, bun)
+    pub package_manager: Option<String>,
+    /// Current git branch
+    pub current_branch: Option<String>,
+    /// Number of workflows associated with this project
+    pub workflow_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -1088,7 +1134,7 @@ impl PackageFlowMcp {
     // ========================================================================
 
     /// List all registered projects in PackageFlow
-    #[tool(description = "List all registered projects in PackageFlow. Optionally filter by name using a search query.")]
+    #[tool(description = "List all registered projects in PackageFlow with detailed info including project type, package manager, and workflow count.")]
     async fn list_projects(
         &self,
         Parameters(params): Parameters<GetProjectsParams>,
@@ -1111,9 +1157,31 @@ impl PackageFlowMcp {
         // Sort by name
         projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
+        // Build detailed project list
+        let detailed_projects: Vec<ProjectListItem> = projects.iter().map(|p| {
+            let path_buf = PathBuf::from(&p.path);
+            let (package_manager, _, _) = Self::read_package_json(&path_buf);
+            let project_type = Self::detect_project_type(&path_buf);
+            let current_branch = Self::get_current_branch(&p.path);
+            let workflow_count = store_data.workflows.iter()
+                .filter(|w| w.project_id.as_ref() == Some(&p.id))
+                .count();
+
+            ProjectListItem {
+                id: p.id.clone(),
+                name: p.name.clone(),
+                path: p.path.clone(),
+                description: p.description.clone(),
+                project_type,
+                package_manager,
+                current_branch,
+                workflow_count,
+            }
+        }).collect();
+
         let response = serde_json::json!({
-            "projects": projects,
-            "total": projects.len()
+            "projects": detailed_projects,
+            "total": detailed_projects.len()
         });
         let json = serde_json::to_string_pretty(&response)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
@@ -1122,7 +1190,7 @@ impl PackageFlowMcp {
     }
 
     /// Get information about a project at the specified path
-    #[tool(description = "Get detailed information about a git project including name, remote URL, and current branch")]
+    #[tool(description = "Get detailed information about a project including ID, scripts, package manager, workflows, and git info")]
     async fn get_project(
         &self,
         Parameters(params): Parameters<GetProjectParams>,
@@ -1142,20 +1210,221 @@ impl PackageFlowMcp {
             )]));
         }
 
+        // Try to find project in store to get ID and description
+        let store_data = read_store_data().ok();
+        let registered_project = store_data.as_ref().and_then(|data| {
+            data.projects.iter().find(|p| p.path == path)
+        });
+
+        // Get associated workflows for this project
+        let workflows = registered_project.and_then(|p| {
+            store_data.as_ref().map(|data| {
+                data.workflows.iter()
+                    .filter(|w| w.project_id.as_ref() == Some(&p.id))
+                    .map(|w| WorkflowRef {
+                        id: w.id.clone(),
+                        name: w.name.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            })
+        }).filter(|v: &Vec<WorkflowRef>| !v.is_empty());
+
+        // Detect package manager and read package.json
+        let (package_manager, scripts, node_version_from_pkg) = Self::read_package_json(&path_buf);
+
+        // Detect project type
+        let project_type = Self::detect_project_type(&path_buf);
+
+        // Get node version from various sources
+        let node_version = Self::get_node_version(&path_buf).or(node_version_from_pkg);
+
         let project = ProjectInfo {
+            id: registered_project.map(|p| p.id.clone()),
             path: path.clone(),
-            name: path_buf
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| "unknown".to_string()),
+            name: registered_project
+                .map(|p| p.name.clone())
+                .unwrap_or_else(|| {
+                    path_buf
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                }),
+            description: registered_project.and_then(|p| p.description.clone()),
             git_remote: Self::get_remote_url(&path),
             current_branch: Self::get_current_branch(&path),
+            package_manager,
+            scripts,
+            project_type,
+            node_version,
+            workflows,
         };
 
         let json = serde_json::to_string_pretty(&project)
             .map_err(|e| McpError::internal_error(e.to_string(), None))?;
 
         Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Read package.json and extract scripts, detect package manager
+    fn read_package_json(path: &PathBuf) -> (Option<String>, Option<HashMap<String, String>>, Option<String>) {
+        let package_json_path = path.join("package.json");
+
+        // Detect package manager from lockfile
+        let package_manager = if path.join("pnpm-lock.yaml").exists() {
+            Some("pnpm".to_string())
+        } else if path.join("yarn.lock").exists() {
+            Some("yarn".to_string())
+        } else if path.join("bun.lockb").exists() || path.join("bun.lock").exists() {
+            Some("bun".to_string())
+        } else if path.join("package-lock.json").exists() {
+            Some("npm".to_string())
+        } else if package_json_path.exists() {
+            Some("npm".to_string()) // Default to npm if package.json exists
+        } else {
+            None
+        };
+
+        if !package_json_path.exists() {
+            return (package_manager, None, None);
+        }
+
+        // Read and parse package.json
+        let content = match std::fs::read_to_string(&package_json_path) {
+            Ok(c) => c,
+            Err(_) => return (package_manager, None, None),
+        };
+
+        let pkg: serde_json::Value = match serde_json::from_str(&content) {
+            Ok(v) => v,
+            Err(_) => return (package_manager, None, None),
+        };
+
+        // Extract scripts
+        let scripts = pkg.get("scripts").and_then(|s| {
+            s.as_object().map(|obj| {
+                obj.iter()
+                    .filter_map(|(k, v)| v.as_str().map(|val| (k.clone(), val.to_string())))
+                    .collect::<HashMap<String, String>>()
+            })
+        }).filter(|s| !s.is_empty());
+
+        // Extract node version from engines
+        let node_version = pkg.get("engines")
+            .and_then(|e| e.get("node"))
+            .and_then(|n| n.as_str())
+            .map(|s| s.to_string());
+
+        (package_manager, scripts, node_version)
+    }
+
+    /// Detect project type based on files present
+    fn detect_project_type(path: &PathBuf) -> Option<String> {
+        // Check for various project indicators
+        if path.join("Cargo.toml").exists() {
+            return Some("rust".to_string());
+        }
+        if path.join("go.mod").exists() {
+            return Some("go".to_string());
+        }
+        if path.join("requirements.txt").exists() || path.join("pyproject.toml").exists() || path.join("setup.py").exists() {
+            return Some("python".to_string());
+        }
+        if path.join("Gemfile").exists() {
+            return Some("ruby".to_string());
+        }
+        if path.join("pom.xml").exists() || path.join("build.gradle").exists() || path.join("build.gradle.kts").exists() {
+            return Some("java".to_string());
+        }
+        if path.join("Package.swift").exists() {
+            return Some("swift".to_string());
+        }
+        if path.join("pubspec.yaml").exists() {
+            return Some("dart".to_string());
+        }
+
+        // Check for Node.js project types
+        if path.join("package.json").exists() {
+            // Check for specific frameworks
+            if let Ok(content) = std::fs::read_to_string(path.join("package.json")) {
+                if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&content) {
+                    let deps = pkg.get("dependencies").and_then(|d| d.as_object());
+                    let dev_deps = pkg.get("devDependencies").and_then(|d| d.as_object());
+
+                    // Check dependencies for framework detection
+                    let has_dep = |name: &str| {
+                        deps.map(|d| d.contains_key(name)).unwrap_or(false) ||
+                        dev_deps.map(|d| d.contains_key(name)).unwrap_or(false)
+                    };
+
+                    if has_dep("next") {
+                        return Some("nextjs".to_string());
+                    }
+                    if has_dep("nuxt") {
+                        return Some("nuxt".to_string());
+                    }
+                    if has_dep("@tauri-apps/api") || path.join("src-tauri").exists() {
+                        return Some("tauri".to_string());
+                    }
+                    if has_dep("electron") {
+                        return Some("electron".to_string());
+                    }
+                    if has_dep("react-native") || has_dep("expo") {
+                        return Some("react-native".to_string());
+                    }
+                    if has_dep("vue") {
+                        return Some("vue".to_string());
+                    }
+                    if has_dep("react") {
+                        return Some("react".to_string());
+                    }
+                    if has_dep("svelte") {
+                        return Some("svelte".to_string());
+                    }
+                    if has_dep("@angular/core") {
+                        return Some("angular".to_string());
+                    }
+                    if has_dep("express") || has_dep("fastify") || has_dep("koa") || has_dep("hono") {
+                        return Some("node-server".to_string());
+                    }
+                }
+            }
+            return Some("node".to_string());
+        }
+
+        None
+    }
+
+    /// Get Node.js version from .nvmrc, .node-version, or volta config
+    fn get_node_version(path: &PathBuf) -> Option<String> {
+        // Check .nvmrc
+        if let Ok(version) = std::fs::read_to_string(path.join(".nvmrc")) {
+            let v = version.trim();
+            if !v.is_empty() {
+                return Some(v.to_string());
+            }
+        }
+
+        // Check .node-version
+        if let Ok(version) = std::fs::read_to_string(path.join(".node-version")) {
+            let v = version.trim();
+            if !v.is_empty() {
+                return Some(v.to_string());
+            }
+        }
+
+        // Check volta in package.json
+        if let Ok(content) = std::fs::read_to_string(path.join("package.json")) {
+            if let Ok(pkg) = serde_json::from_str::<serde_json::Value>(&content) {
+                if let Some(version) = pkg.get("volta")
+                    .and_then(|v| v.get("node"))
+                    .and_then(|n| n.as_str())
+                {
+                    return Some(version.to_string());
+                }
+            }
+        }
+
+        None
     }
 
     /// List all git worktrees for a project

@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 use crate::models::ai::{
-    AIServiceConfig, AddServiceRequest, AddTemplateRequest, GenerateCommitMessageRequest,
-    GenerateResult, ModelInfo, PromptTemplate, ProjectAISettings, TemplateCategory,
-    TestConnectionResult, UpdateProjectSettingsRequest, UpdateServiceRequest,
-    UpdateTemplateRequest, ChatMessage, ChatOptions,
+    AIProvider, AIServiceConfig, AddServiceRequest, AddTemplateRequest, ChatMessage, ChatOptions,
+    GenerateCommitMessageRequest, GenerateResult, ModelInfo, PromptTemplate, ProjectAISettings,
+    TemplateCategory, TestConnectionResult, UpdateProjectSettingsRequest, UpdateServiceRequest,
+    UpdateTemplateRequest,
 };
 use crate::repositories::AIRepository;
 use crate::services::ai::{
@@ -316,6 +316,44 @@ pub async fn ai_list_models(
     };
 
     // List models
+    match provider.list_models().await {
+        Ok(models) => Ok(ApiResponse::success(models)),
+        Err(e) => Ok(ApiResponse::error(e.to_string())),
+    }
+}
+
+/// Probe available models for a provider/endpoint without saving a service
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProbeModelsRequest {
+    pub provider: AIProvider,
+    pub endpoint: String,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub api_key: Option<String>,
+}
+
+#[tauri::command]
+pub async fn ai_probe_models(
+    _app: AppHandle,
+    request: ProbeModelsRequest,
+) -> Result<ApiResponse<Vec<ModelInfo>>, String> {
+    // Build a temporary config to reuse provider implementations
+    let config = AIServiceConfig::new(
+        "Temporary".to_string(),
+        request.provider.clone(),
+        request.endpoint,
+        request
+            .model
+            .unwrap_or_else(|| request.provider.default_model().to_string()),
+    );
+
+    let provider = match create_provider(config, request.api_key) {
+        Ok(p) => p,
+        Err(e) => return Ok(ApiResponse::error(e.to_string())),
+    };
+
     match provider.list_models().await {
         Ok(models) => Ok(ApiResponse::success(models)),
         Err(e) => Ok(ApiResponse::error(e.to_string())),
