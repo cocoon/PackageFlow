@@ -14,6 +14,7 @@ import {
   createContext,
   useContext,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -110,6 +111,7 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -136,11 +138,21 @@ export function Select({
     [onValueChange]
   );
 
-  // Reset highlighted index when opening
+  // Reset highlighted index and calculate position when opening
   useEffect(() => {
     if (open) {
       const currentIndex = flatOptions.findIndex((opt) => opt.value === value);
       setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
+
+      // Calculate dropdown position from trigger
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4, // 4px gap
+          left: rect.left,
+          width: rect.width,
+        });
+      }
     }
   }, [open, flatOptions, value]);
 
@@ -262,6 +274,29 @@ export function Select({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  // Update position on scroll/resize (for portal positioning)
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+        });
+      }
+    };
+
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open]);
+
   const sizeClasses = {
     sm: 'h-8 px-2 text-xs',
     default: 'h-9 px-3 text-sm',
@@ -333,52 +368,60 @@ export function Select({
           />
         </button>
 
-        {/* Dropdown List */}
-        {open && (
-          <div
-            ref={listRef}
-            role="listbox"
-            id={`${id || 'select'}-listbox`}
-            aria-label={ariaLabel}
-            className={cn(
-              'absolute z-50 mt-1 w-full',
-              'max-h-60 overflow-auto rounded-md',
-              'bg-white dark:bg-zinc-900 border border-border shadow-xl',
-              'py-1',
-              // Animation
-              'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2',
-              'duration-150'
-            )}
-            onKeyDown={handleKeyDown}
-          >
-            {isGroupedOptions(options) ? (
-              options.map((group, groupIndex) => (
-                <SelectGroupComponent
-                  key={group.label}
-                  label={group.label}
-                  options={group.options}
-                  startIndex={options
-                    .slice(0, groupIndex)
-                    .reduce((acc, g) => acc + g.options.length, 0)}
-                />
-              ))
-            ) : (
-              options.map((option, index) => (
-                <SelectOptionComponent
-                  key={option.value}
-                  option={option}
-                  index={index}
-                />
-              ))
-            )}
+        {/* Dropdown List - rendered via Portal to avoid clipping */}
+        {open &&
+          createPortal(
+            <div
+              ref={listRef}
+              role="listbox"
+              id={`${id || 'select'}-listbox`}
+              aria-label={ariaLabel}
+              style={{
+                position: 'fixed',
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: dropdownPosition.width,
+              }}
+              className={cn(
+                'z-[9999]',
+                'max-h-60 overflow-auto rounded-md',
+                'bg-white dark:bg-zinc-900 border border-border shadow-xl',
+                'py-1',
+                // Animation
+                'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2',
+                'duration-150'
+              )}
+              onKeyDown={handleKeyDown}
+            >
+              {isGroupedOptions(options) ? (
+                options.map((group, groupIndex) => (
+                  <SelectGroupComponent
+                    key={group.label}
+                    label={group.label}
+                    options={group.options}
+                    startIndex={options
+                      .slice(0, groupIndex)
+                      .reduce((acc, g) => acc + g.options.length, 0)}
+                  />
+                ))
+              ) : (
+                options.map((option, index) => (
+                  <SelectOptionComponent
+                    key={option.value}
+                    option={option}
+                    index={index}
+                  />
+                ))
+              )}
 
-            {flatOptions.length === 0 && (
-              <div className="px-3 py-2 text-sm text-muted-foreground text-center">
-                No options available
-              </div>
-            )}
-          </div>
-        )}
+              {flatOptions.length === 0 && (
+                <div className="px-3 py-2 text-sm text-muted-foreground text-center">
+                  No options available
+                </div>
+              )}
+            </div>,
+            document.body
+          )}
       </div>
     </SelectContext.Provider>
   );
