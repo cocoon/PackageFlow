@@ -11,9 +11,30 @@ Welcome to the PackageFlow documentation! This guide will help you get the most 
 
 ## What is PackageFlow?
 
-PackageFlow is the app you open instead of your terminal. It turns your project into a visual control center — run scripts, manage Git, switch worktrees, and deploy with preview links without memorizing commands or juggling tools.
+PackageFlow is a **desktop app for frontend and Node.js developers** — the app you open instead of your terminal. It turns your JavaScript/TypeScript projects into a visual control center.
 
-Built for **vibe coding**: stay in flow, not in the terminal.
+**Built for the modern frontend workflow:**
+
+- **React, Vue, Next.js, Nuxt** — Run dev servers, build, and deploy with one click
+- **npm, pnpm, yarn, bun** — Automatic package manager detection
+- **Monorepos** — Nx, Turborepo, Lerna native support
+- **AI-assisted development** — Generate commits, review code, analyze security
+
+## Who is PackageFlow for?
+
+- **Frontend developers** tired of juggling terminal windows
+- **Vibe coders** who want to stay in flow, not memorize CLI commands
+- **Teams** who want consistent workflows across projects
+- **AI-first developers** using Claude Code, Codex, or Gemini CLI
+
+## Key Benefits
+
+| Before PackageFlow | With PackageFlow |
+|-------------------|-----------------|
+| `cd project && npm run dev` | Click "Dev" |
+| `git add . && git commit -m "..."` | AI generates your commit message |
+| `npm audit --json \| jq ...` | Visual vulnerability dashboard |
+| Switch between 5 terminal tabs | One unified workspace |
 
 ## Features
 
@@ -22,7 +43,7 @@ Built for **vibe coding**: stay in flow, not in the terminal.
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
 | **Project Management** | Import, scan, and manage your projects | [Read more](./features/project-management.md) |
-| **One-Click Scripts** | Run npm scripts with live terminal output | [Read more](./features/one-click-scripts.md) |
+| **One-Click Scripts** | Run npm/pnpm/yarn scripts with live output | [Read more](./features/one-click-scripts.md) |
 | **Visual Workflow** | Build automation flows with drag-and-drop | [Read more](./features/visual-workflow.md) |
 | **Monorepo Support** | Nx, Turborepo, Lerna integration | [Read more](./features/monorepo-support.md) |
 
@@ -44,8 +65,8 @@ Built for **vibe coding**: stay in flow, not in the terminal.
 
 | Feature | Description | Documentation |
 |---------|-------------|---------------|
-| **AI Integration** | Multi-provider AI with prompt templates | [Read more](./features/ai-integration.md) |
-| **MCP Server** | Let AI tools control PackageFlow | [Read more](./features/mcp-server.md) |
+| **AI Integration** | Multi-provider AI (OpenAI, Anthropic, Gemini, Ollama) | [Read more](./features/ai-integration.md) |
+| **MCP Server** | Let Claude Code, Codex, Gemini CLI control PackageFlow | [Read more](./features/mcp-server.md) |
 | **Webhooks** | Incoming/outgoing webhook automation | [Read more](./features/webhooks.md) |
 
 ### Tools & Settings
@@ -54,6 +75,28 @@ Built for **vibe coding**: stay in flow, not in the terminal.
 |---------|-------------|---------------|
 | **Toolchain Management** | Volta, Corepack, Node version detection | [Read more](./features/toolchain-management.md) |
 | **Keyboard Shortcuts** | Customizable shortcuts reference | [Read more](./features/keyboard-shortcuts.md) |
+
+## Supported Technologies
+
+### Frontend Frameworks
+
+React, Vue, Angular, Svelte, Solid, Next.js, Nuxt, Remix, Astro, Vite
+
+### Package Managers
+
+npm, pnpm, yarn, bun (auto-detected from lockfiles)
+
+### Monorepo Tools
+
+Nx, Turborepo, Lerna, pnpm workspaces, yarn workspaces
+
+### Deployment Platforms
+
+Netlify, Cloudflare Pages, GitHub Pages, Vercel (coming soon)
+
+### AI Providers
+
+OpenAI (GPT-4o), Anthropic (Claude 4), Google (Gemini 2.0), Ollama, LM Studio
 
 ## System Requirements
 

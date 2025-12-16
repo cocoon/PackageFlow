@@ -111,7 +111,7 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number; openUpward: boolean } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -138,21 +138,46 @@ export function Select({
     [onValueChange]
   );
 
-  // Reset highlighted index and calculate position when opening
+  // Calculate dropdown position with smart positioning
+  const calculatePosition = useCallback(() => {
+    if (!triggerRef.current) return null;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropdownHeight = 240; // max-h-60 = 15rem = 240px
+    const gap = 4;
+    const viewportHeight = window.innerHeight;
+
+    // Check if there's enough space below
+    const spaceBelow = viewportHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    // Open upward if not enough space below but enough above
+    const openUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
+    return {
+      top: openUpward ? rect.top - gap : rect.bottom + gap,
+      left: rect.left,
+      width: rect.width,
+      openUpward,
+    };
+  }, []);
+
+  // Handle opening the dropdown - calculate position synchronously
+  const handleOpen = useCallback(() => {
+    const position = calculatePosition();
+    if (position) {
+      setDropdownPosition(position);
+      const currentIndex = flatOptions.findIndex((opt) => opt.value === value);
+      setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
+      setOpen(true);
+    }
+  }, [calculatePosition, flatOptions, value]);
+
+  // Reset highlighted index when value changes while open
   useEffect(() => {
     if (open) {
       const currentIndex = flatOptions.findIndex((opt) => opt.value === value);
       setHighlightedIndex(currentIndex >= 0 ? currentIndex : 0);
-
-      // Calculate dropdown position from trigger
-      if (triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom + 4, // 4px gap
-          left: rect.left,
-          width: rect.width,
-        });
-      }
     }
   }, [open, flatOptions, value]);
 
@@ -182,14 +207,14 @@ export function Select({
               handleValueChange(option.value);
             }
           } else {
-            setOpen(true);
+            handleOpen();
           }
           break;
 
         case 'ArrowDown':
           e.preventDefault();
           if (!open) {
-            setOpen(true);
+            handleOpen();
           } else {
             setHighlightedIndex((prev) => {
               let next = prev + 1;
@@ -204,7 +229,7 @@ export function Select({
         case 'ArrowUp':
           e.preventDefault();
           if (!open) {
-            setOpen(true);
+            handleOpen();
           } else {
             setHighlightedIndex((prev) => {
               let next = prev - 1;
@@ -251,7 +276,7 @@ export function Select({
           break;
       }
     },
-    [open, highlightedIndex, flatOptions, disabled, loading, handleValueChange]
+    [open, highlightedIndex, flatOptions, disabled, loading, handleValueChange, handleOpen]
   );
 
   // Close on click outside
@@ -279,13 +304,9 @@ export function Select({
     if (!open) return;
 
     const updatePosition = () => {
-      if (triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setDropdownPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width,
-        });
+      const position = calculatePosition();
+      if (position) {
+        setDropdownPosition(position);
       }
     };
 
@@ -295,7 +316,7 @@ export function Select({
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
     };
-  }, [open]);
+  }, [open, calculatePosition]);
 
   const sizeClasses = {
     sm: 'h-8 px-2 text-xs',
@@ -332,7 +353,14 @@ export function Select({
           aria-haspopup="listbox"
           aria-controls={`${id || 'select'}-listbox`}
           disabled={disabled || loading}
-          onClick={() => !disabled && !loading && setOpen(!open)}
+          onClick={() => {
+            if (disabled || loading) return;
+            if (open) {
+              setOpen(false);
+            } else {
+              handleOpen();
+            }
+          }}
           onKeyDown={handleKeyDown}
           className={cn(
             'flex w-full items-center justify-between rounded-md border border-border',
@@ -369,7 +397,7 @@ export function Select({
         </button>
 
         {/* Dropdown List - rendered via Portal to avoid clipping */}
-        {open &&
+        {open && dropdownPosition &&
           createPortal(
             <div
               ref={listRef}
@@ -378,7 +406,10 @@ export function Select({
               aria-label={ariaLabel}
               style={{
                 position: 'fixed',
-                top: dropdownPosition.top,
+                top: dropdownPosition.openUpward ? undefined : dropdownPosition.top,
+                bottom: dropdownPosition.openUpward
+                  ? window.innerHeight - dropdownPosition.top
+                  : undefined,
                 left: dropdownPosition.left,
                 width: dropdownPosition.width,
               }}
@@ -387,9 +418,9 @@ export function Select({
                 'max-h-60 overflow-auto rounded-md',
                 'bg-white dark:bg-zinc-900 border border-border shadow-xl',
                 'py-1',
-                // Animation
-                'animate-in fade-in-0 zoom-in-95 slide-in-from-top-2',
-                'duration-150'
+                // Animation - different direction based on openUpward
+                'animate-in fade-in-0 zoom-in-95 duration-150',
+                dropdownPosition.openUpward ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'
               )}
               onKeyDown={handleKeyDown}
             >

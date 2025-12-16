@@ -7,20 +7,19 @@ Connect multiple AI providers and use intelligent assistance throughout PackageF
 PackageFlow supports multiple AI providers for intelligent features like:
 
 - Commit message generation
-- Code analysis
-- Security advisory summaries
+- Code review analysis
+- Security vulnerability summaries
 - Custom AI prompts
-
-<!-- TODO: Add screenshot of AI settings panel -->
+- AI CLI tool integration
 
 ## Supported Providers
 
 | Provider | Models | Auth |
 |----------|--------|------|
-| **OpenAI** | GPT-3.5, GPT-4, GPT-4 Turbo | API Key |
-| **Anthropic** | Claude 3 family | API Key |
-| **Google** | Gemini Pro, Gemini Ultra | API Key |
-| **Ollama** | Any local model | Local |
+| **OpenAI** | GPT-4o, GPT-4o-mini, o1, o3 | API Key |
+| **Anthropic** | Claude 4 Opus, Claude 4 Sonnet, Claude 3.5 Haiku | API Key |
+| **Google Gemini** | Gemini 2.0 Flash, Gemini 1.5 Pro (Free tier available) | API Key |
+| **Ollama** | Llama, Mistral, Qwen, and any local model | Local |
 | **LM Studio** | Any local model | Local |
 
 ## Adding AI Services
@@ -33,15 +32,15 @@ PackageFlow supports multiple AI providers for intelligent features like:
 4. Enter your API key
 5. Click **Verify & Save**
 
-<!-- TODO: Add screenshot of add service dialog -->
-
 ### Local Providers (Ollama, LM Studio)
 
 1. Ensure Ollama/LM Studio is running locally
 2. Go to **Settings** → **AI Services**
 3. Click **Add Service**
 4. Select **Ollama** or **LM Studio**
-5. Enter the local URL (default: `http://localhost:11434`)
+5. Enter the local URL:
+   - Ollama: `http://127.0.0.1:11434`
+   - LM Studio: `http://127.0.0.1:1234/v1`
 6. Click **Connect**
 
 ## API Key Security
@@ -66,8 +65,8 @@ Each service has available models:
 
 Choose different models for different tasks:
 
-- Commit messages: Faster model (GPT-3.5)
-- Code review: More capable model (GPT-4)
+- Commit messages: Faster model (GPT-4o-mini)
+- Code review: More capable model (GPT-4o, Claude 3 Sonnet)
 
 ## AI Features
 
@@ -80,15 +79,75 @@ Generate meaningful commit messages from your diffs:
 3. AI analyzes the diff and generates a message
 4. Edit if needed, then commit
 
-<!-- TODO: Add gif of AI commit message generation -->
+### Code Review Analysis
 
-### Code Analysis (Coming Soon)
+AI-powered code review for your changes:
 
-AI-powered code review suggestions.
+1. Stage changes you want reviewed
+2. Open the AI Review dialog
+3. Select the scope (file or all staged changes)
+4. AI analyzes and provides review feedback
+5. Review suggestions and apply as needed
 
-### Security Summaries (Coming Soon)
+### Security Vulnerability Summaries
 
-Plain-language explanations of security vulnerabilities.
+Plain-language explanations of security vulnerabilities:
+
+1. Run a security scan on your project
+2. Click on a vulnerability
+3. Click **AI Analysis** button
+4. AI explains the vulnerability in plain language:
+   - What the issue is
+   - Why it's dangerous
+   - How to fix it
+   - Risk assessment
+
+### Security Summary Report
+
+Generate a comprehensive overview of all vulnerabilities:
+
+1. After a security scan completes
+2. Click **Generate AI Summary**
+3. AI creates a prioritized summary:
+   - Critical issues requiring immediate action
+   - Recommended fix order
+   - Dependency update suggestions
+
+## AI CLI Integration
+
+PackageFlow integrates with AI CLI tools for enhanced functionality.
+
+### Supported CLI Tools
+
+| CLI | Binary | Description |
+|-----|--------|-------------|
+| **Claude Code** | `claude` | Anthropic Claude CLI for code assistance |
+| **Codex** | `codex` | OpenAI Codex CLI for code generation |
+| **Gemini CLI** | `gemini` | Google Gemini CLI for AI assistance |
+
+### Auto-Detection
+
+PackageFlow automatically detects installed CLI tools:
+
+1. Go to **Settings** → **AI Services**
+2. View **CLI Tools** section
+3. Detected tools show with version and auth status
+
+### Running AI Commands
+
+1. Go to **Settings** → **AI CLI**
+2. Select an installed CLI tool
+3. Enter a prompt
+4. Click **Run**
+
+Output streams in real-time in the panel.
+
+### CLI Execution Options
+
+- **Include Diff**: Add staged git diff as context
+- **Include Files**: Add specific files as context
+- **Custom Context**: Add arbitrary text context
+- **Include MCP Context**: Add project info from MCP
 
 ## Prompt Templates
 
@@ -101,8 +160,22 @@ PackageFlow includes templates for:
 - Git commit messages
 - Pull request descriptions
 - Code review comments
+- Documentation generation
 - Release notes
 - Security advisories
+- Custom prompts
+
+### Template Categories
+
+| Category | Description | Variables |
+|----------|-------------|-----------|
+| `git_commit` | Commit message generation | `{diff}` |
+| `pull_request` | PR description | `{diff}`, `{commits}`, `{branch}`, `{base_branch}` |
+| `code_review` | Code review feedback | `{diff}`, `{file_path}`, `{code}` |
+| `documentation` | Doc generation | `{code}`, `{file_path}`, `{function_name}` |
+| `release_notes` | Release notes | `{commits}`, `{version}`, `{previous_version}` |
+| `security_advisory` | Security analysis | `{vulnerability_json}`, `{project_context}`, `{severity_summary}` |
+| `custom` | General purpose | `{input}` |
 
 ### Creating Custom Templates
 
@@ -112,9 +185,8 @@ PackageFlow includes templates for:
    - Name
    - Category
    - Prompt text with variables
+   - Output format (for commit messages)
 4. Save
-
-<!-- TODO: Add screenshot of template editor -->
 
 ### Template Variables
 
@@ -125,8 +197,11 @@ Use variables in your prompts:
 | `{diff}` | Git diff content |
 | `{code}` | Selected code |
 | `{file_path}` | Current file path |
-| `{language}` | File language |
-| `{project_name}` | Project name |
+| `{commits}` | Commit history |
+| `{branch}` | Current branch name |
+| `{base_branch}` | Target branch for PR |
+| `{version}` | Release version |
+| `{vulnerability_json}` | Vulnerability data as JSON |
 
 ### Example Template
 
@@ -145,6 +220,14 @@ Diff:
 {diff}
 ```
 
+### Commit Message Formats
+
+Choose the output format for commit messages:
+
+- **Conventional Commits**: `type(scope): description`
+- **Simple**: Plain descriptive message
+- **Custom**: Your own format
+
 ### Per-Project Templates
 
 Override templates for specific projects:
@@ -153,6 +236,32 @@ Override templates for specific projects:
 2. Go to **Settings** → **AI**
 3. Select template overrides
 4. Customize as needed
+
+## AI Execution Modes
+
+PackageFlow supports two execution modes:
+
+### API Mode (Default)
+
+Uses the configured AI service API directly:
+
+- Faster response times
+- Token usage tracking
+- Works with any provider
+
+### CLI Mode
+
+Uses installed AI CLI tools:
+
+- Richer context support
+- Native CLI features
+- No API key needed if CLI is authenticated
+
+### Switching Modes
+
+1. Go to **Settings** → **AI Services**
+2. Select **Execution Mode** in the overview tab
+3. Choose **API** or **CLI**
 
 ## Testing Services
 
@@ -164,15 +273,13 @@ Verify your API key works:
 2. PackageFlow sends a simple request
 3. Shows success or error details
 
-### Latency Test
+### Model Probe
 
-Check response times:
+Test models without saving a service:
 
-1. Click **Test Latency**
-2. Multiple requests are timed
-3. Average latency is displayed
-
-<!-- TODO: Add screenshot of latency test results -->
+1. Click **Probe Models**
+2. Enter provider and endpoint
+3. See available models
 
 ## Default Service
 
@@ -201,11 +308,12 @@ No limits when running locally:
 
 ## Tips
 
-1. **Start with GPT-3.5**: It's fast and cheap for most tasks
-2. **Use local models**: For sensitive code, use Ollama
+1. **Start with Gemini**: Free tier available, fast and capable for most tasks
+2. **Use local models**: For sensitive code, use Ollama with Llama or Qwen
 3. **Customize templates**: Better prompts = better results
 4. **Test connections**: Verify API keys work before relying on AI features
-5. **Monitor costs**: Cloud API calls add up quickly
+5. **Monitor costs**: Cloud API calls add up quickly (except Gemini free tier)
+6. **Try CLI mode**: For complex tasks, CLI tools often provide better results
 
 ## Troubleshooting
 
@@ -226,3 +334,14 @@ No limits when running locally:
 - Review and improve your prompt templates
 - Try a more capable model
 - Provide more context in templates
+
+### CLI Tool Not Found
+
+- Ensure the CLI is installed globally
+- Check if the binary is in your PATH
+- Try specifying a custom binary path in settings
+
+### CLI Authentication Failed
+
+- Run the CLI's auth command manually
+- Or switch to API mode and use your own API key

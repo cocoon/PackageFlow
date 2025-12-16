@@ -52,27 +52,30 @@ jobs:
           FIXES=""
           DOCS=""
           CHORES=""
+          REPO_URL="https://github.com/${{ github.repository }}"
 
-          while IFS= read -r commit; do
-            [ -z "$commit" ] && continue
-            if [[ "$commit" =~ ^feat ]]; then
-              msg=$(echo "$commit" | sed -E 's/^feat(\([^)]+\))?:\s*//' | sed 's/^ *//')
+          while IFS='|' read -r hash subject; do
+            [ -z "$subject" ] && continue
+            SHORT_HASH="${hash:0:7}"
+            COMMIT_LINK="([${SHORT_HASH}](${REPO_URL}/commit/${hash}))"
+            if [[ "$subject" =~ ^feat ]]; then
+              msg=$(echo "$subject" | sed -E 's/^feat(\([^)]+\))?:\s*//' | sed 's/^ *//')
               msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
-              FEATURES="${FEATURES}- ${msg}\n"
-            elif [[ "$commit" =~ ^fix ]]; then
-              msg=$(echo "$commit" | sed -E 's/^fix(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              FEATURES="${FEATURES}- ${msg} ${COMMIT_LINK}\n"
+            elif [[ "$subject" =~ ^fix ]]; then
+              msg=$(echo "$subject" | sed -E 's/^fix(\([^)]+\))?:\s*//' | sed 's/^ *//')
               msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
-              FIXES="${FIXES}- ${msg}\n"
-            elif [[ "$commit" =~ ^docs ]]; then
-              msg=$(echo "$commit" | sed -E 's/^docs(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              FIXES="${FIXES}- ${msg} ${COMMIT_LINK}\n"
+            elif [[ "$subject" =~ ^docs ]]; then
+              msg=$(echo "$subject" | sed -E 's/^docs(\([^)]+\))?:\s*//' | sed 's/^ *//')
               msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
-              DOCS="${DOCS}- ${msg}\n"
-            elif [[ "$commit" =~ ^(chore|ci|build|refactor|perf|test|style) ]]; then
-              msg=$(echo "$commit" | sed -E 's/^(chore|ci|build|refactor|perf|test|style)(\([^)]+\))?:\s*//' | sed 's/^ *//')
+              DOCS="${DOCS}- ${msg} ${COMMIT_LINK}\n"
+            elif [[ "$subject" =~ ^(chore|ci|build|refactor|perf|test|style) ]]; then
+              msg=$(echo "$subject" | sed -E 's/^(chore|ci|build|refactor|perf|test|style)(\([^)]+\))?:\s*//' | sed 's/^ *//')
               msg="$(echo "${msg:0:1}" | tr '[:lower:]' '[:upper:]')${msg:1}"
-              CHORES="${CHORES}- ${msg}\n"
+              CHORES="${CHORES}- ${msg} ${COMMIT_LINK}\n"
             fi
-          done <<< "$(git log "$LAST_TAG"..HEAD --pretty=format:"%s" --no-merges | grep -v "^release")"
+          done <<< "$(git log "$LAST_TAG"..HEAD --pretty=format:"%H|%s" --no-merges | grep -v "|release")"
 
           BODY=""
           [ -n "$FEATURES" ] && BODY="${BODY}### ✨ New Features\n\n${FEATURES}\n"

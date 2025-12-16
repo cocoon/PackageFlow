@@ -4,7 +4,7 @@
  * @see specs/021-mcp-actions/spec.md
  */
 
-import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Shield,
@@ -109,25 +109,51 @@ const PermissionDropdown: React.FC<PermissionDropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; openUpward: boolean } | null>(null);
   const currentLevel = PERMISSION_LEVELS.find((l) => l.value === value) || PERMISSION_LEVELS[0];
 
-  // Update dropdown position when opened
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.right - 200, // Align right edge with button
-      });
+  // Calculate dropdown position with smart positioning
+  const calculatePosition = useCallback(() => {
+    if (!buttonRef.current) return null;
+
+    const rect = buttonRef.current.getBoundingClientRect();
+    const dropdownHeight = 160; // Approximate height for 3 options
+    const gap = 4;
+    const viewportHeight = window.innerHeight;
+
+    // Check if there's enough space below
+    const spaceBelow = viewportHeight - rect.bottom - gap;
+    const spaceAbove = rect.top - gap;
+
+    // Open upward if not enough space below but enough above
+    const openUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
+    return {
+      top: openUpward ? rect.top - gap : rect.bottom + gap,
+      left: rect.right - 200, // Align right edge with button
+      openUpward,
+    };
+  }, []);
+
+  // Handle open toggle - calculate position synchronously before opening
+  const handleToggle = useCallback(() => {
+    if (disabled) return;
+    if (!isOpen) {
+      const position = calculatePosition();
+      if (position) {
+        setDropdownPosition(position);
+        setIsOpen(true);
+      }
+    } else {
+      setIsOpen(false);
     }
-  }, [isOpen]);
+  }, [disabled, isOpen, calculatePosition]);
 
   return (
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleToggle}
         disabled={disabled}
         className={cn(
           'flex items-center gap-2 rounded-md border border-border',
@@ -140,12 +166,23 @@ const PermissionDropdown: React.FC<PermissionDropdownProps> = ({
         <ChevronDown className={cn('w-3 h-3 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
       </button>
 
-      {isOpen && createPortal(
+      {isOpen && dropdownPosition && createPortal(
         <>
           <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
           <div
-            className="fixed z-[9999] min-w-[200px] rounded-md border border-border shadow-lg"
-            style={{ top: dropdownPosition.top, left: dropdownPosition.left, backgroundColor: 'hsl(var(--card))' }}
+            className={cn(
+              'fixed z-[9999] min-w-[200px] rounded-md border border-border shadow-lg',
+              'animate-in fade-in-0 zoom-in-95 duration-150',
+              dropdownPosition.openUpward ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'
+            )}
+            style={{
+              top: dropdownPosition.openUpward ? undefined : dropdownPosition.top,
+              bottom: dropdownPosition.openUpward
+                ? window.innerHeight - dropdownPosition.top
+                : undefined,
+              left: dropdownPosition.left,
+              backgroundColor: 'hsl(var(--card))',
+            }}
           >
             {PERMISSION_LEVELS.map((level) => (
               <button
