@@ -228,11 +228,14 @@ pub async fn ai_assistant_send_message(
     // Get project path for tool context
     let project_path_for_tools = request.project_path.clone();
 
+    // Clone database for the spawned task
+    let db_for_tools = db.0.as_ref().clone();
+
     tokio::spawn(async move {
         let mut ctx = stream_ctx;
 
-        // Initialize tool handler and get tool definitions
-        let tool_handler = MCPToolHandler::new();
+        // Initialize tool handler with database for security validation
+        let tool_handler = MCPToolHandler::with_database(db_for_tools);
         let tool_definitions = tool_handler.get_chat_tool_definitions(project_path_for_tools.as_deref());
 
         // Chat options with tools
@@ -530,9 +533,10 @@ pub async fn ai_assistant_get_messages(
 /// Get available tools for AI
 #[tauri::command]
 pub async fn ai_assistant_get_tools(
+    db: State<'_, DatabaseState>,
     project_path: Option<String>,
 ) -> Result<AvailableTools, String> {
-    let handler = MCPToolHandler::new();
+    let handler = MCPToolHandler::with_database(db.0.as_ref().clone());
     Ok(handler.get_available_tools(project_path.as_deref()))
 }
 
@@ -544,8 +548,10 @@ pub async fn ai_assistant_approve_tool_call(
     message_id: String,
     tool_call_id: String,
 ) -> Result<ToolResult, String> {
+    let _ = conversation_id; // Mark as used (for potential future use like audit logging)
     let repo = AIConversationRepository::new(db.0.as_ref().clone());
-    let handler = MCPToolHandler::new();
+    // Use with_database for path security validation
+    let handler = MCPToolHandler::with_database(db.0.as_ref().clone());
 
     // Get the message with tool calls
     let message = repo.get_message(&message_id)?
@@ -562,8 +568,8 @@ pub async fn ai_assistant_approve_tool_call(
     // Validate the tool call
     handler.validate_tool_call(tool_call)?;
 
-    // Execute the tool call
-    let result = handler.execute_tool_call(tool_call).await;
+    // Execute the confirmed tool call (bypasses confirmation check)
+    let result = handler.execute_confirmed_tool_call(tool_call).await;
 
     // Update tool call status in the message
     let updated_tool_calls: Vec<ToolCall> = tool_calls.iter()

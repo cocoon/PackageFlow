@@ -2181,7 +2181,7 @@ export const aiAPI = {
 
   /** List all AI service configurations */
   listServices: (): Promise<AIApiResponse<AIProviderConfig[]>> =>
-    invoke<AIApiResponse<AIProviderConfig[]>>('ai_list_services'),
+    invoke<AIApiResponse<AIProviderConfig[]>>('ai_list_providers'),
 
   /** Add a new AI service configuration */
   addService: (config: AddServiceRequest): Promise<AIApiResponse<AIProviderConfig>> =>
@@ -2193,11 +2193,11 @@ export const aiAPI = {
 
   /** Delete an AI service configuration */
   deleteService: (id: string): Promise<AIApiResponse<void>> =>
-    invoke<AIApiResponse<void>>('ai_delete_service', { id }),
+    invoke<AIApiResponse<void>>('ai_delete_provider', { id }),
 
   /** Set a service as the default */
   setDefaultService: (id: string): Promise<AIApiResponse<void>> =>
-    invoke<AIApiResponse<void>>('ai_set_default_service', { id }),
+    invoke<AIApiResponse<void>>('ai_set_default_provider', { id }),
 
   /** Test connection to an AI service */
   testConnection: (id: string): Promise<AIApiResponse<TestConnectionResult>> =>

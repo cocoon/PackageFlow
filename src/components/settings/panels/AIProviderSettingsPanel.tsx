@@ -30,6 +30,7 @@ import {
 import { useAIService, getAIExecutionMode, setAIExecutionMode, type AIExecutionMode } from '../../../hooks/useAIService';
 import { useDetectedCLITools } from '../../../hooks/useAICLI';
 import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
+import { Button } from '../../ui/Button';
 import { Select, type SelectOption } from '../../ui/Select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
 import { Skeleton } from '../../ui/Skeleton';
@@ -134,7 +135,7 @@ const AIStatusCard: React.FC<AIStatusCardProps> = ({
         <p className="text-sm text-muted-foreground mt-0.5">
           {defaultService
             ? `Default: ${defaultService.name} (${getProviderInfo(defaultService.provider)?.name})`
-            : 'No default service selected'}
+            : 'No default provider selected'}
         </p>
       </div>
 
@@ -180,7 +181,7 @@ const AIStatusCard: React.FC<AIStatusCardProps> = ({
           ) : (
             <>
               <XCircle className="w-3 h-3" />
-              <span>No Services</span>
+              <span>No Providers</span>
             </>
           )}
         </div>
@@ -462,7 +463,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               'text-muted-foreground hover:text-foreground hover:bg-accent',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
             )}
-            title="Edit service"
+            title="Edit provider"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -473,7 +474,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               'text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-accent',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
             )}
-            title="Delete service"
+            title="Delete provider"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -716,7 +717,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
           <div className="flex items-center gap-2 text-green-600 dark:text-green-400 mb-1">
             <Server className="w-4 h-4" />
-            <span className="text-xs font-medium">Local Services</span>
+            <span className="text-xs font-medium">Local Providers</span>
           </div>
           <span className="text-lg font-semibold text-foreground">{localServices.length}</span>
           <p className="text-[10px] text-muted-foreground mt-0.5">Privacy-first, runs locally</p>
@@ -724,7 +725,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
           <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
             <Cloud className="w-4 h-4" />
-            <span className="text-xs font-medium">Cloud Services</span>
+            <span className="text-xs font-medium">Cloud Providers</span>
           </div>
           <span className="text-lg font-semibold text-foreground">{cloudServices.length}</span>
           <p className="text-[10px] text-muted-foreground mt-0.5">Powered by API providers</p>
@@ -732,7 +733,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-1">
             <Star className="w-4 h-4" />
-            <span className="text-xs font-medium">Default Service</span>
+            <span className="text-xs font-medium">Default Provider</span>
           </div>
           <span className="text-lg font-semibold text-foreground truncate block">
             {defaultService?.name || 'None'}
@@ -752,7 +753,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <h4 className="text-sm font-medium text-foreground">AI Features</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              AI services power intelligent features like commit message generation,
+              AI providers power intelligent features like commit message generation,
               code review suggestions, and security analysis. Configure both API and CLI
               options, then choose your preferred execution mode above.
             </p>
@@ -764,9 +765,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
       {services.length === 0 && (
         <div className="p-6 border border-dashed border-border rounded-lg bg-muted/20 text-center">
           <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <h4 className="text-sm font-medium text-foreground mb-1">No Services Configured</h4>
+          <h4 className="text-sm font-medium text-foreground mb-1">No Providers Configured</h4>
           <p className="text-xs text-muted-foreground mb-4">
-            Add an AI service to enable intelligent features. We recommend starting with
+            Add an AI provider to enable intelligent features. We recommend starting with
             Ollama for local, privacy-first AI.
           </p>
         </div>
@@ -1028,9 +1029,9 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
     return (
       <div className="p-8 border border-dashed border-border rounded-lg bg-muted/20 text-center">
         <Bot className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <h4 className="text-sm font-medium text-foreground mb-1">No Services Yet</h4>
+        <h4 className="text-sm font-medium text-foreground mb-1">No Providers Yet</h4>
         <p className="text-xs text-muted-foreground">
-          Go to the "Add Service" tab to configure your first AI service.
+          Go to the "Add Provider" tab to configure your first AI provider.
         </p>
       </div>
     );
@@ -1038,14 +1039,14 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Local Services */}
+      {/* Local Providers */}
       {localServices.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <div className="w-6 h-6 rounded-lg bg-green-500/10 flex items-center justify-center">
               <Server className="w-3.5 h-3.5 text-green-500" />
             </div>
-            <span className="text-sm font-medium text-foreground">Local Services</span>
+            <span className="text-sm font-medium text-foreground">Local Providers</span>
             <span className="text-xs text-muted-foreground">({localServices.length})</span>
           </div>
           <div className="space-y-2">
@@ -1068,14 +1069,14 @@ const ServicesTab: React.FC<ServicesTabProps> = ({
         </div>
       )}
 
-      {/* Cloud Services */}
+      {/* Cloud Providers */}
       {cloudServices.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 px-1">
             <div className="w-6 h-6 rounded-lg bg-blue-500/10 flex items-center justify-center">
               <Cloud className="w-3.5 h-3.5 text-blue-500" />
             </div>
-            <span className="text-sm font-medium text-foreground">Cloud Services</span>
+            <span className="text-sm font-medium text-foreground">Cloud Providers</span>
             <span className="text-xs text-muted-foreground">({cloudServices.length})</span>
           </div>
           <div className="space-y-2">
@@ -1159,19 +1160,19 @@ const AddServiceTab: React.FC<AddServiceTabProps> = ({
   }, [formModels, formData.model]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Scrollable Form Area */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-6 pr-1 pb-10">
+      <div className="space-y-6 pr-1">
         {/* Form Header */}
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-medium text-foreground">
-              {editingService ? 'Edit Service' : 'Add New Service'}
+              {editingService ? 'Edit Provider' : 'Add New Provider'}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {editingService
-                ? 'Update the service configuration below'
-                : 'Configure a new AI service provider'}
+                ? 'Update the provider configuration below'
+                : 'Configure a new AI provider'}
             </p>
           </div>
           {editingService && (
@@ -1201,25 +1202,25 @@ const AddServiceTab: React.FC<AddServiceTabProps> = ({
           />
         )}
 
-      {/* Service Details Form */}
+      {/* Provider Details Form */}
       <div className="p-4 border border-border rounded-xl bg-card/50 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Settings2 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Service Configuration</span>
+          <span className="text-sm font-medium text-foreground">Provider Configuration</span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           {/* Name */}
           <div>
             <label htmlFor={`${formId}-name`} className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Service Name
+              Provider Name
             </label>
             <input
               id={`${formId}-name`}
               type="text"
               value={formData.name}
               onChange={(e) => onFormDataChange({ name: e.target.value })}
-              placeholder={`My ${currentProviderInfo?.name || 'AI'} Service`}
+              placeholder={`My ${currentProviderInfo?.name || 'AI'} Provider`}
               className={cn(
                 'w-full px-3 py-2 rounded-lg text-sm',
                 'bg-background border border-border',
@@ -1340,36 +1341,18 @@ const AddServiceTab: React.FC<AddServiceTabProps> = ({
       </div>
       </div>
 
-      {/* Submit Button - Fixed at bottom */}
-      <div className="shrink-0 pt-4 mt-4 border-t border-border bg-background sticky bottom-0">
+      {/* Submit Button - with frosted glass effect */}
+      <div className="sticky bottom-0 pt-4 pb-8 mt-4 -mx-1 px-1 border-t border-border/50 bg-background/80 backdrop-blur-md">
         <div className="flex justify-end gap-2">
           {editingService && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium',
-                'text-muted-foreground hover:text-foreground',
-                'transition-colors'
-              )}
-            >
+            <Button variant="ghost" onClick={onCancel}>
               Cancel
-            </button>
+            </Button>
           )}
-          <button
-            onClick={onSubmit}
-            disabled={isSubmitting}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium',
-              'bg-primary text-primary-foreground',
-              'hover:bg-primary/90 transition-colors',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            )}
-          >
+          <Button onClick={onSubmit} disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {editingService ? 'Update Service' : 'Add Service'}
-          </button>
+            {editingService ? 'Update Provider' : 'Add Provider'}
+          </Button>
         </div>
       </div>
     </div>
@@ -1558,7 +1541,7 @@ export function AIProviderSettingsPanel() {
   // Submit form (add or update)
   const handleSubmit = useCallback(async () => {
     if (!formData.name.trim()) {
-      setFormError('Please enter a service name');
+      setFormError('Please enter a provider name');
       return;
     }
     if (!formData.endpoint.trim()) {
@@ -1747,7 +1730,7 @@ export function AIProviderSettingsPanel() {
           </TabsTrigger>
           <TabsTrigger value="services" className="flex items-center gap-1.5">
             <Server className="w-3.5 h-3.5" />
-            <span>Services</span>
+            <span>Providers</span>
             {services.length > 0 && (
               <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-muted rounded-full">
                 {services.length}
@@ -1807,7 +1790,7 @@ export function AIProviderSettingsPanel() {
           />
         </TabsContent>
 
-        <TabsContent value="add" className="h-[calc(100vh-280px)]">
+        <TabsContent value="add" className="max-h-[calc(100vh-280px)] overflow-y-auto">
           <AddServiceTab
             editingService={editingService}
             formData={formData}
@@ -1833,7 +1816,7 @@ export function AIProviderSettingsPanel() {
         open={deleteTarget !== null}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        itemType="AI Service"
+        itemType="AI Provider"
         itemName={deleteTarget?.name || ''}
         isLoading={isDeleting}
       />

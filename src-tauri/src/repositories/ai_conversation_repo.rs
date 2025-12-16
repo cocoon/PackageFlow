@@ -735,9 +735,12 @@ mod tests {
     use crate::utils::database::Database;
 
     fn setup_test_db() -> Database {
-        let db = Database::new_in_memory().expect("Failed to create test database");
-        crate::utils::schema::migrate(&db).expect("Failed to run migrations");
-        db
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        // Keep the dir alive by leaking it for the duration of the test
+        std::mem::forget(dir);
+        Database::new(db_path).expect("Failed to create test database")
     }
 
     #[test]
@@ -745,11 +748,12 @@ mod tests {
         let db = setup_test_db();
         let repo = AIConversationRepository::new(db);
 
-        let conversation = Conversation::new(
-            Some("Test Conversation".to_string()),
+        // Conversation::new takes (project_path, provider_id)
+        let mut conversation = Conversation::new(
             Some("/test/path".to_string()),
             None,
         );
+        conversation.title = Some("Test Conversation".to_string());
 
         repo.create_conversation(&conversation).expect("Failed to create conversation");
 
@@ -767,10 +771,10 @@ mod tests {
         let db = setup_test_db();
         let repo = AIConversationRepository::new(db);
 
-        let conversation = Conversation::new(None, None, None);
+        let conversation = Conversation::new(None, None);
         repo.create_conversation(&conversation).expect("Failed to create conversation");
 
-        let message = Message::user(&conversation.id, "Hello, AI!".to_string());
+        let message = Message::user(conversation.id.clone(), "Hello, AI!".to_string());
         repo.create_message(&message).expect("Failed to create message");
         repo.increment_message_count(&conversation.id).expect("Failed to increment count");
 
@@ -789,12 +793,8 @@ mod tests {
         let repo = AIConversationRepository::new(db);
 
         // Create multiple conversations
-        for i in 0..5 {
-            let conversation = Conversation::new(
-                Some(format!("Conversation {}", i)),
-                None,
-                None,
-            );
+        for _i in 0..5 {
+            let conversation = Conversation::new(None, None);
             repo.create_conversation(&conversation).expect("Failed to create conversation");
         }
 
@@ -811,10 +811,10 @@ mod tests {
         let db = setup_test_db();
         let repo = AIConversationRepository::new(db);
 
-        let conversation = Conversation::new(None, None, None);
+        let conversation = Conversation::new(None, None);
         repo.create_conversation(&conversation).expect("Failed to create conversation");
 
-        let message = Message::user(&conversation.id, "Test message".to_string());
+        let message = Message::user(conversation.id.clone(), "Test message".to_string());
         repo.create_message(&message).expect("Failed to create message");
 
         // Delete conversation

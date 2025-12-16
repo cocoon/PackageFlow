@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Terminal, Settings2, Copy, Check, ChevronDown, ExternalLink, Bot } from 'lucide-react';
+import { Terminal, Settings2, Copy, Check, ChevronDown, ExternalLink, Bot, Monitor } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 import { openUrl } from '../../../lib/tauri-api';
@@ -32,6 +32,8 @@ interface ClientConfig {
   configFormat: 'json' | 'toml';
   steps: string[];
   docsUrl?: string;
+  /** Optional hint text (e.g., config file path) */
+  hint?: string;
 }
 
 const CLIENT_CONFIGS: ClientConfig[] = [
@@ -45,6 +47,34 @@ const CLIENT_CONFIGS: ClientConfig[] = [
       'Restart Claude Code to apply changes',
     ],
     docsUrl: 'https://docs.anthropic.com/claude-code',
+  },
+  {
+    id: 'claude-desktop',
+    name: 'Claude Desktop',
+    icon: <Monitor className="w-4 h-4" />,
+    configFormat: 'json',
+    steps: [
+      'Open Claude Desktop → Settings → Developer',
+      'Click "Edit Config" to open config file',
+      'Add the JSON configuration below to mcpServers',
+      'Restart Claude Desktop completely (quit and reopen)',
+    ],
+    hint: 'Config: ~/Library/Application Support/Claude/claude_desktop_config.json',
+    docsUrl: 'https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop',
+  },
+  {
+    id: 'chatgpt-desktop',
+    name: 'ChatGPT Desktop',
+    icon: <Monitor className="w-4 h-4" />,
+    configFormat: 'json',
+    steps: [
+      'Open ChatGPT Desktop → Settings → Connectors',
+      'Click "Advanced" → Enable "Developer mode"',
+      'Click "Create" to add a new connector',
+      'Enter server name and paste the JSON configuration',
+    ],
+    hint: 'Requires ChatGPT Pro or Plus subscription',
+    docsUrl: 'https://developers.openai.com/apps-sdk/deploy/connect-chatgpt/',
   },
   {
     id: 'vscode',
@@ -202,6 +232,13 @@ const ClientSetupCard: React.FC<{
               </li>
             ))}
           </ol>
+
+          {/* Hint (if available) */}
+          {client.hint && (
+            <p className="text-[11px] text-muted-foreground/80 bg-muted/50 px-2.5 py-1.5 rounded-md font-mono">
+              {client.hint}
+            </p>
+          )}
 
           {/* Command (if available) */}
           {command && (

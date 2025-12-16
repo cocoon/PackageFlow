@@ -4,8 +4,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Workflow as WorkflowIcon } from 'lucide-react';
+import { Workflow as WorkflowIcon, Plus } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { EmptyState } from '../ui/EmptyState';
 import { WorkflowSidebar } from './WorkflowSidebar';
 import { WorkflowEditor } from './WorkflowEditor';
 import { useWorkflowExecutionContext } from '../../contexts/WorkflowExecutionContext';
@@ -396,13 +397,23 @@ export function WorkflowPage({
               </div>
             )}
 
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <WorkflowIcon className="w-16 h-16 mx-auto mb-4 opacity-50" strokeWidth={1.5} />
-                <p className="text-lg">Select or create a workflow</p>
-                <p className="text-sm mt-2">Pick a workflow on the left or click + to add one</p>
-              </div>
-            </div>
+            <EmptyState
+              icon={WorkflowIcon}
+              title="Select or Create a Workflow"
+              description="Pick a workflow from the sidebar or create a new one to automate your tasks."
+              variant="blue"
+              showBackgroundPattern
+              iconSize="lg"
+              action={{
+                label: 'Create Workflow',
+                icon: Plus,
+                onClick: handleCreateWorkflow,
+              }}
+              shortcuts={[
+                { key: '⌘N', label: 'New workflow' },
+              ]}
+              className="flex-1"
+            />
           </div>
         )}
       </div>

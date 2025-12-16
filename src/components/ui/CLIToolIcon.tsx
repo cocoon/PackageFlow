@@ -28,12 +28,12 @@ export const CLI_TOOL_COLORS: Record<
     iconBg: 'bg-[#D97757]/10',
   },
   codex: {
-    bg: 'bg-emerald-500/5',
-    bgActive: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20',
-    borderActive: 'border-emerald-500/40',
-    text: 'text-emerald-600 dark:text-emerald-400',
-    iconBg: 'bg-emerald-500/10',
+    bg: 'bg-zinc-500/5',
+    bgActive: 'bg-zinc-500/10',
+    border: 'border-zinc-500/20',
+    borderActive: 'border-zinc-500/40',
+    text: 'text-zinc-700 dark:text-zinc-300',
+    iconBg: 'bg-zinc-500/10',
   },
   gemini_cli: {
     bg: 'bg-blue-500/5',

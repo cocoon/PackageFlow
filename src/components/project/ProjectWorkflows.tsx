@@ -31,7 +31,7 @@ import {
 import { Dialog, DialogContent, DialogClose } from '../ui/Dialog';
 import { Button } from '../ui/Button';
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '../ui/ContextMenu';
-import { CompactEmptyState } from '../ui/EmptyState';
+import { EmptyState } from '../ui/EmptyState';
 import { cn } from '../../lib/utils';
 import { useWorkflowExecutionContext } from '../../contexts/WorkflowExecutionContext';
 import {
@@ -384,16 +384,19 @@ export function ProjectWorkflows({
 
       {/* Workflow list */}
       {workflows.length === 0 ? (
-        <CompactEmptyState
+        <EmptyState
           icon={WorkflowIcon}
           title="No Workflows Yet"
-          description="Create a project-specific workflow to automate repetitive tasks"
+          description="Create a project-specific workflow to automate repetitive tasks like build, test, and deploy."
           variant="blue"
+          showBackgroundPattern
+          iconSize="md"
           action={{
             label: 'Create Workflow',
             icon: Plus,
             onClick: handleAddClick,
           }}
+          className="min-h-[320px] rounded-xl border border-border"
         />
       ) : (
         <ul className="space-y-2">

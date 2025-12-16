@@ -41,12 +41,14 @@ impl AIAssistantService {
     /// Create a new AIAssistantService
     pub fn new(db: Database) -> Self {
         let repo = AIConversationRepository::new(db.clone());
+        // IMPORTANT: Use with_database to enable path security validation
+        let tool_handler = MCPToolHandler::with_database(db.clone());
         Self {
             db,
             repo,
             stream_manager: Arc::new(RwLock::new(StreamManager::new())),
             sanitizer: InputSanitizer::new(),
-            tool_handler: Arc::new(MCPToolHandler::new()),
+            tool_handler: Arc::new(tool_handler),
         }
     }
 
@@ -556,9 +558,12 @@ mod tests {
     use crate::utils::database::Database;
 
     fn setup_test_db() -> Database {
-        let db = Database::new_in_memory().expect("Failed to create test database");
-        crate::utils::schema::migrate(&db).expect("Failed to run migrations");
-        db
+        use tempfile::tempdir;
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        // Keep the dir alive by leaking it for the duration of the test
+        std::mem::forget(dir);
+        Database::new(db_path).expect("Failed to create test database")
     }
 
     #[test]

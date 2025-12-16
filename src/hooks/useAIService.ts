@@ -203,8 +203,9 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
 
     try {
       const response = await aiAPI.listServices();
-      if (response.success && response.data) {
-        setServices(response.data);
+      if (response.success) {
+        // Empty array is valid - means no services configured yet
+        setServices(response.data ?? []);
       } else {
         setServicesError(response.error || 'Failed to load AI services');
       }
@@ -350,8 +351,9 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
 
     try {
       const response = await aiAPI.listTemplates();
-      if (response.success && response.data) {
-        setTemplates(response.data);
+      if (response.success) {
+        // Empty array is valid - means no templates configured yet
+        setTemplates(response.data ?? []);
       } else {
         setTemplatesError(response.error || 'Failed to load prompt templates');
       }

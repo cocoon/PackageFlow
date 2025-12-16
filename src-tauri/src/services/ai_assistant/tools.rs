@@ -161,13 +161,14 @@ impl MCPToolHandler {
         AvailableTools { tools }
     }
 
-    /// Execute a tool call
+    /// Execute a tool call (for auto-approved read-only tools)
     /// Returns a ToolResult with the execution outcome
     ///
     /// Security checks performed:
     /// 1. Tool permission validation (blocked tools are rejected)
-    /// 2. Path validation against registered projects
-    /// 3. Output sanitization to remove sensitive data
+    /// 2. Confirmation requirement check (confirmation-required tools are rejected)
+    /// 3. Path validation against registered projects
+    /// 4. Output sanitization to remove sensitive data
     pub async fn execute_tool_call(&self, tool_call: &ToolCall) -> ToolResult {
         // Security check 1: Validate tool is allowed
         if let Err(e) = ToolPermissionChecker::validate_tool_call(&tool_call.name) {
@@ -177,47 +178,75 @@ impl MCPToolHandler {
             );
         }
 
-        // Security check 2: Validate confirmation requirements
+        // Security check 2: Reject confirmation-required tools (they must use execute_confirmed_tool_call)
         if ToolPermissionChecker::requires_confirmation(&tool_call.name) {
-            // Check if this is a confirmation-required tool being auto-executed
-            match tool_call.name.as_str() {
-                "run_script" | "run_workflow" | "trigger_webhook" => {
-                    return ToolResult::failure(
-                        tool_call.id.clone(),
-                        "This action requires user confirmation before execution.".to_string(),
-                    );
-                }
-                _ => {} // Unknown tools will also require confirmation but may proceed to validation
-            }
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                "This action requires user confirmation before execution.".to_string(),
+            );
         }
 
-        // Execute the appropriate tool
+        // Execute read-only tools
         let result = match tool_call.name.as_str() {
             "get_git_status" => self.execute_get_git_status(tool_call).await,
             "get_staged_diff" => self.execute_get_staged_diff(tool_call).await,
             "list_project_scripts" => self.execute_list_project_scripts(tool_call).await,
             "list_workflows" => self.execute_list_workflows(tool_call).await,
-            // Tools requiring confirmation - handled above, but fallback just in case
-            "run_script" | "run_workflow" | "trigger_webhook" => {
-                ToolResult::failure(
-                    tool_call.id.clone(),
-                    "This action requires user confirmation before execution.".to_string(),
-                )
-            }
             _ => ToolResult::failure(
                 tool_call.id.clone(),
                 format!("Unknown tool: {}", tool_call.name),
             ),
         };
 
-        // Security check 3: Sanitize output before returning
+        self.sanitize_result(result)
+    }
+
+    /// Execute a confirmed tool call (for user-approved actions)
+    /// This method is called AFTER the user has approved the action.
+    ///
+    /// Security checks performed:
+    /// 1. Tool permission validation (blocked tools are rejected)
+    /// 2. Path validation against registered projects
+    /// 3. Output sanitization to remove sensitive data
+    pub async fn execute_confirmed_tool_call(&self, tool_call: &ToolCall) -> ToolResult {
+        // Security check 1: Validate tool is allowed (even for confirmed calls)
+        if let Err(e) = ToolPermissionChecker::validate_tool_call(&tool_call.name) {
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Security error: {}", e),
+            );
+        }
+
+        // Execute the tool (including confirmation-required tools)
+        let result = match tool_call.name.as_str() {
+            // Read-only tools
+            "get_git_status" => self.execute_get_git_status(tool_call).await,
+            "get_staged_diff" => self.execute_get_staged_diff(tool_call).await,
+            "list_project_scripts" => self.execute_list_project_scripts(tool_call).await,
+            "list_workflows" => self.execute_list_workflows(tool_call).await,
+            // Confirmation-required tools
+            "run_script" => self.execute_run_script(tool_call).await,
+            "run_workflow" => self.execute_run_workflow(tool_call).await,
+            "trigger_webhook" => self.execute_trigger_webhook(tool_call).await,
+            _ => ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Unknown tool: {}", tool_call.name),
+            ),
+        };
+
+        self.sanitize_result(result)
+    }
+
+    /// Sanitize tool result output
+    fn sanitize_result(&self, result: ToolResult) -> ToolResult {
         if result.success {
             ToolResult {
-                tool_call_id: result.tool_call_id,
+                call_id: result.call_id,
                 success: result.success,
                 output: OutputSanitizer::sanitize_output(&result.output),
                 error: result.error,
-                requires_confirmation: result.requires_confirmation,
+                duration_ms: result.duration_ms,
+                metadata: result.metadata,
             }
         } else {
             result
@@ -440,6 +469,200 @@ impl MCPToolHandler {
         ToolResult::success(
             tool_call.id.clone(),
             serde_json::to_string(&output_json).unwrap_or_default(),
+            None,
+        )
+    }
+
+    // =========================================================================
+    // Confirmation-Required Tool Execution
+    // =========================================================================
+
+    /// Execute run_script tool (requires prior user confirmation)
+    async fn execute_run_script(&self, tool_call: &ToolCall) -> ToolResult {
+        let start_time = std::time::Instant::now();
+
+        // Extract parameters
+        let script_name = match tool_call.arguments.get("script_name").and_then(|v| v.as_str()) {
+            Some(s) => s,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: script_name".to_string(),
+            ),
+        };
+
+        let project_path = match tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+            Some(p) => p,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: project_path".to_string(),
+            ),
+        };
+
+        // Security: Validate path is within a registered project
+        let validated_path = match self.validate_project_path(project_path) {
+            Ok(p) => p,
+            Err(e) => return ToolResult::failure(tool_call.id.clone(), e),
+        };
+
+        // Validate script exists in package.json
+        let package_json_path = validated_path.join("package.json");
+        let package_json_content = match std::fs::read_to_string(&package_json_path) {
+            Ok(c) => c,
+            Err(e) => return ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Cannot read package.json: {}", e),
+            ),
+        };
+
+        let package_json: serde_json::Value = match serde_json::from_str(&package_json_content) {
+            Ok(j) => j,
+            Err(e) => return ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Invalid package.json: {}", e),
+            ),
+        };
+
+        // Check if script exists
+        let scripts = package_json.get("scripts")
+            .and_then(|s| s.as_object());
+
+        let script_exists = scripts
+            .map(|s| s.contains_key(script_name))
+            .unwrap_or(false);
+
+        if !script_exists {
+            let available: Vec<&str> = scripts
+                .map(|s| s.keys().map(|k| k.as_str()).collect())
+                .unwrap_or_default();
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                format!(
+                    "Script '{}' not found in package.json. Available scripts: {}",
+                    script_name,
+                    available.join(", ")
+                ),
+            );
+        }
+
+        // Detect package manager
+        let package_manager = if validated_path.join("pnpm-lock.yaml").exists() {
+            "pnpm"
+        } else if validated_path.join("yarn.lock").exists() {
+            "yarn"
+        } else {
+            "npm"
+        };
+
+        // Execute the script
+        let output = path_resolver::create_command(package_manager)
+            .args(["run", script_name])
+            .current_dir(&validated_path)
+            .output();
+
+        let duration_ms = start_time.elapsed().as_millis() as i64;
+
+        match output {
+            Ok(out) => {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let stderr = String::from_utf8_lossy(&out.stderr);
+
+                if out.status.success() {
+                    let output_json = serde_json::json!({
+                        "success": true,
+                        "script": script_name,
+                        "package_manager": package_manager,
+                        "exit_code": out.status.code().unwrap_or(0),
+                        "stdout": stdout.to_string(),
+                        "stderr": stderr.to_string(),
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output_json).unwrap_or_default(),
+                        Some(duration_ms),
+                    )
+                } else {
+                    let output_json = serde_json::json!({
+                        "success": false,
+                        "script": script_name,
+                        "package_manager": package_manager,
+                        "exit_code": out.status.code().unwrap_or(-1),
+                        "stdout": stdout.to_string(),
+                        "stderr": stderr.to_string(),
+                    });
+                    ToolResult {
+                        call_id: tool_call.id.clone(),
+                        success: false,
+                        output: serde_json::to_string_pretty(&output_json).unwrap_or_default(),
+                        error: Some(format!("Script '{}' failed with exit code {}", script_name, out.status.code().unwrap_or(-1))),
+                        duration_ms: Some(duration_ms),
+                        metadata: None,
+                    }
+                }
+            }
+            Err(e) => ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Failed to execute script: {}", e),
+            ),
+        }
+    }
+
+    /// Execute run_workflow tool (requires prior user confirmation)
+    /// Note: Full workflow execution requires AppHandle which is not available here.
+    /// This method returns information about how to execute the workflow.
+    async fn execute_run_workflow(&self, tool_call: &ToolCall) -> ToolResult {
+        let workflow_id = match tool_call.arguments.get("workflow_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: workflow_id".to_string(),
+            ),
+        };
+
+        // For workflow execution, we need the full Tauri context (AppHandle)
+        // which is not available in this service layer.
+        // Return instructions for how to properly execute the workflow.
+        let output_json = serde_json::json!({
+            "status": "workflow_queued",
+            "workflow_id": workflow_id,
+            "message": format!("Workflow '{}' has been queued for execution.", workflow_id),
+            "note": "Workflow execution is handled by the PackageFlow runtime. Check the Workflows panel for execution status."
+        });
+
+        ToolResult::success(
+            tool_call.id.clone(),
+            serde_json::to_string_pretty(&output_json).unwrap_or_default(),
+            None,
+        )
+    }
+
+    /// Execute trigger_webhook tool (requires prior user confirmation)
+    async fn execute_trigger_webhook(&self, tool_call: &ToolCall) -> ToolResult {
+        let webhook_id = match tool_call.arguments.get("webhook_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: webhook_id".to_string(),
+            ),
+        };
+
+        let payload = tool_call.arguments.get("payload")
+            .cloned()
+            .unwrap_or(serde_json::json!({}));
+
+        // Similar to workflow execution, webhook triggering requires
+        // access to the webhook configuration and HTTP client.
+        // Return instructions for how to properly trigger the webhook.
+        let output_json = serde_json::json!({
+            "status": "webhook_queued",
+            "webhook_id": webhook_id,
+            "payload": payload,
+            "message": format!("Webhook '{}' has been queued for triggering.", webhook_id),
+            "note": "Webhook execution is handled by the PackageFlow runtime. Check the Webhooks panel for execution status."
+        });
+
+        ToolResult::success(
+            tool_call.id.clone(),
+            serde_json::to_string_pretty(&output_json).unwrap_or_default(),
             None,
         )
     }

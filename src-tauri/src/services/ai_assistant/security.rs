@@ -355,12 +355,19 @@ impl OutputSanitizer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
+
+    fn setup_test_db() -> Database {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        // Keep the dir alive by leaking it for the duration of the test
+        std::mem::forget(dir);
+        Database::new(db_path).expect("Failed to create test database")
+    }
 
     #[test]
     fn test_is_path_safe() {
-        let validator = PathSecurityValidator::new(
-            crate::utils::database::Database::new_in_memory().unwrap()
-        );
+        let validator = PathSecurityValidator::new(setup_test_db());
 
         // Safe paths
         assert!(validator.is_path_safe("/Users/test/project"));
@@ -390,15 +397,21 @@ mod tests {
 
     #[test]
     fn test_output_sanitizer() {
-        // Test secret redaction
+        // Test line-level secret redaction (lines with sensitive keywords + = or :)
         let output = "API_KEY=sk-abc123def456ghi789";
         let sanitized = OutputSanitizer::sanitize_output(output);
-        assert!(sanitized.contains("REDACTED"));
+        assert!(sanitized.contains("REDACTED"), "API_KEY line should be redacted");
 
-        // Test JWT redaction
-        let jwt_output = "token: eyJhbGciOiJIUzI1NiJ9.eyJ0ZXN0IjoxfQ.abc123";
+        // Test JWT redaction (standalone JWT without sensitive keyword prefix)
+        // Note: Line-level redaction will catch "token: ..." lines first
+        let jwt_output = "Here is the JWT eyJhbGciOiJIUzI1NiJ9.eyJ0ZXN0IjoxfQ.abc123def456";
         let sanitized = OutputSanitizer::sanitize_output(jwt_output);
-        assert!(sanitized.contains("JWT_REDACTED"));
+        assert!(sanitized.contains("JWT_REDACTED"), "JWT should be redacted: {}", sanitized);
+
+        // Test API key prefix redaction
+        let api_key_output = "Using key sk-abcdefghij1234567890";
+        let sanitized = OutputSanitizer::sanitize_output(api_key_output);
+        assert!(sanitized.contains("API_KEY_REDACTED"), "API key prefix should be redacted: {}", sanitized);
 
         // Test truncation
         let long_output = "a".repeat(10000);

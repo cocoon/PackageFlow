@@ -584,7 +584,7 @@ export function ProjectExplorer({
                     className="fixed inset-0 z-40"
                     onClick={() => setIsEditorDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] whitespace-nowrap">
+                  <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[160px] flex flex-col">
                     <div className="px-3 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wide">
                       Open In
                     </div>
@@ -593,7 +593,7 @@ export function ProjectExplorer({
                         key={editor.id}
                         variant="ghost"
                         onClick={() => handleOpenInEditor(editor.id)}
-                        className="w-full justify-start gap-2 h-auto rounded-none"
+                        className="w-full justify-start gap-2 h-9 px-3 rounded-none"
                       >
                         <Code2 className="w-4 h-4" />
                         {editor.name}
@@ -604,7 +604,7 @@ export function ProjectExplorer({
                         <Button
                           variant="ghost"
                           onClick={onOpenInVSCode}
-                          className="w-full justify-start gap-2 h-auto rounded-none"
+                          className="w-full justify-start gap-2 h-9 px-3 rounded-none"
                         >
                           <Code2 className="w-4 h-4" />
                           Open in VS Code
