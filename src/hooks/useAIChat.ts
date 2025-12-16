@@ -537,6 +537,50 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
       setConversation(conv);
       setMessages(conversationMessages);
+
+      // Check for active stream and reconnect if found
+      try {
+        const activeStream = await invoke<{
+          streamSessionId: string;
+          conversationId: string;
+          messageId: string;
+          accumulatedContent: string;
+          status: string;
+          model: string | null;
+          isActive: boolean;
+        } | null>('ai_assistant_get_active_stream', { conversationId });
+
+        if (activeStream?.isActive) {
+          console.log('[AI Chat] Reconnecting to active stream:', {
+            streamSessionId: activeStream.streamSessionId,
+            messageId: activeStream.messageId,
+            contentLength: activeStream.accumulatedContent.length,
+          });
+
+          // Set up stream tracking refs
+          currentStreamIdRef.current = activeStream.streamSessionId;
+          streamingMessageIdRef.current = activeStream.messageId;
+
+          // Update the message with accumulated content
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === activeStream.messageId
+                ? { ...m, content: activeStream.accumulatedContent }
+                : m
+            )
+          );
+
+          // Restore generating state
+          setIsGenerating(true);
+          setResponseStatus({
+            phase: activeStream.status as 'thinking' | 'generating' | 'tool',
+            startTime: Date.now(),
+            model: activeStream.model ?? undefined,
+          });
+        }
+      } catch (reconnectErr) {
+        console.debug('[AI Chat] No active stream to reconnect:', reconnectErr);
+      }
     } catch (err) {
       console.error('Failed to load conversation:', err);
       setError(err instanceof Error ? err.message : 'Failed to load conversation');

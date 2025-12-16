@@ -359,7 +359,7 @@ export function WorkflowSidebar({
 
       {/* Context menu */}
       {contextMenu && (
-        <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu}>
+        <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} usePortal>
           {onDuplicateWorkflow && (
             <ContextMenuItem
               onClick={() => {

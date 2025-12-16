@@ -19,7 +19,6 @@ import { AIProviderNotConfiguredState } from './AIProviderNotConfiguredState';
 import { QuickActionChips } from './QuickActionChips';
 import { AIAssistantSidebar } from './AIAssistantSidebar';
 import { ConversationHeader } from './ConversationHeader';
-import { ResponseStatusIndicator } from './ResponseStatusIndicator';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useAIQuickActions } from '../../hooks/useAIQuickActions';
 import { useConversations } from '../../hooks/useConversations';
@@ -410,6 +409,13 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
                     message.role === 'assistant' &&
                     index === visibleMessages.length - 1
                   }
+                  responseStatus={
+                    isGenerating &&
+                    message.role === 'assistant' &&
+                    index === visibleMessages.length - 1
+                      ? responseStatus
+                      : null
+                  }
                   onApproveToolCall={handleApproveToolCall}
                   onDenyToolCall={handleDenyToolCall}
                   onStopToolExecution={handleStopToolExecution}
@@ -420,13 +426,6 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
           )}
           <div ref={messagesEndRef} />
         </div>
-
-        {/* Response status indicator - Feature 023 */}
-        {responseStatus && (
-          <div className="px-4 pb-2">
-            <ResponseStatusIndicator status={responseStatus} />
-          </div>
-        )}
 
         {/* Error banner */}
         {displayError && (

@@ -252,15 +252,24 @@ pub async fn ai_assistant_send_message(
         }
     }
 
-    // Create streaming session
-    let (stream_session_id, cancel_rx) = stream_manager.create_session().await;
+    // Create streaming session with info for reconnection support
+    let (stream_session_id, cancel_rx) = stream_manager
+        .create_session_with_info(
+            conversation_id.clone(),
+            assistant_message.id.clone(),
+        )
+        .await;
 
-    // Create stream context for emitting events
-    let stream_ctx = StreamContext::new(
+    // Get stream info reference for syncing during streaming
+    let stream_info_ref = stream_manager.get_stream_info_ref();
+
+    // Create stream context for emitting events with reconnection support
+    let stream_ctx = StreamContext::with_stream_info(
         stream_session_id.clone(),
         conversation_id.clone(),
         assistant_message.id.clone(),
         app.clone(),
+        stream_info_ref,
     );
 
     // Spawn background task for AI response
@@ -309,6 +318,9 @@ pub async fn ai_assistant_send_message(
 
         loop {
             iteration += 1;
+            // Sync iteration counter with StreamContext for accurate status display
+            ctx.set_iteration(iteration as u32);
+
             if iteration > MAX_TOOL_ITERATIONS {
                 log::warn!("Agentic loop reached maximum iterations ({})", MAX_TOOL_ITERATIONS);
                 // Generate a message informing the user
@@ -783,6 +795,43 @@ pub async fn ai_assistant_cancel_stream(
     stream_manager.cancel_session(&session_id).await
 }
 
+/// Response for stream reconnection
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StreamResumeResponse {
+    pub stream_session_id: String,
+    pub conversation_id: String,
+    pub message_id: String,
+    pub accumulated_content: String,
+    pub status: String,
+    pub model: Option<String>,
+    pub is_active: bool,
+}
+
+/// Get active stream for a conversation (for reconnection after page switch)
+#[tauri::command]
+pub async fn ai_assistant_get_active_stream(
+    stream_manager: State<'_, StreamManager>,
+    conversation_id: String,
+) -> Result<Option<StreamResumeResponse>, String> {
+    let result = stream_manager
+        .get_active_stream_for_conversation(&conversation_id)
+        .await;
+
+    match result {
+        Some((session_id, info)) => Ok(Some(StreamResumeResponse {
+            stream_session_id: session_id,
+            conversation_id: info.conversation_id,
+            message_id: info.message_id,
+            accumulated_content: info.accumulated_content,
+            status: info.status,
+            model: info.model,
+            is_active: true,
+        })),
+        None => Ok(None),
+    }
+}
+
 /// Get messages for a conversation
 #[tauri::command]
 pub async fn ai_assistant_get_messages(
@@ -1080,6 +1129,9 @@ pub async fn ai_assistant_continue_after_tool(
 
         loop {
             iteration += 1;
+            // Sync iteration counter with StreamContext for accurate status display
+            ctx.set_iteration(iteration as u32);
+
             if iteration > MAX_TOOL_ITERATIONS {
                 log::warn!("Continuation loop reached maximum iterations ({})", MAX_TOOL_ITERATIONS);
                 // Generate a message informing the user

@@ -12,7 +12,7 @@
  */
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { Bot, User, Info, Copy, Check, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
+import { Bot, User, Info, Copy, Check, RefreshCw, AlertCircle, Sparkles, Brain, Wrench } from 'lucide-react';
 import { marked } from 'marked';
 import { cn } from '../../lib/utils';
 import { ActionConfirmationCard } from './ActionConfirmationCard';
@@ -21,21 +21,22 @@ import {
   parseInteractiveElements,
   type InteractiveElementData,
 } from './InteractiveElement';
-import type { Message, ToolResult } from '../../types/ai-assistant';
+import type { Message, ToolResult, ResponseStatus } from '../../types/ai-assistant';
 
 /**
- * ChatGPT-style thinking indicator with animated dots
+ * Animated dots for thinking/generating states
  */
-function ThinkingIndicator() {
+function AnimatedDots({ className }: { className?: string }) {
   return (
-    <div className="flex items-center gap-1 py-1">
+    <>
       {[0, 1, 2].map((i) => (
         <span
           key={i}
           className={cn(
-            'w-2 h-2 rounded-full',
-            'bg-muted-foreground/60',
-            'animate-[thinking_1.4s_ease-in-out_infinite]'
+            'w-1.5 h-1.5 rounded-full',
+            'bg-current',
+            'animate-[thinking_1.4s_ease-in-out_infinite]',
+            className
           )}
           style={{
             animationDelay: `${i * 0.2}s`,
@@ -49,11 +50,86 @@ function ThinkingIndicator() {
             opacity: 0.4;
           }
           30% {
-            transform: translateY(-4px);
+            transform: translateY(-3px);
             opacity: 1;
           }
         }
       `}</style>
+    </>
+  );
+}
+
+/**
+ * ChatGPT-style inline status indicator for assistant messages
+ * Shows at the top of the message bubble when AI is processing
+ */
+function InlineStatusIndicator({ status }: { status: ResponseStatus }) {
+  // Get status label and icon based on phase
+  const getStatusConfig = () => {
+    switch (status.phase) {
+      case 'thinking':
+        return {
+          label: 'Thinking',
+          icon: <Brain className="w-3.5 h-3.5 animate-pulse" />,
+          colorClass: 'text-purple-500 dark:text-purple-400',
+          bgClass: 'bg-purple-500/10',
+        };
+      case 'generating':
+        return {
+          label: 'Generating',
+          icon: <AnimatedDots />,
+          colorClass: 'text-blue-500 dark:text-blue-400',
+          bgClass: 'bg-blue-500/10',
+        };
+      case 'tool':
+        return {
+          label: status.toolName ? `Using ${status.toolName}` : 'Using tool',
+          icon: <Wrench className="w-3.5 h-3.5 animate-bounce" />,
+          colorClass: 'text-amber-500 dark:text-amber-400',
+          bgClass: 'bg-amber-500/10',
+        };
+      default:
+        return null;
+    }
+  };
+
+  const config = getStatusConfig();
+  if (!config) return null;
+
+  // Show iteration badge for multi-step operations
+  const showIteration = status.iteration && status.iteration > 1;
+
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center gap-2 px-2.5 py-1.5 mb-3 rounded-lg',
+        'text-xs font-medium',
+        config.colorClass,
+        config.bgClass,
+        'animate-in fade-in-0 duration-200'
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="flex items-center gap-1">{config.icon}</span>
+      <span>{config.label}</span>
+      {showIteration && (
+        <span className="opacity-70 ml-0.5">(Step {status.iteration})</span>
+      )}
+      {status.model && status.phase === 'generating' && (
+        <span className="text-muted-foreground/60 ml-1">· {status.model}</span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * ChatGPT-style thinking indicator with animated dots (fallback when no status)
+ */
+function ThinkingIndicator() {
+  return (
+    <div className="flex items-center gap-1 py-1">
+      <AnimatedDots className="w-2 h-2" />
     </div>
   );
 }
@@ -63,6 +139,8 @@ interface ChatMessageProps {
   message: Message;
   /** Whether this message is currently streaming */
   isStreaming?: boolean;
+  /** Current response status for inline display (Feature 023) */
+  responseStatus?: ResponseStatus | null;
   /** Handler for copy action */
   onCopy?: () => void;
   /** Handler for regenerate action (assistant only) */
@@ -89,6 +167,7 @@ interface ChatMessageProps {
 export function ChatMessage({
   message,
   isStreaming = false,
+  responseStatus,
   onRegenerate,
   onApproveToolCall,
   onDenyToolCall,
@@ -300,8 +379,15 @@ export function ChatMessage({
             message.status === 'error' && 'opacity-60'
           )}
         >
-          {/* Show thinking animation when streaming with no content yet */}
-          {isStreaming && !message.content ? (
+          {/* Inline status indicator - ChatGPT style (Feature 023) */}
+          {isStreaming && responseStatus && responseStatus.phase !== 'idle' && responseStatus.phase !== 'complete' && (
+            <div className="not-prose">
+              <InlineStatusIndicator status={responseStatus} />
+            </div>
+          )}
+
+          {/* Show thinking animation when streaming with no content and no status */}
+          {isStreaming && !message.content && !responseStatus ? (
             <ThinkingIndicator />
           ) : (
             <>

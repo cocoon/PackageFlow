@@ -470,12 +470,12 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4 text-green-500" />
+                  <Check className="w-4 h-4 text-green-500 mr-2" />
                   <span className="text-green-500">Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-4 h-4 mr-2" />
                   <span>Copy</span>
                 </>
               )}
@@ -518,7 +518,7 @@ function FilterButton({
           value !== 'all' && 'border-primary/50 bg-primary/10 text-primary'
         )}
       >
-        <Filter className="w-3 h-3" />
+        <Filter className="w-3 h-3 mr-1.5" />
         <span>{label}</span>
       </Button>
 

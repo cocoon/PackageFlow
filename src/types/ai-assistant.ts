@@ -176,6 +176,17 @@ export interface ChatErrorPayload {
   retryable: boolean;
 }
 
+/** Stream resume response for reconnection after page switch */
+export interface StreamResumeResponse {
+  streamSessionId: string;
+  conversationId: string;
+  messageId: string;
+  accumulatedContent: string;
+  status: 'thinking' | 'generating' | 'tool';
+  model: string | null;
+  isActive: boolean;
+}
+
 /** Union type for all streaming event payloads */
 export type StreamingEventPayload =
   | { type: 'token'; payload: ChatTokenPayload }
@@ -389,6 +400,8 @@ export interface ResponseStatus {
   timing?: ResponseTiming;
   /** Model being used */
   model?: string;
+  /** Current iteration in agentic loop (1, 2, 3...) */
+  iteration?: number;
 }
 
 // ----------------------------------------------------------------------------

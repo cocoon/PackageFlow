@@ -30,5 +30,5 @@ pub use prompt_builder::{SystemPromptBuilder, build_system_prompt_with_tools};
 pub use sanitizer::InputSanitizer;
 pub use security::{PathSecurityValidator, ToolPermissionChecker, OutputSanitizer, SecurityError};
 pub use service::{AIAssistantService, ProjectContextBuilder, build_system_prompt};
-pub use stream::{StreamManager, StreamContext};
+pub use stream::{StreamManager, StreamContext, ActiveStreamInfo, StreamInfoRef};
 pub use tools::MCPToolHandler;

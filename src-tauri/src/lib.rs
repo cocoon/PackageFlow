@@ -399,6 +399,7 @@ pub fn run() {
             ai_assistant::ai_assistant_delete_conversation,
             ai_assistant::ai_assistant_send_message,
             ai_assistant::ai_assistant_cancel_stream,
+            ai_assistant::ai_assistant_get_active_stream,
             ai_assistant::ai_assistant_get_messages,
             // AI Assistant - Tool Calls (022-ai-assistant-tab US2)
             ai_assistant::ai_assistant_get_tools,

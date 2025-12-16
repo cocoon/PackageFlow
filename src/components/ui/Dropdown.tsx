@@ -77,7 +77,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
-          <div onClick={() => setIsOpen(false)}>{children}</div>
+          <div onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}>{children}</div>
         </div>
       )}
     </div>

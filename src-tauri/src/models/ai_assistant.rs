@@ -615,6 +615,9 @@ pub struct ResponseStatus {
     pub timing: Option<ResponseTiming>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
+    /// Current iteration in agentic loop (1, 2, 3...)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iteration: Option<u32>,
 }
 
 impl ResponseStatus {
@@ -626,6 +629,7 @@ impl ResponseStatus {
             tool_name: None,
             timing: None,
             model: None,
+            iteration: None,
         }
     }
 
@@ -637,6 +641,19 @@ impl ResponseStatus {
             tool_name: None,
             timing: None,
             model: None,
+            iteration: None,
+        }
+    }
+
+    /// Create a new thinking status with iteration
+    pub fn thinking_with_iter(iteration: u32) -> Self {
+        Self {
+            phase: ResponsePhase::Thinking,
+            start_time: Self::now_ms(),
+            tool_name: None,
+            timing: None,
+            model: None,
+            iteration: Some(iteration),
         }
     }
 
@@ -648,6 +665,19 @@ impl ResponseStatus {
             tool_name: None,
             timing: None,
             model,
+            iteration: None,
+        }
+    }
+
+    /// Create a new generating status with iteration
+    pub fn generating_with_iter(model: Option<String>, iteration: u32) -> Self {
+        Self {
+            phase: ResponsePhase::Generating,
+            start_time: Self::now_ms(),
+            tool_name: None,
+            timing: None,
+            model,
+            iteration: Some(iteration),
         }
     }
 
@@ -659,6 +689,19 @@ impl ResponseStatus {
             tool_name: Some(tool_name),
             timing: None,
             model: None,
+            iteration: None,
+        }
+    }
+
+    /// Create a new tool status with iteration
+    pub fn tool_with_iter(tool_name: String, iteration: u32) -> Self {
+        Self {
+            phase: ResponsePhase::Tool,
+            start_time: Self::now_ms(),
+            tool_name: Some(tool_name),
+            timing: None,
+            model: None,
+            iteration: Some(iteration),
         }
     }
 
@@ -670,6 +713,7 @@ impl ResponseStatus {
             tool_name: None,
             timing: Some(timing),
             model,
+            iteration: None,
         }
     }
 
@@ -686,6 +730,7 @@ impl ResponseStatus {
             tool_name: None,
             timing: None,
             model: None,
+            iteration: None,
         }
     }
 
