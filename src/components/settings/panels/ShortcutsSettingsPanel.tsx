@@ -1,6 +1,12 @@
 /**
  * Shortcuts Settings Panel
- * Keyboard shortcuts configuration
+ * Keyboard shortcuts configuration with improved visual hierarchy
+ *
+ * Features:
+ * - Gradient cards for global shortcut section
+ * - Visual keyboard key representations
+ * - Category-based organization with SettingSection
+ * - Consistent styling with Storage and Data panels
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -11,12 +17,22 @@ import {
   RotateCcw,
   Globe,
   AlertCircle,
+  Command,
+  Navigation,
+  Zap,
+  Database,
+  HelpCircle,
+  Info,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
+import { Toggle } from '../../ui/Toggle';
 import { ShortcutEditor } from '../ShortcutEditor';
 import { useShortcutsContext } from '../../../contexts/ShortcutsContext';
 import { formatShortcutKey, type KeyboardShortcut } from '../../../hooks/useKeyboardShortcuts';
+import { SettingSection } from '../ui/SettingSection';
+import { SettingInfoBox } from '../ui/SettingInfoBox';
+import { Skeleton } from '../../ui/Skeleton';
 
 // Default shortcuts - these match App.tsx DEFAULT_SHORTCUT_KEYS
 const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
@@ -32,6 +48,44 @@ const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
   { id: 'deploy', key: 'cmd+shift+d', description: 'Quick deploy current project', category: 'Execution', action: () => {} },
   { id: 'help', key: 'cmd+/', description: 'Show keyboard shortcuts', category: 'Help', action: () => {} },
 ];
+
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  General: <Command className="w-4 h-4" />,
+  Navigation: <Navigation className="w-4 h-4" />,
+  Execution: <Zap className="w-4 h-4" />,
+  Data: <Database className="w-4 h-4" />,
+  Help: <HelpCircle className="w-4 h-4" />,
+};
+
+// Category colors mapping
+const CATEGORY_COLORS: Record<string, { border: string; iconBg: string; gradient: string }> = {
+  General: {
+    border: 'border-blue-500/20',
+    iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    gradient: 'from-blue-500/5 via-transparent to-transparent',
+  },
+  Navigation: {
+    border: 'border-purple-500/20',
+    iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    gradient: 'from-purple-500/5 via-transparent to-transparent',
+  },
+  Execution: {
+    border: 'border-amber-500/20',
+    iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    gradient: 'from-amber-500/5 via-transparent to-transparent',
+  },
+  Data: {
+    border: 'border-green-500/20',
+    iconBg: 'bg-green-500/10 text-green-600 dark:text-green-400',
+    gradient: 'from-green-500/5 via-transparent to-transparent',
+  },
+  Help: {
+    border: 'border-cyan-500/20',
+    iconBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+    gradient: 'from-cyan-500/5 via-transparent to-transparent',
+  },
+};
 
 export const ShortcutsSettingsPanel: React.FC = () => {
   const {
@@ -185,10 +239,10 @@ export const ShortcutsSettingsPanel: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="shrink-0 pb-6">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <Keyboard className="w-5 h-5" />
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 pb-4 border-b border-border bg-background">
+        <h2 className="text-xl font-semibold text-foreground flex items-center">
+          <Keyboard className="w-5 h-5 pr-1" />
           Keyboard Shortcuts
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -196,257 +250,441 @@ export const ShortcutsSettingsPanel: React.FC = () => {
         </p>
       </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto pt-4 space-y-6">
       {/* Error display */}
       {error && (
-        <div className="shrink-0 flex items-center gap-2 px-3 py-2 mb-6 bg-red-900/30 border border-red-500/30 rounded-lg text-sm text-red-300">
-          <AlertCircle className="w-4 h-4" />
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-600 dark:text-red-400">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
       )}
 
-      {/* Global shortcut section */}
-      <div className="shrink-0 p-4 bg-card rounded-lg border border-border space-y-3 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-blue-400" />
+      {/* Global Toggle Shortcut Section */}
+      <SettingSection
+        title="Global Toggle"
+        description="Show or hide PackageFlow from anywhere on your system"
+        icon={<Globe className="w-4 h-4" />}
+      >
+        <div
+          className={cn(
+            'group relative p-4 rounded-lg',
+            'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
+            'border border-blue-500/20',
+            'transition-colors hover:border-blue-500/40'
+          )}
+        >
+          <div className="flex items-start gap-3">
+            {/* Globe Icon */}
+            <div
+              className={cn(
+                'flex-shrink-0 p-2.5 rounded-lg',
+                'bg-blue-500/10 text-blue-500 dark:text-blue-400'
+              )}
+            >
+              <Globe className="w-5 h-5" />
             </div>
-            <div>
-              <span className="text-sm font-medium text-foreground">
-                Global Toggle Shortcut
-              </span>
-              <p className="text-xs text-muted-foreground">
-                Show/hide from anywhere
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  Global Toggle Shortcut
+                </span>
+                <Toggle
+                  checked={settings.globalShortcutsEnabled}
+                  onChange={() => setGlobalShortcutsEnabled(!settings.globalShortcutsEnabled)}
+                  aria-label={settings.globalShortcutsEnabled ? 'Disable global shortcut' : 'Enable global shortcut'}
+                  size="sm"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Quickly show or hide PackageFlow window from any application
               </p>
             </div>
           </div>
-          {/* Toggle switch */}
-          <button
-            onClick={() => setGlobalShortcutsEnabled(!settings.globalShortcutsEnabled)}
-            className={cn(
-              'relative w-10 h-6 rounded-full transition-colors duration-200',
-              settings.globalShortcutsEnabled ? 'bg-blue-500' : 'bg-muted'
-            )}
-            title={settings.globalShortcutsEnabled ? 'Disable' : 'Enable'}
-          >
-            <span
-              className={cn(
-                'absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                settings.globalShortcutsEnabled ? 'translate-x-4' : 'translate-x-0'
-              )}
-            />
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          {isRecordingGlobal ? (
-            <>
-              <div
+
+          {/* Shortcut Recording */}
+          <div className="mt-4">
+            {isRecordingGlobal ? (
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    'flex-1 px-4 py-2.5 bg-background border rounded-lg text-sm font-mono text-center',
+                    recordedGlobalKey
+                      ? 'border-green-500 text-green-600 dark:text-green-400'
+                      : 'border-blue-500 text-blue-600 dark:text-blue-400 animate-pulse'
+                  )}
+                >
+                  {recordedGlobalKey ? (
+                    <KeyDisplay keys={recordedGlobalKey} />
+                  ) : (
+                    'Press your desired key combination...'
+                  )}
+                </div>
+                <Button
+                  onClick={handleSaveGlobalShortcut}
+                  disabled={!recordedGlobalKey}
+                  variant="outline-success"
+                  size="sm"
+                >
+                  Save
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsRecordingGlobal(false);
+                    setRecordedGlobalKey(null);
+                  }}
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsRecordingGlobal(true)}
+                disabled={!settings.globalShortcutsEnabled}
                 className={cn(
-                  'flex-1 px-3 py-2 bg-background border rounded-lg text-sm font-mono text-center',
-                  recordedGlobalKey
-                    ? 'border-green-500 text-green-400'
-                    : 'border-blue-500 text-blue-400 animate-pulse'
+                  'w-full px-4 py-2.5 bg-background border border-border rounded-lg text-sm transition-colors',
+                  'flex items-center justify-center gap-2',
+                  settings.globalShortcutsEnabled
+                    ? 'text-foreground hover:bg-accent hover:border-border cursor-pointer'
+                    : 'text-muted-foreground cursor-not-allowed opacity-60'
                 )}
               >
-                {recordedGlobalKey
-                  ? formatShortcutKey(recordedGlobalKey)
-                  : 'Press keys...'}
-              </div>
-              <Button
-                onClick={handleSaveGlobalShortcut}
-                disabled={!recordedGlobalKey}
-                variant="success"
-              >
-                Save
-              </Button>
-              <button
-                onClick={() => {
-                  setIsRecordingGlobal(false);
-                  setRecordedGlobalKey(null);
-                }}
-                className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-lg text-sm font-medium transition-colors"
-              >
-                Cancel
+                {settings.globalToggleShortcut ? (
+                  <KeyDisplay keys={settings.globalToggleShortcut} />
+                ) : (
+                  <span className="text-muted-foreground">Click to set shortcut</span>
+                )}
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsRecordingGlobal(true)}
-              disabled={!settings.globalShortcutsEnabled}
+            )}
+          </div>
+        </div>
+      </SettingSection>
+
+      {/* Search and Filter Section */}
+      <SettingSection
+        title="Application Shortcuts"
+        description="Shortcuts that work within the PackageFlow application"
+        icon={<Command className="w-4 h-4" />}
+      >
+        {/* Search and Reset Bar */}
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search shortcuts..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className={cn(
-                'flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm font-mono transition-colors',
-                settings.globalShortcutsEnabled
-                  ? 'text-foreground hover:bg-accent hover:border-border cursor-pointer'
-                  : 'text-muted-foreground cursor-not-allowed'
+                'w-full pl-10 pr-8 py-2 bg-background border border-border rounded-lg',
+                'text-sm text-foreground placeholder-muted-foreground',
+                'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+                'transition-colors'
               )}
+              autoComplete="off"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {customizedCount > 0 && (
+            <Button
+              onClick={handleResetAll}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5"
             >
-              {settings.globalToggleShortcut
-                ? formatShortcutKey(settings.globalToggleShortcut)
-                : 'Click to set shortcut'}
-            </button>
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset All
+            </Button>
           )}
         </div>
-      </div>
 
-      {/* Search and filter */}
-      <div className="shrink-0 flex gap-2 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search shortcuts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-8 py-2 bg-card border border-border rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500 transition-colors"
-            autoComplete="off"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        {customizedCount > 0 && (
-          <button
-            onClick={handleResetAll}
-            className="px-3 py-2 bg-card hover:bg-accent border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
-            title="Reset all shortcuts to defaults"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset All
-          </button>
+        {/* Category Tabs */}
+        {categories.length > 1 && (
+          <div className="flex gap-2 flex-wrap mb-4">
+            <CategoryTab
+              label="All"
+              count={shortcuts.length}
+              isActive={selectedCategory === null}
+              onClick={() => setSelectedCategory(null)}
+            />
+            {categories.map((category) => {
+              const count = shortcuts.filter((s) => s.category === category).length;
+              return (
+                <CategoryTab
+                  key={category}
+                  label={category}
+                  count={count}
+                  isActive={selectedCategory === category}
+                  onClick={() => setSelectedCategory(category)}
+                  icon={CATEGORY_ICONS[category]}
+                />
+              );
+            })}
+          </div>
         )}
-      </div>
 
-      {/* Category tabs */}
-      {categories.length > 1 && (
-        <div className="shrink-0 flex gap-2 flex-wrap mb-6">
-          <CategoryTab
-            label="All"
-            count={shortcuts.length}
-            isActive={selectedCategory === null}
-            onClick={() => setSelectedCategory(null)}
-          />
-          {categories.map((category) => {
-            const count = shortcuts.filter((s) => s.category === category).length;
-            return (
-              <CategoryTab
-                key={category}
-                label={category}
-                count={count}
-                isActive={selectedCategory === category}
-                onClick={() => setSelectedCategory(category)}
-              />
-            );
-          })}
-        </div>
-      )}
-
-      {/* Shortcuts list - scrollable area */}
-      <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2">
+        {/* Shortcuts List */}
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          <ShortcutsListSkeleton />
         ) : filteredShortcuts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground text-sm">
             No shortcuts found for "{searchQuery}"
           </div>
         ) : (
-          <>
-            {/* Uncategorized */}
+          <div className="space-y-4">
+            {/* Uncategorized shortcuts */}
             {groupedShortcuts.uncategorized.length > 0 && (
-              <div className="space-y-1">
-                {groupedShortcuts.uncategorized.map((shortcut) => {
-                  const binding = getCustomBinding(shortcut.id);
-                  return (
-                    <ShortcutEditor
-                      key={shortcut.id}
-                      shortcut={shortcut}
-                      customKey={binding?.customKey ?? null}
-                      enabled={binding?.enabled ?? true}
-                      allShortcuts={effectiveShortcutsForConflict}
-                      onUpdate={(key, enabled) =>
-                        handleUpdateShortcut(shortcut.id, key, enabled)
-                      }
-                      onReset={() => handleResetShortcut(shortcut.id)}
-                    />
-                  );
-                })}
-              </div>
+              <ShortcutCategoryCard
+                shortcuts={groupedShortcuts.uncategorized}
+                settings={settings}
+                effectiveShortcutsForConflict={effectiveShortcutsForConflict}
+                getCustomBinding={getCustomBinding}
+                onUpdate={handleUpdateShortcut}
+                onReset={handleResetShortcut}
+              />
             )}
 
-            {/* Categorized */}
-            {Object.entries(groupedShortcuts.groups).map(
-              ([category, categoryShortcuts]) => (
-                <div key={category}>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                    {category}
-                  </h3>
-                  <div className="space-y-1">
-                    {categoryShortcuts.map((shortcut) => {
-                      const binding = getCustomBinding(shortcut.id);
-                      return (
-                        <ShortcutEditor
-                          key={shortcut.id}
-                          shortcut={shortcut}
-                          customKey={binding?.customKey ?? null}
-                          enabled={binding?.enabled ?? true}
-                          allShortcuts={effectiveShortcutsForConflict}
-                          onUpdate={(key, enabled) =>
-                            handleUpdateShortcut(shortcut.id, key, enabled)
-                          }
-                          onReset={() => handleResetShortcut(shortcut.id)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )
-            )}
-          </>
+            {/* Categorized shortcuts */}
+            {Object.entries(groupedShortcuts.groups).map(([category, categoryShortcuts]) => (
+              <ShortcutCategoryCard
+                key={category}
+                category={category}
+                shortcuts={categoryShortcuts}
+                settings={settings}
+                effectiveShortcutsForConflict={effectiveShortcutsForConflict}
+                getCustomBinding={getCustomBinding}
+                onUpdate={handleUpdateShortcut}
+                onReset={handleResetShortcut}
+              />
+            ))}
+          </div>
         )}
-      </div>
+      </SettingSection>
 
-      {/* Footer info */}
-      <div className="shrink-0 text-xs text-muted-foreground flex items-center justify-between pt-4 mt-4 border-t border-border">
+      {/* Keyboard Shortcuts Tips */}
+      <SettingInfoBox title="Tips" variant="info">
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+            <span>Click on any shortcut key to record a new key combination</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+            <span>
+              Press <KeyBadge keyName="Esc" /> to cancel recording
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+            <span>
+              Use the toggle to temporarily disable shortcuts without losing your customizations
+            </span>
+          </li>
+        </ul>
+      </SettingInfoBox>
+
+      {/* Footer Stats */}
+      <div className="text-xs text-muted-foreground flex items-center justify-between pt-2 border-t border-border">
         <span>
-          {customizedCount > 0 ? `${customizedCount} customized` : 'Using defaults'}
+          {customizedCount > 0 ? (
+            <span className="text-amber-600 dark:text-amber-400">{customizedCount} customized</span>
+          ) : (
+            'Using defaults'
+          )}
         </span>
         <span>{filteredShortcuts.length} shortcuts</span>
+      </div>
       </div>
     </div>
   );
 };
 
+// ============================================================================
+// Internal Components
+// ============================================================================
+
+/** Visual keyboard key badge */
+interface KeyBadgeProps {
+  keyName: string;
+  className?: string;
+}
+
+const KeyBadge: React.FC<KeyBadgeProps> = ({ keyName, className }) => {
+  return (
+    <kbd
+      className={cn(
+        'inline-flex items-center justify-center min-w-[1.5rem] px-1.5 py-0.5',
+        'bg-muted border border-border rounded',
+        'text-[10px] font-mono font-medium text-foreground',
+        'shadow-sm',
+        className
+      )}
+    >
+      {keyName}
+    </kbd>
+  );
+};
+
+/** Visual keyboard key display for shortcuts */
+interface KeyDisplayProps {
+  keys: string;
+  className?: string;
+}
+
+const KeyDisplay: React.FC<KeyDisplayProps> = ({ keys, className }) => {
+  const formattedKeys = formatShortcutKey(keys);
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+  // Split the formatted key string into individual keys
+  const keyParts = isMac
+    ? formattedKeys.split('').filter((k) => k.trim())
+    : formattedKeys.split('+').filter((k) => k.trim());
+
+  return (
+    <span className={cn('inline-flex items-center gap-1', className)}>
+      {keyParts.map((key, index) => (
+        <KeyBadge key={index} keyName={key} />
+      ))}
+    </span>
+  );
+};
+
+/** Category tab component */
 interface CategoryTabProps {
   label: string;
   count: number;
   isActive: boolean;
   onClick: () => void;
+  icon?: React.ReactNode;
 }
 
-function CategoryTab({ label, count, isActive, onClick }: CategoryTabProps) {
+const CategoryTab: React.FC<CategoryTabProps> = ({ label, count, isActive, onClick, icon }) => {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-1',
+        'px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5',
         isActive
-          ? 'bg-blue-500/20 text-blue-400'
+          ? 'bg-primary/10 text-primary border border-primary/30'
           : 'bg-card border border-border text-muted-foreground hover:bg-accent hover:text-foreground'
       )}
     >
+      {icon && <span className="opacity-70">{icon}</span>}
       {label}
       <span
         className={cn(
-          'text-[10px] tabular-nums',
-          isActive ? 'text-blue-400/70' : 'text-muted-foreground'
+          'text-[10px] tabular-nums px-1.5 py-0.5 rounded-full',
+          isActive ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
         )}
       >
         {count}
       </span>
     </button>
   );
+};
+
+/** Loading skeleton for shortcuts list */
+const ShortcutsListSkeleton: React.FC = () => (
+  <div className="space-y-4">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="p-4 rounded-lg border border-border bg-card">
+        <Skeleton className="w-24 h-4 mb-3" />
+        <div className="space-y-2">
+          {[1, 2, 3].map((j) => (
+            <div key={j} className="flex items-center justify-between py-2">
+              <Skeleton className="w-48 h-4" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-20 h-6 rounded" />
+                <Skeleton className="w-10 h-5 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/** Shortcut category card component */
+interface ShortcutCategoryCardProps {
+  category?: string;
+  shortcuts: KeyboardShortcut[];
+  settings: {
+    customBindings: Record<string, { customKey?: string | null; enabled?: boolean }>;
+  };
+  effectiveShortcutsForConflict: KeyboardShortcut[];
+  getCustomBinding: (id: string) => { customKey?: string | null; enabled?: boolean } | undefined;
+  onUpdate: (id: string, customKey: string | null, enabled: boolean) => void;
+  onReset: (id: string) => void;
 }
+
+const ShortcutCategoryCard: React.FC<ShortcutCategoryCardProps> = ({
+  category,
+  shortcuts,
+  effectiveShortcutsForConflict,
+  getCustomBinding,
+  onUpdate,
+  onReset,
+}) => {
+  const colors = category ? CATEGORY_COLORS[category] : null;
+  const icon = category ? CATEGORY_ICONS[category] : null;
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg border bg-card overflow-hidden',
+        colors?.border || 'border-border'
+      )}
+    >
+      {/* Category Header */}
+      {category && (
+        <div
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5',
+            'border-b',
+            colors?.border || 'border-border',
+            'bg-gradient-to-r',
+            colors?.gradient || 'from-muted/50 via-transparent to-transparent'
+          )}
+        >
+          {icon && (
+            <div className={cn('p-1.5 rounded', colors?.iconBg || 'bg-muted text-muted-foreground')}>
+              {icon}
+            </div>
+          )}
+          <span className="text-sm font-medium text-foreground">{category}</span>
+          <span className="text-xs text-muted-foreground ml-auto">{shortcuts.length} shortcuts</span>
+        </div>
+      )}
+
+      {/* Shortcuts List */}
+      <div className="divide-y divide-border">
+        {shortcuts.map((shortcut) => {
+          const binding = getCustomBinding(shortcut.id);
+          return (
+            <ShortcutEditor
+              key={shortcut.id}
+              shortcut={shortcut}
+              customKey={binding?.customKey ?? null}
+              enabled={binding?.enabled ?? true}
+              allShortcuts={effectiveShortcutsForConflict}
+              onUpdate={(key, enabled) => onUpdate(shortcut.id, key, enabled)}
+              onReset={() => onReset(shortcut.id)}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+};
