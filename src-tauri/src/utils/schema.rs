@@ -4,7 +4,7 @@
 use rusqlite::{Connection, params};
 
 /// Current schema version
-pub const CURRENT_VERSION: i32 = 4;
+pub const CURRENT_VERSION: i32 = 5;
 
 /// Migration struct containing version and SQL statements
 struct Migration {
@@ -539,6 +539,131 @@ const MIGRATIONS: &[Migration] = &[
                 UNIQUE(snapshot_a_id, snapshot_b_id)
             );
             CREATE INDEX IF NOT EXISTS idx_diff_cache_snapshots ON snapshot_diff_cache(snapshot_a_id, snapshot_b_id);
+        "#,
+    },
+    Migration {
+        version: 5,
+        description: "Fix execution_snapshots schema - recreate tables with correct columns",
+        up: r#"
+            -- Drop FTS triggers first
+            DROP TRIGGER IF EXISTS snapshot_deps_ai;
+            DROP TRIGGER IF EXISTS snapshot_deps_ad;
+            DROP TRIGGER IF EXISTS snapshot_deps_au;
+
+            -- Drop FTS table
+            DROP TABLE IF EXISTS snapshot_dependencies_fts;
+
+            -- Drop tables in correct order (respecting foreign keys)
+            DROP TABLE IF EXISTS snapshot_diff_cache;
+            DROP TABLE IF EXISTS security_insights;
+            DROP TABLE IF EXISTS snapshot_dependencies;
+            DROP TABLE IF EXISTS execution_snapshots;
+
+            -- Recreate execution_snapshots with correct schema
+            CREATE TABLE execution_snapshots (
+                id TEXT PRIMARY KEY,
+                workflow_id TEXT NOT NULL,
+                execution_id TEXT NOT NULL,
+                project_path TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('capturing', 'completed', 'failed')),
+                lockfile_type TEXT CHECK(lockfile_type IN ('npm', 'pnpm', 'yarn', 'bun')),
+                lockfile_hash TEXT,
+                dependency_tree_hash TEXT,
+                package_json_hash TEXT,
+                total_dependencies INTEGER DEFAULT 0,
+                direct_dependencies INTEGER DEFAULT 0,
+                dev_dependencies INTEGER DEFAULT 0,
+                security_score INTEGER,
+                postinstall_count INTEGER DEFAULT 0,
+                storage_path TEXT,
+                compressed_size INTEGER,
+                execution_duration_ms INTEGER,
+                error_message TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_snapshots_workflow ON execution_snapshots(workflow_id);
+            CREATE INDEX idx_snapshots_project ON execution_snapshots(project_path);
+            CREATE INDEX idx_snapshots_created ON execution_snapshots(created_at DESC);
+            CREATE INDEX idx_snapshots_execution ON execution_snapshots(execution_id);
+
+            -- Recreate snapshot_dependencies
+            CREATE TABLE snapshot_dependencies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL,
+                is_direct INTEGER DEFAULT 0,
+                is_dev INTEGER DEFAULT 0,
+                has_postinstall INTEGER DEFAULT 0,
+                postinstall_script TEXT,
+                integrity_hash TEXT,
+                resolved_url TEXT,
+                FOREIGN KEY (snapshot_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_snapshot_deps_snapshot ON snapshot_dependencies(snapshot_id);
+            CREATE INDEX idx_snapshot_deps_name ON snapshot_dependencies(name);
+            CREATE INDEX idx_snapshot_deps_postinstall ON snapshot_dependencies(has_postinstall) WHERE has_postinstall = 1;
+
+            -- Recreate FTS5 virtual table
+            CREATE VIRTUAL TABLE snapshot_dependencies_fts USING fts5(
+                name,
+                version,
+                content=snapshot_dependencies,
+                content_rowid=id
+            );
+
+            -- Recreate triggers
+            CREATE TRIGGER snapshot_deps_ai AFTER INSERT ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(rowid, name, version) VALUES (new.id, new.name, new.version);
+            END;
+            CREATE TRIGGER snapshot_deps_ad AFTER DELETE ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(snapshot_dependencies_fts, rowid, name, version) VALUES('delete', old.id, old.name, old.version);
+            END;
+            CREATE TRIGGER snapshot_deps_au AFTER UPDATE ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(snapshot_dependencies_fts, rowid, name, version) VALUES('delete', old.id, old.name, old.version);
+                INSERT INTO snapshot_dependencies_fts(rowid, name, version) VALUES (new.id, new.name, new.version);
+            END;
+
+            -- Recreate security_insights
+            CREATE TABLE security_insights (
+                id TEXT PRIMARY KEY,
+                snapshot_id TEXT NOT NULL,
+                insight_type TEXT NOT NULL CHECK(insight_type IN (
+                    'new_dependency', 'removed_dependency', 'version_change',
+                    'postinstall_added', 'postinstall_removed', 'postinstall_changed',
+                    'integrity_mismatch', 'typosquatting_suspect', 'frequent_updater',
+                    'suspicious_script'
+                )),
+                severity TEXT NOT NULL CHECK(severity IN ('info', 'low', 'medium', 'high', 'critical')),
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                package_name TEXT,
+                previous_value TEXT,
+                current_value TEXT,
+                recommendation TEXT,
+                metadata TEXT,
+                is_dismissed INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (snapshot_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_insights_snapshot ON security_insights(snapshot_id);
+            CREATE INDEX idx_insights_type ON security_insights(insight_type);
+            CREATE INDEX idx_insights_severity ON security_insights(severity);
+            CREATE INDEX idx_insights_package ON security_insights(package_name);
+
+            -- Recreate snapshot_diff_cache
+            CREATE TABLE snapshot_diff_cache (
+                id TEXT PRIMARY KEY,
+                snapshot_a_id TEXT NOT NULL,
+                snapshot_b_id TEXT NOT NULL,
+                diff_data TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (snapshot_a_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE,
+                FOREIGN KEY (snapshot_b_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE,
+                UNIQUE(snapshot_a_id, snapshot_b_id)
+            );
+            CREATE INDEX idx_diff_cache_snapshots ON snapshot_diff_cache(snapshot_a_id, snapshot_b_id);
         "#,
     },
 ];

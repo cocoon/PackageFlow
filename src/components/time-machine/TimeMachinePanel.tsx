@@ -2,7 +2,7 @@
 // Main panel for viewing and comparing execution snapshots
 
 import { useState, useCallback, useEffect } from 'react';
-import { Clock, GitCompare, RefreshCw, Settings2, AlertCircle } from 'lucide-react';
+import { Clock, GitCompare, RefreshCw, Settings2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
 import { SnapshotTimeline } from './SnapshotTimeline';
 import { SnapshotDetail } from './SnapshotDetail';
@@ -223,9 +223,24 @@ export function TimeMachinePanel({ workflowId, projectPath, showHeader = true, c
           {viewMode !== 'timeline' && (
             <button
               onClick={handleBackToTimeline}
-              className="text-xs text-blue-500 hover:text-blue-600"
+              className={cn(
+                'group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+                'transition-all duration-200',
+                'border backdrop-blur-sm',
+                'bg-cyan-500/10 dark:bg-cyan-500/15',
+                'border-cyan-500/30 dark:border-cyan-500/40',
+                'text-cyan-600 dark:text-cyan-400',
+                'hover:bg-cyan-500/20 dark:hover:bg-cyan-500/25',
+                'hover:border-cyan-500/50 dark:hover:border-cyan-500/60',
+                'hover:shadow-sm hover:shadow-cyan-500/10',
+                'focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:ring-offset-1'
+              )}
             >
-              ← Back to timeline
+              <ArrowLeft
+                size={14}
+                className="transition-transform duration-200 group-hover:-translate-x-0.5"
+              />
+              Back to timeline
             </button>
           )}
         </div>
@@ -269,9 +284,24 @@ export function TimeMachinePanel({ workflowId, projectPath, showHeader = true, c
             {viewMode !== 'timeline' && (
               <button
                 onClick={handleBackToTimeline}
-                className="text-xs text-blue-500 hover:text-blue-600"
+                className={cn(
+                  'group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium',
+                  'transition-all duration-200',
+                  'border backdrop-blur-sm',
+                  'bg-cyan-500/10 dark:bg-cyan-500/15',
+                  'border-cyan-500/30 dark:border-cyan-500/40',
+                  'text-cyan-600 dark:text-cyan-400',
+                  'hover:bg-cyan-500/20 dark:hover:bg-cyan-500/25',
+                  'hover:border-cyan-500/50 dark:hover:border-cyan-500/60',
+                  'hover:shadow-sm hover:shadow-cyan-500/10',
+                  'focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:ring-offset-1'
+                )}
               >
-                ← Back to timeline
+                <ArrowLeft
+                  size={14}
+                  className="transition-transform duration-200 group-hover:-translate-x-0.5"
+                />
+                Back to timeline
               </button>
             )}
           </div>
