@@ -689,3 +689,27 @@ pub async fn restore_lockfile(
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
+
+// =========================================================================
+// Security Insights Dashboard (US5)
+// =========================================================================
+
+use crate::services::security_guardian::insights::{
+    ProjectSecurityOverview, SecurityInsightsService,
+};
+
+/// Get project security overview with risk score and insights
+#[tauri::command]
+pub async fn get_project_security_overview(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+) -> Result<ProjectSecurityOverview, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = SecurityInsightsService::new(db);
+        service.get_project_overview(&project_path)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}

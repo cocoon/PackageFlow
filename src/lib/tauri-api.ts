@@ -2673,6 +2673,7 @@ import type {
   ReplayPreparation,
   ReplayResult,
   ExecuteReplayRequest,
+  ProjectSecurityOverview,
 } from '../types/snapshot';
 
 export const snapshotAPI = {
@@ -2780,6 +2781,11 @@ export const snapshotAPI = {
   /** Restore lockfile from a snapshot */
   restoreLockfile: (snapshotId: string): Promise<boolean> =>
     invoke<boolean>('restore_lockfile', { snapshotId }),
+
+  // Security Insights Dashboard (US5)
+  /** Get project security overview with risk score */
+  getProjectSecurityOverview: (projectPath: string): Promise<ProjectSecurityOverview> =>
+    invoke<ProjectSecurityOverview>('get_project_security_overview', { projectPath }),
 };
 
 export const tauriAPI = {

@@ -446,6 +446,8 @@ pub fn run() {
             snapshot::prepare_replay,
             snapshot::execute_replay,
             snapshot::restore_lockfile,
+            // Security Insights Dashboard (025-ai-workflow-generator US5)
+            snapshot::get_project_security_overview,
         ])
         // Setup hook - sync incoming webhook server and start database watcher on app start
         .setup(|app| {

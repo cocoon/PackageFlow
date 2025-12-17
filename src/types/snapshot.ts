@@ -416,3 +416,29 @@ export interface ExecuteReplayRequest {
   option: ReplayOption;
   force: boolean;
 }
+
+// =========================================================================
+// Security Insights Dashboard Types (US5)
+// =========================================================================
+
+export type OverallRiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export interface TyposquattingAlertInfo {
+  packageName: string;
+  similarTo: string;
+  firstSeen: string;
+  snapshotId: string;
+}
+
+export interface ProjectSecurityOverview {
+  projectPath: string;
+  riskScore: number; // 0-100
+  riskLevel: OverallRiskLevel;
+  totalSnapshots: number;
+  latestSnapshotId?: string;
+  latestSnapshotDate?: string;
+  insightSummary: InsightSummary;
+  typosquattingAlerts: TyposquattingAlertInfo[];
+  frequentUpdaters: FrequentUpdater[];
+  dependencyHealth: DependencyHealth[];
+}
