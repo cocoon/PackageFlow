@@ -102,6 +102,12 @@ fs2 = "0.4"  # File locking for concurrent access
 # SQLite Database
 rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 
+# Time Machine - Snapshot compression and security analysis
+zstd = "0.13"
+serde_yaml = "0.9"
+strsim = "0.11"
+rayon = "1.10"
+
 # Unix-specific: process signal handling for cancellation
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

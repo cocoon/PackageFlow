@@ -192,3 +192,32 @@ export type {
 } from './monorepo';
 
 export { MonorepoErrorMessages } from './monorepo';
+
+export type {
+  LockfileType,
+  SnapshotStatus,
+  DependencyChangeType,
+  InsightType,
+  InsightSeverity,
+  SnapshotDependency,
+  ExecutionSnapshot,
+  SnapshotListItem,
+  SnapshotWithDependencies,
+  PostinstallEntry,
+  TyposquattingAlert,
+  IntegrityIssue,
+  SecurityContext,
+  SecurityInsight,
+  InsightSummary,
+  DependencyChange,
+  PostinstallChange,
+  DiffSummary,
+  TimingDiff,
+  SnapshotDiff,
+  CreateSnapshotRequest,
+  SnapshotFilter,
+  SnapshotStorageStats,
+  FrequentUpdater,
+  HealthFactor,
+  DependencyHealth,
+} from './snapshot';

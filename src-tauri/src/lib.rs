@@ -21,7 +21,7 @@ use commands::workflow::WorkflowExecutionState;
 use commands::ai_cli::CLIExecutorState;
 use commands::{
     ai, ai_assistant, ai_cli, apk, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, notification, project, script, security,
-    settings, shortcuts, step_template, toolchain, version, webhook, workflow, worktree,
+    settings, shortcuts, snapshot, step_template, toolchain, version, webhook, workflow, worktree,
 };
 use services::{DatabaseWatcher, FileWatcherManager, IncomingWebhookManager};
 use services::ai_assistant::StreamManager;
@@ -421,6 +421,22 @@ pub fn run() {
             // AI Assistant - Autocomplete & Context (023-enhanced-ai-chat US5)
             ai_assistant::ai_assistant_get_autocomplete,
             ai_assistant::ai_assistant_summarize_context,
+            // Time Machine - Snapshot commands (025-ai-workflow-generator)
+            snapshot::list_snapshots,
+            snapshot::get_snapshot,
+            snapshot::get_snapshot_with_dependencies,
+            snapshot::get_latest_snapshot,
+            snapshot::delete_snapshot,
+            snapshot::prune_snapshots,
+            snapshot::capture_snapshot,
+            snapshot::compare_snapshots,
+            snapshot::get_diff_ai_prompt,
+            snapshot::get_comparison_candidates,
+            snapshot::get_security_insights,
+            snapshot::get_insight_summary,
+            snapshot::dismiss_insight,
+            snapshot::get_snapshot_storage_stats,
+            snapshot::cleanup_orphaned_storage,
         ])
         // Setup hook - sync incoming webhook server and start database watcher on app start
         .setup(|app| {

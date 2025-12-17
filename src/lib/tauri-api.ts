@@ -2651,6 +2651,91 @@ export const mcpActionAPI = {
     invoke<ActionRequestResponse>('respond_to_action_request', { executionId, approved, reason }),
 };
 
+// ============================================================================
+// Time Machine - Snapshot API (025-ai-workflow-generator)
+// ============================================================================
+
+import type {
+  ExecutionSnapshot,
+  SnapshotListItem,
+  SnapshotWithDependencies,
+  SnapshotFilter,
+  SnapshotDiff,
+  CreateSnapshotRequest,
+  SnapshotStorageStats,
+  SecurityInsight,
+  InsightSummary,
+} from '../types/snapshot';
+
+export const snapshotAPI = {
+  // Snapshot CRUD
+  /** List snapshots with optional filters */
+  listSnapshots: (filter?: SnapshotFilter): Promise<SnapshotListItem[]> =>
+    invoke<SnapshotListItem[]>('list_snapshots', { filter }),
+
+  /** Get a single snapshot by ID */
+  getSnapshot: (snapshotId: string): Promise<ExecutionSnapshot | null> =>
+    invoke<ExecutionSnapshot | null>('get_snapshot', { snapshotId }),
+
+  /** Get a snapshot with all its dependencies */
+  getSnapshotWithDependencies: (snapshotId: string): Promise<SnapshotWithDependencies | null> =>
+    invoke<SnapshotWithDependencies | null>('get_snapshot_with_dependencies', { snapshotId }),
+
+  /** Get the latest snapshot for a workflow */
+  getLatestSnapshot: (workflowId: string): Promise<ExecutionSnapshot | null> =>
+    invoke<ExecutionSnapshot | null>('get_latest_snapshot', { workflowId }),
+
+  /** Delete a snapshot */
+  deleteSnapshot: (snapshotId: string): Promise<boolean> =>
+    invoke<boolean>('delete_snapshot', { snapshotId }),
+
+  /** Prune old snapshots (keep last N per workflow) */
+  pruneSnapshots: (keepPerWorkflow?: number): Promise<number> =>
+    invoke<number>('prune_snapshots', { keepPerWorkflow }),
+
+  // Snapshot capture
+  /** Capture a new snapshot for a workflow execution */
+  captureSnapshot: (
+    request: CreateSnapshotRequest,
+    durationMs?: number
+  ): Promise<ExecutionSnapshot> =>
+    invoke<ExecutionSnapshot>('capture_snapshot', { request, durationMs }),
+
+  // Snapshot comparison
+  /** Compare two snapshots */
+  compareSnapshots: (snapshotAId: string, snapshotBId: string): Promise<SnapshotDiff> =>
+    invoke<SnapshotDiff>('compare_snapshots', { snapshotAId, snapshotBId }),
+
+  /** Generate AI-friendly prompt for diff analysis */
+  getDiffAiPrompt: (snapshotAId: string, snapshotBId: string): Promise<string> =>
+    invoke<string>('get_diff_ai_prompt', { snapshotAId, snapshotBId }),
+
+  /** Get comparison candidates (latest N snapshots for a workflow) */
+  getComparisonCandidates: (workflowId: string, limit?: number): Promise<ExecutionSnapshot[]> =>
+    invoke<ExecutionSnapshot[]>('get_comparison_candidates', { workflowId, limit }),
+
+  // Security insights
+  /** Get security insights for a snapshot */
+  getSecurityInsights: (snapshotId: string): Promise<SecurityInsight[]> =>
+    invoke<SecurityInsight[]>('get_security_insights', { snapshotId }),
+
+  /** Get security insight summary for a snapshot */
+  getInsightSummary: (snapshotId: string): Promise<InsightSummary> =>
+    invoke<InsightSummary>('get_insight_summary', { snapshotId }),
+
+  /** Dismiss a security insight */
+  dismissInsight: (insightId: string): Promise<boolean> =>
+    invoke<boolean>('dismiss_insight', { insightId }),
+
+  // Storage management
+  /** Get storage statistics */
+  getStorageStats: (): Promise<SnapshotStorageStats> =>
+    invoke<SnapshotStorageStats>('get_snapshot_storage_stats'),
+
+  /** Cleanup orphaned storage */
+  cleanupOrphanedStorage: (): Promise<number> => invoke<number>('cleanup_orphaned_storage'),
+};
+
 export const tauriAPI = {
   ...projectAPI,
   ...scriptAPI,
@@ -2672,4 +2757,5 @@ export const tauriAPI = {
   ...aiCLIAPI,
   ...mcpAPI,
   ...mcpActionAPI,
+  ...snapshotAPI,
 };

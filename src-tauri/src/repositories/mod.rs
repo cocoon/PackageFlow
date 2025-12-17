@@ -11,6 +11,7 @@ pub mod notification_repo;
 pub mod project_repo;
 pub mod security_repo;
 pub mod settings_repo;
+pub mod snapshot_repo;
 pub mod template_repo;
 pub mod workflow_repo;
 
@@ -27,5 +28,6 @@ pub use security_repo::SecurityRepository;
 pub use settings_repo::{
     RecentTemplateEntry, SettingsRepository, TemplatePreferences, TemplateViewMode,
 };
+pub use snapshot_repo::SnapshotRepository;
 pub use template_repo::TemplateRepository;
 pub use workflow_repo::WorkflowRepository;

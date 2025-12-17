@@ -18,6 +18,7 @@ pub mod script;
 pub mod security;
 pub mod settings;
 pub mod shortcuts;
+pub mod snapshot;
 pub mod step_template;
 pub mod toolchain;
 pub mod version;

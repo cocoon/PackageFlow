@@ -15,6 +15,8 @@ pub mod mcp;
 pub mod monorepo;
 pub mod project;
 pub mod security;
+pub mod security_insight;
+pub mod snapshot;
 pub mod step_template;
 pub mod toolchain;
 pub mod version;

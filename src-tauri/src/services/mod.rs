@@ -10,6 +10,7 @@ pub mod file_watcher;
 pub mod incoming_webhook;
 pub mod mcp_action;
 pub mod notification;
+pub mod snapshot;
 
 pub use crypto::*;
 pub use file_watcher::*;
@@ -17,3 +18,5 @@ pub use incoming_webhook::*;
 pub use notification::*;
 // Note: ai types are not glob re-exported to keep namespace clean
 // Use crate::services::ai::* explicitly when needed
+// Note: snapshot types are not glob re-exported
+// Use crate::services::snapshot::* explicitly when needed
