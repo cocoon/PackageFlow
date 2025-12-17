@@ -3,8 +3,6 @@
 //! Contains types and constants for background process management.
 
 use std::collections::VecDeque;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 use serde::{Deserialize, Serialize};
 
@@ -151,8 +149,4 @@ pub struct BackgroundProcessState {
     pub output_buffer: CircularBuffer,
     /// Task handle for output reading
     pub _output_task: Option<tokio::task::JoinHandle<()>>,
-    /// Whether success pattern was matched
-    pub pattern_matched: Arc<AtomicBool>,
-    /// Completion flag
-    pub completed: Arc<AtomicBool>,
 }

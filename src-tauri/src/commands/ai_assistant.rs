@@ -1214,7 +1214,6 @@ pub async fn ai_assistant_continue_after_tool(
                                         tool_call.function.name
                                     );
                                     let _ = ctx.emit_token(&tool_msg);
-                                    final_content = ctx.get_content().to_string();
 
                                     if let Err(e) = ctx.emit_tool_call(&internal_tool_call) {
                                         log::error!("Failed to emit tool call: {}", e);
@@ -1226,7 +1225,7 @@ pub async fn ai_assistant_continue_after_tool(
                                     let repo = AIConversationRepository::new(db_state.0.as_ref().clone());
                                     let _ = repo.update_message_completion(
                                         &assistant_message_id,
-                                        &final_content,
+                                        ctx.get_content(),
                                         Some(total_tokens),
                                         Some(&model_name),
                                         Some(&tool_calls_for_db),

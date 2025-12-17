@@ -28,7 +28,7 @@ pub mod tools_registry;
 
 // Re-export commonly used items
 pub use security::{ToolCategory, get_tool_category, is_tool_allowed};
-pub use tools_registry::{ALL_TOOLS, PermissionCategory, get_permission_category};
+pub use tools_registry::ALL_TOOLS;
 pub use state::{RATE_LIMITER, TOOL_RATE_LIMITERS, ACTION_SEMAPHORE};
 pub use templates::get_builtin_templates;
 pub use store::{

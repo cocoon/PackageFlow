@@ -69,7 +69,7 @@ pub struct PackageJson {
 /// Workspaces configuration in package.json
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum WorkspacesConfig {
+pub(crate) enum WorkspacesConfig {
     Array(Vec<String>),
     Object { packages: Vec<String> },
 }

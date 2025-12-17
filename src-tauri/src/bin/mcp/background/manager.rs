@@ -205,8 +205,6 @@ impl BackgroundProcessManager {
             child: Some(child),
             output_buffer: CircularBuffer::new(MAX_OUTPUT_BUFFER_LINES, MAX_OUTPUT_BUFFER_BYTES),
             _output_task: Some(output_task),
-            pattern_matched: pattern_matched.clone(),
-            completed: completed.clone(),
         };
 
         // Copy initial output to state buffer
@@ -282,12 +280,6 @@ impl BackgroundProcessManager {
         });
 
         Ok(final_info)
-    }
-
-    /// Get process info by ID
-    pub async fn get_process(&self, id: &str) -> Option<BackgroundProcessInfo> {
-        let processes = self.processes.read().await;
-        processes.get(id).map(|s| s.info.clone())
     }
 
     /// Get process output
