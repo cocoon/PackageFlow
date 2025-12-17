@@ -321,3 +321,51 @@ export interface PatternAnalysisResult {
   alerts: PatternAlert[];
   summary: PatternAnalysisSummary;
 }
+
+// =========================================================================
+// Dependency Integrity Types (US3)
+// =========================================================================
+
+export type RiskLevel = 'none' | 'low' | 'medium' | 'high' | 'critical';
+
+export type PostinstallChangeType = 'added' | 'removed' | 'changed' | 'unchanged';
+
+export interface PostinstallAlert {
+  packageName: string;
+  version: string;
+  changeType: PostinstallChangeType;
+  oldScript?: string;
+  newScript?: string;
+  scriptHash?: string;
+}
+
+export interface IntegrityCheckSummary {
+  totalChanges: number;
+  addedCount: number;
+  removedCount: number;
+  updatedCount: number;
+  postinstallChanges: number;
+  typosquattingSuspects: number;
+  riskLevel: RiskLevel;
+}
+
+export interface IntegrityCheckResult {
+  hasDrift: boolean;
+  referenceSnapshotId?: string;
+  referenceSnapshotDate?: string;
+  currentLockfileHash?: string;
+  referenceLockfileHash?: string;
+  lockfileMatches: boolean;
+  dependencyChanges: DependencyChange[];
+  postinstallAlerts: PostinstallAlert[];
+  typosquattingAlerts: PatternAlert[];
+  summary: IntegrityCheckSummary;
+}
+
+export interface TyposquattingCheckResult {
+  isSuspicious: boolean;
+  packageName: string;
+  similarTo?: string;
+  distance?: number;
+  confidence?: number;
+}

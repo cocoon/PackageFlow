@@ -2668,6 +2668,8 @@ import type {
   AIAnalysisRequest,
   AIAnalysisResponse,
   PatternAnalysisResult,
+  IntegrityCheckResult,
+  TyposquattingCheckResult,
 } from '../types/snapshot';
 
 export const snapshotAPI = {
@@ -2750,6 +2752,18 @@ export const snapshotAPI = {
     snapshotBId: string
   ): Promise<PatternAnalysisResult> =>
     invoke<PatternAnalysisResult>('analyze_diff_patterns', { snapshotAId, snapshotBId }),
+
+  // Dependency Integrity (US3 - Security Guardian)
+  /** Check dependency integrity against reference snapshot */
+  checkDependencyIntegrity: (
+    projectPath: string,
+    workflowId?: string
+  ): Promise<IntegrityCheckResult> =>
+    invoke<IntegrityCheckResult>('check_dependency_integrity', { projectPath, workflowId }),
+
+  /** Check a package name for potential typosquatting */
+  checkTyposquatting: (packageName: string): Promise<TyposquattingCheckResult> =>
+    invoke<TyposquattingCheckResult>('check_typosquatting', { packageName }),
 };
 
 export const tauriAPI = {

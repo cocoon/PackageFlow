@@ -439,6 +439,9 @@ pub fn run() {
             snapshot::get_snapshot_storage_stats,
             snapshot::cleanup_orphaned_storage,
             snapshot::request_ai_analysis,
+            // Security Guardian - Dependency Integrity (025-ai-workflow-generator US3)
+            snapshot::check_dependency_integrity,
+            snapshot::check_typosquatting,
         ])
         // Setup hook - sync incoming webhook server and start database watcher on app start
         .setup(|app| {

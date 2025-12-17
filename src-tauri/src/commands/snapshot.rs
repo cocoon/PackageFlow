@@ -589,3 +589,41 @@ pub async fn request_ai_analysis(
         }
     }
 }
+
+// =========================================================================
+// Dependency Integrity Monitoring
+// =========================================================================
+
+/// Check dependency integrity for a project against the last successful execution
+#[tauri::command]
+pub async fn check_dependency_integrity(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+    workflow_id: Option<String>,
+) -> Result<crate::services::security_guardian::IntegrityCheckResult, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = crate::services::security_guardian::DependencyIntegrityService::new(db);
+        service.check_integrity(&project_path, workflow_id.as_deref())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Check packages for typosquatting against popular packages list
+#[tauri::command]
+pub async fn check_typosquatting(
+    packages: Vec<String>,
+    threshold: Option<usize>,
+) -> Result<Vec<(String, crate::services::security_guardian::TyposquattingResult)>, String> {
+    let threshold = threshold.unwrap_or(2);
+
+    tokio::task::spawn_blocking(move || {
+        Ok(crate::services::security_guardian::check_packages_typosquatting(
+            &packages, threshold,
+        ))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
