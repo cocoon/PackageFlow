@@ -152,7 +152,7 @@ export function WorktreeCard({
         </div>
 
         {/* Path */}
-        <p className="text-xs text-muted-foreground truncate mb-2" title={worktree.path}>
+        <p className="text-xs text-muted-foreground truncate mb-2" title={formatPath(worktree.path)}>
           {formatPath(worktree.path)}
         </p>
 

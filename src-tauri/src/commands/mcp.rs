@@ -39,9 +39,13 @@ pub fn get_mcp_server_info(app: AppHandle) -> Result<McpServerInfo, String> {
         .resource_dir()
         .map_err(|e| format!("Failed to get resource dir: {}", e))?;
 
-    // Production path: Resources/bin/packageflow-mcp
+    // Production path (preferred): Resources/bin/packageflow-mcp
     // On macOS: /Applications/PackageFlow.app/Contents/Resources/bin/packageflow-mcp
-    let bundled_path = resource_path.join("bin").join("packageflow-mcp");
+    //
+    // Some build configurations may bundle the MCP binary as `mcp`, so we also
+    // support a fallback to Resources/bin/mcp.
+    let bundled_path_primary = resource_path.join("bin").join("packageflow-mcp");
+    let bundled_path_fallback = resource_path.join("bin").join("mcp");
 
     // Development paths - try to find src-tauri directory
     // In dev mode, resource_path is typically: src-tauri/target/debug/
@@ -49,29 +53,36 @@ pub fn get_mcp_server_info(app: AppHandle) -> Result<McpServerInfo, String> {
         .ancestors()
         .find(|p| p.join("Cargo.toml").exists() && p.join("src").join("main.rs").exists());
 
-    let dev_release_path = src_tauri_dir
-        .map(|p| p.join("target").join("release").join("packageflow-mcp"));
-
-    let dev_debug_path = src_tauri_dir
-        .map(|p| p.join("target").join("debug").join("packageflow-mcp"));
-
     // Find the first available binary (production first, then dev debug, then dev release)
-    let (binary_path, is_available, env_type) = if bundled_path.exists() {
-        (bundled_path.clone(), true, "production")
-    } else if let Some(ref debug_path) = dev_debug_path {
-        if debug_path.exists() {
-            (debug_path.clone(), true, "development (debug)")
-        } else if let Some(ref path) = dev_release_path {
-            if path.exists() {
-                (path.clone(), true, "development (release)")
-            } else {
-                (bundled_path.clone(), false, "not found")
-            }
-        } else {
-            (bundled_path.clone(), false, "not found")
-        }
-    } else {
-        (bundled_path.clone(), false, "not found")
+    let mut candidates: Vec<(std::path::PathBuf, &'static str)> = vec![
+        (bundled_path_primary.clone(), "production"),
+        (bundled_path_fallback.clone(), "production (legacy name)"),
+    ];
+
+    if let Some(src_tauri_dir) = src_tauri_dir {
+        candidates.push((
+            src_tauri_dir.join("target").join("debug").join("packageflow-mcp"),
+            "development (debug)",
+        ));
+        candidates.push((
+            src_tauri_dir.join("target").join("debug").join("mcp"),
+            "development (debug, legacy name)",
+        ));
+        candidates.push((
+            src_tauri_dir.join("target").join("release").join("packageflow-mcp"),
+            "development (release)",
+        ));
+        candidates.push((
+            src_tauri_dir.join("target").join("release").join("mcp"),
+            "development (release, legacy name)",
+        ));
+    }
+
+    let found = candidates.into_iter().find(|(path, _env)| path.exists());
+
+    let (binary_path, is_available, env_type) = match found {
+        Some((path, env)) => (path, true, env),
+        None => (bundled_path_primary.clone(), false, "not found"),
     };
 
     let binary_path_str = binary_path.to_string_lossy().to_string();
@@ -293,7 +304,7 @@ fn default_true() -> bool {
 impl Default for McpServerConfig {
     fn default() -> Self {
         Self {
-            is_enabled: true,
+            is_enabled: false,
             permission_mode: McpPermissionMode::ReadOnly,
             dev_server_mode: DevServerMode::default(),
             allowed_tools: vec![],

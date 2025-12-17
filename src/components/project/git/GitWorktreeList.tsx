@@ -824,7 +824,7 @@ export function GitWorktreeList({
                   </div>
                   <p
                     className="text-xs text-muted-foreground mt-0.5 truncate"
-                    title={worktree.path}
+                    title={formatPath(worktree.path)}
                   >
                     {formatPath(worktree.path)}
                   </p>
@@ -1062,9 +1062,9 @@ export function GitWorktreeList({
               {fullWorktreePath && (
                 <p
                   className="mt-1.5 text-xs text-muted-foreground truncate"
-                  title={fullWorktreePath}
+                  title={formatPath(fullWorktreePath)}
                 >
-                  Full path: {fullWorktreePath}
+                  Full path: {formatPath(fullWorktreePath)}
                 </p>
               )}
             </div>
@@ -1145,7 +1145,7 @@ export function GitWorktreeList({
                 </div>
                 <p
                   className="text-xs text-muted-foreground mt-1 truncate"
-                  title={worktreeToRemove.path}
+                  title={formatPath(worktreeToRemove.path)}
                 >
                   {formatPath(worktreeToRemove.path)}
                 </p>

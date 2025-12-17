@@ -38,6 +38,7 @@ import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
 import { Button } from '../../ui/Button';
 import { Select, type SelectOption } from '../../ui/Select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../ui/Tabs';
+import { useSettings } from '../../../contexts/SettingsContext';
 import { Skeleton } from '../../ui/Skeleton';
 import { AIProviderIcon, getProviderColorScheme } from '../../ui/AIProviderIcon';
 import { CLIToolIcon, getCLIToolColorScheme } from '../../ui/CLIToolIcon';
@@ -845,6 +846,7 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
   onSetDefault,
   onRefresh,
 }) => {
+  const { formatPath } = useSettings();
   return (
     <div className="space-y-4">
       {/* Header with refresh */}
@@ -956,9 +958,9 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                             )}
                             <span
                               className="text-muted-foreground/70 truncate max-w-[200px]"
-                              title={detected.binaryPath}
+                              title={formatPath(detected.binaryPath)}
                             >
-                              {detected.binaryPath}
+                              {formatPath(detected.binaryPath)}
                             </span>
                           </span>
                         ) : (

@@ -28,6 +28,7 @@ import {
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { Toggle } from '../ui/Toggle';
 import { isTopModal, registerModal, unregisterModal } from '../ui/modalStack';
 import type { WebhookConfig, WebhookTrigger, WebhookTestResult } from '../../types/webhook';
 import type {
@@ -692,25 +693,12 @@ export function WebhookSettingsDialog({
                     </div>
                     <span className="text-sm font-medium text-foreground">Enable Webhook</span>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={enabled}
-                    className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors duration-200',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-                      enabled ? 'bg-purple-600' : 'bg-muted'
-                    )}
-                    onClick={() => setEnabled(!enabled)}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm',
-                        'transition-transform duration-200',
-                        enabled ? 'translate-x-5' : 'translate-x-0'
-                      )}
-                    />
-                  </button>
+                  <Toggle
+                    checked={enabled}
+                    onChange={setEnabled}
+                    size="lg"
+                    aria-label="Enable outgoing webhook"
+                  />
                 </div>
 
                 {/* URL Input */}
@@ -1115,31 +1103,18 @@ export function WebhookSettingsDialog({
                       Enable Incoming Webhook
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={incomingEnabled}
-                    className={cn(
-                      'relative w-11 h-6 rounded-full transition-colors duration-200',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background',
-                      incomingEnabled ? 'bg-purple-600' : 'bg-muted'
-                    )}
-                    onClick={() => {
+                  <Toggle
+                    checked={incomingEnabled}
+                    onChange={(checked) => {
                       if (!incomingToken) {
                         handleInitIncomingConfig();
                       } else {
-                        handleToggleIncoming(!incomingEnabled);
+                        handleToggleIncoming(checked);
                       }
                     }}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm',
-                        'transition-transform duration-200',
-                        incomingEnabled ? 'translate-x-5' : 'translate-x-0'
-                      )}
-                    />
-                  </button>
+                    size="lg"
+                    aria-label="Enable incoming webhook"
+                  />
                 </div>
 
                 {/* Token & URL Section */}

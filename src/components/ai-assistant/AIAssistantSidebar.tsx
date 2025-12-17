@@ -19,7 +19,6 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
@@ -298,7 +297,7 @@ export function AIAssistantSidebar({
                   'flex items-center justify-center'
                 )}
               >
-                <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
+                <Bot className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
               </div>
               <span className="text-sm font-semibold text-foreground">AI Assistant</span>
             </div>

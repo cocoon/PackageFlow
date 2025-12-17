@@ -7,6 +7,7 @@ import { AlertTriangle, ArrowDown, FileEdit, Clock, ChevronDown, ChevronUp } fro
 import type { Worktree, WorktreeStatus } from '../../lib/tauri-api';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface HealthIssue {
   worktree: Worktree;
@@ -31,6 +32,7 @@ export function WorktreeHealthCheck({
   onToggleCollapse,
   staleDays = 14,
 }: WorktreeHealthCheckProps) {
+  const { formatPath } = useSettings();
   const issues = useMemo<HealthIssue[]>(() => {
     const result: HealthIssue[] = [];
     const now = new Date();
@@ -154,7 +156,7 @@ export function WorktreeHealthCheck({
                   'font-medium truncate',
                   issue.severity === 'warning' ? 'text-foreground' : 'text-muted-foreground'
                 )}
-                title={issue.worktree.branch || issue.worktree.path}
+                title={issue.worktree.branch || formatPath(issue.worktree.path)}
               >
                 {issue.worktree.branch || '(detached)'}
               </span>

@@ -889,7 +889,7 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
                 Exit code: {activeSession.exitCode}
               </span>
             )}
-            <span className="ml-auto text-muted-foreground" title={activeSession.projectPath}>
+            <span className="ml-auto text-muted-foreground" title={formatPath(activeSession.projectPath)}>
               {formatPath(activeSession.projectPath)}
             </span>
           </div>

@@ -9,6 +9,7 @@ import React from 'react';
 import { Server, CheckCircle2, XCircle, Loader2, Activity } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Toggle } from '../../ui/Toggle';
+import { useSettings } from '../../../contexts/SettingsContext';
 import type { McpHealthCheckResult } from '../../../lib/tauri-api';
 
 /** Health check status for display */
@@ -52,14 +53,8 @@ export const ServerStatusCard: React.FC<ServerStatusCardProps> = ({
   healthCheckResult,
   className,
 }) => {
-  // Format path for display (truncate home directory)
-  const formatPath = (path: string): string => {
-    const homeMatch = path.match(/^\/Users\/[^/]+/) || path.match(/^\/home\/[^/]+/);
-    if (homeMatch) {
-      return path.replace(homeMatch[0], '~');
-    }
-    return path;
-  };
+  // Use settings context for path formatting (respects Compact Paths setting)
+  const { formatPath } = useSettings();
 
   return (
     <div className={cn('relative', className)}>
@@ -149,7 +144,7 @@ export const ServerStatusCard: React.FC<ServerStatusCardProps> = ({
                   'pointer-events-none'
                 )}
               >
-                {binaryPath}
+                {formatPath(binaryPath)}
               </div>
             </div>
           )}

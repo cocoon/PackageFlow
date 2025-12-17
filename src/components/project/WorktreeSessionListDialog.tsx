@@ -408,7 +408,7 @@ export function WorktreeSessionListDialog({
                         'group',
                         'overflow-hidden'
                       )}
-                      title={s.worktreePath}
+                      title={formatPath(s.worktreePath)}
                     >
                       <div className="flex items-start justify-between gap-3 w-full overflow-hidden">
                         <div className="min-w-0 flex-1 overflow-hidden">

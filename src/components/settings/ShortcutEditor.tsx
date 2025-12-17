@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RotateCcw, AlertTriangle, Check, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { Toggle } from '../ui/Toggle';
 import { formatShortcutKey, type KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
 import {
   parseKeyboardEvent,
@@ -111,8 +112,8 @@ export function ShortcutEditor({
     }
   };
 
-  const handleToggleEnabled = () => {
-    onUpdate(customKey, !enabled);
+  const handleToggleEnabled = (newEnabled: boolean) => {
+    onUpdate(customKey, newEnabled);
   };
 
   const handleReset = () => {
@@ -202,21 +203,12 @@ export function ShortcutEditor({
 
       {/* Toggle switch - fixed position */}
       <div className="w-12 flex justify-end ml-3">
-        <button
-          onClick={handleToggleEnabled}
-          className={cn(
-            'relative w-9 h-5 rounded-full transition-colors duration-200',
-            enabled ? 'bg-blue-500' : 'bg-muted'
-          )}
-          title={enabled ? 'Disable shortcut' : 'Enable shortcut'}
-        >
-          <span
-            className={cn(
-              'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-              enabled ? 'translate-x-4' : 'translate-x-0'
-            )}
-          />
-        </button>
+        <Toggle
+          checked={enabled}
+          onChange={handleToggleEnabled}
+          size="sm"
+          aria-label={enabled ? 'Disable shortcut' : 'Enable shortcut'}
+        />
       </div>
 
       {/* Conflict warning */}

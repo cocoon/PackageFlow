@@ -26,23 +26,20 @@ import { SettingSection } from '../ui/SettingSection';
 import { SettingInfoBox } from '../ui/SettingInfoBox';
 import { Skeleton } from '../../ui/Skeleton';
 import { cn } from '../../../lib/utils';
+import { useSettings } from '../../../contexts/SettingsContext';
 import type { StorePathInfo } from '../../../types/tauri';
 
 export const StorageSettingsPanel: React.FC = () => {
+  const { formatPath } = useSettings();
   const [storePathInfo, setStorePathInfo] = useState<StorePathInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // Formatted storage path for display (replace home dir with ~)
+  // Formatted storage path for display (respects Compact Paths setting)
   const displayPath = useMemo(() => {
     if (!storePathInfo?.currentPath) return null;
-    const path = storePathInfo.currentPath;
-    const homeMatch = path.match(/^\/Users\/[^/]+/) || path.match(/^\/home\/[^/]+/);
-    if (homeMatch) {
-      return path.replace(homeMatch[0], '~');
-    }
-    return path;
-  }, [storePathInfo?.currentPath]);
+    return formatPath(storePathInfo.currentPath);
+  }, [storePathInfo?.currentPath, formatPath]);
 
   // Extract just the filename from the path
   const fileName = useMemo(() => {
@@ -146,7 +143,7 @@ export const StorageSettingsPanel: React.FC = () => {
                     </div>
                     <code
                       className="block mt-1 text-xs text-muted-foreground font-mono truncate"
-                      title={storePathInfo?.currentPath}
+                      title={displayPath || undefined}
                     >
                       {displayPath || 'Not configured'}
                     </code>

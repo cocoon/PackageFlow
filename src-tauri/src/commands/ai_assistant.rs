@@ -854,13 +854,15 @@ pub async fn ai_assistant_get_tools(
 /// Approve a tool call and execute it
 #[tauri::command]
 pub async fn ai_assistant_approve_tool_call(
+    app: AppHandle,
     db: State<'_, DatabaseState>,
     conversation_id: String,
     message_id: String,
     tool_call_id: String,
 ) -> Result<ToolResult, String> {
-    let _ = conversation_id; // Mark as used (for potential future use like audit logging)
+    let start_time = std::time::Instant::now();
     let repo = AIConversationRepository::new(db.0.as_ref().clone());
+    let action_repo = crate::repositories::MCPActionRepository::new(db.0.as_ref().clone());
     // Use with_database for path security validation
     let handler = MCPToolHandler::with_database(db.0.as_ref().clone());
 
@@ -879,8 +881,61 @@ pub async fn ai_assistant_approve_tool_call(
     // Validate the tool call
     handler.validate_tool_call(tool_call)?;
 
-    // Execute the confirmed tool call (bypasses confirmation check)
-    let result = handler.execute_confirmed_tool_call(tool_call).await;
+    // Determine action type for history recording
+    let action_type = match tool_call.name.as_str() {
+        "run_workflow" | "create_workflow" | "add_workflow_step" =>
+            crate::models::mcp_action::MCPActionType::Workflow,
+        "run_script" | "run_npm_script" =>
+            crate::models::mcp_action::MCPActionType::Script,
+        "trigger_webhook" =>
+            crate::models::mcp_action::MCPActionType::Webhook,
+        _ => crate::models::mcp_action::MCPActionType::Script,
+    };
+
+    // Create execution record for history (T066: record all AI tool executions)
+    let execution = action_repo.create_execution(
+        None, // action_id - AI tools don't have pre-defined action IDs
+        action_type.clone(),
+        tool_call.name.clone(),
+        Some("ai-assistant".to_string()), // source_client
+        Some(tool_call.arguments.clone()), // parameters
+        crate::models::mcp_action::ExecutionStatus::Running,
+    ).ok(); // Don't fail the tool execution if history recording fails
+
+    let execution_id = execution.as_ref().map(|e| e.id.clone());
+
+    // Special handling for tools that need AppHandle or special context
+    let result = match tool_call.name.as_str() {
+        "run_workflow" => {
+            execute_workflow_tool(&app, &db, tool_call, &conversation_id).await
+        }
+        "trigger_webhook" => {
+            execute_webhook_tool(&app, &db, tool_call).await
+        }
+        _ => {
+            // Execute other tools via MCPToolHandler
+            handler.execute_confirmed_tool_call(tool_call).await
+        }
+    };
+
+    // Calculate duration
+    let duration_ms = start_time.elapsed().as_millis() as i64;
+
+    // Update execution record with result
+    if let Some(exec_id) = execution_id {
+        let status = if result.success {
+            crate::models::mcp_action::ExecutionStatus::Completed
+        } else {
+            crate::models::mcp_action::ExecutionStatus::Failed
+        };
+        let result_json = Some(serde_json::json!({
+            "success": result.success,
+            "output_preview": result.output.chars().take(500).collect::<String>(),
+            "duration_ms": duration_ms,
+        }));
+        let error_msg = if result.success { None } else { result.error.clone() };
+        let _ = action_repo.update_execution_status(&exec_id, status, result_json, error_msg);
+    }
 
     // Update tool call status in the message
     let updated_tool_calls: Vec<ToolCall> = tool_calls.iter()
@@ -911,6 +966,179 @@ pub async fn ai_assistant_approve_tool_call(
     );
 
     Ok(result)
+}
+
+/// Execute run_workflow tool by calling the actual workflow execution
+async fn execute_workflow_tool(
+    app: &AppHandle,
+    db: &State<'_, DatabaseState>,
+    tool_call: &ToolCall,
+    _conversation_id: &str,
+) -> ToolResult {
+    use crate::commands::workflow::execute_workflow_internal;
+
+    let workflow_id = match tool_call.arguments.get("workflow_id").and_then(|v| v.as_str()) {
+        Some(id) => id.to_string(),
+        None => return ToolResult::failure(
+            tool_call.id.clone(),
+            "Missing required parameter: workflow_id".to_string(),
+        ),
+    };
+
+    // Get workflow name for better response message
+    let workflow_repo = crate::repositories::WorkflowRepository::new(db.0.as_ref().clone());
+    let workflow_name = workflow_repo.get(&workflow_id)
+        .ok()
+        .flatten()
+        .map(|w| w.name.clone())
+        .unwrap_or_else(|| workflow_id.clone());
+
+    // Execute the workflow using the real execution function
+    match execute_workflow_internal(
+        app.clone(),
+        db.0.as_ref().clone(),
+        workflow_id.clone(),
+        None, // parent_execution_id
+        None, // parent_node_id
+    ).await {
+        Ok(execution_id) => {
+            let output_json = serde_json::json!({
+                "success": true,
+                "workflow_id": workflow_id,
+                "workflow_name": workflow_name,
+                "execution_id": execution_id,
+                "message": format!("Workflow '{}' started successfully. Execution ID: {}", workflow_name, execution_id),
+                "note": "Check the Workflows panel for real-time execution status. A notification will be sent when complete."
+            });
+            ToolResult::success(
+                tool_call.id.clone(),
+                serde_json::to_string_pretty(&output_json).unwrap_or_default(),
+                None,
+            )
+        }
+        Err(e) => {
+            ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Failed to execute workflow '{}': {}", workflow_name, e),
+            )
+        }
+    }
+}
+
+/// Execute trigger_webhook tool by calling the actual webhook execution
+async fn execute_webhook_tool(
+    app: &AppHandle,
+    db: &State<'_, DatabaseState>,
+    tool_call: &ToolCall,
+) -> ToolResult {
+    use crate::services::mcp_action::create_executor;
+    use crate::models::mcp_action::MCPActionType;
+    use crate::services::notification::{send_notification, NotificationType};
+
+    let action_repo = crate::repositories::MCPActionRepository::new(db.0.as_ref().clone());
+
+    // Get webhook_id (could be an action ID or workflow webhook token ID)
+    let webhook_id = match tool_call.arguments.get("webhook_id").and_then(|v| v.as_str()) {
+        Some(id) => id.to_string(),
+        None => return ToolResult::failure(
+            tool_call.id.clone(),
+            "Missing required parameter: webhook_id".to_string(),
+        ),
+    };
+
+    // Get optional payload
+    let payload = tool_call.arguments.get("payload").cloned();
+
+    // Try to find as MCP action first
+    match action_repo.get_action(&webhook_id) {
+        Ok(Some(action)) if action.action_type == MCPActionType::Webhook => {
+            // Found as MCP webhook action
+            if !action.is_enabled {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Webhook action '{}' is disabled", action.name),
+                );
+            }
+
+            // Build execution parameters
+            let mut exec_params = serde_json::json!({
+                "config": action.config
+            });
+
+            if let Some(p) = payload.as_ref() {
+                exec_params["payload"] = p.clone();
+            }
+
+            // Execute the webhook
+            let executor = create_executor(MCPActionType::Webhook);
+            let start_time = std::time::Instant::now();
+
+            match executor.execute(exec_params).await {
+                Ok(result_value) => {
+                    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+                    // Send success notification
+                    let url = action.config.get("url")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    let _ = send_notification(
+                        app,
+                        NotificationType::WebhookOutgoingSuccess {
+                            workflow_name: action.name.clone(),
+                            url,
+                        },
+                    );
+
+                    let output_json = serde_json::json!({
+                        "success": true,
+                        "action_name": action.name,
+                        "webhook_id": webhook_id,
+                        "result": result_value,
+                        "duration_ms": duration_ms,
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output_json).unwrap_or_default(),
+                        Some(duration_ms as i64),
+                    )
+                }
+                Err(e) => {
+                    // Send failure notification
+                    let _ = send_notification(
+                        app,
+                        NotificationType::WebhookOutgoingFailure {
+                            workflow_name: action.name.clone(),
+                            error: e.clone(),
+                        },
+                    );
+
+                    ToolResult::failure(
+                        tool_call.id.clone(),
+                        format!("Webhook execution failed: {}", e),
+                    )
+                }
+            }
+        }
+        Ok(Some(_)) => {
+            ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Action '{}' is not a webhook action", webhook_id),
+            )
+        }
+        Ok(None) => {
+            ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Webhook action not found: {}", webhook_id),
+            )
+        }
+        Err(e) => {
+            ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Error looking up webhook: {}", e),
+            )
+        }
+    }
 }
 
 /// Deny a tool call

@@ -970,7 +970,7 @@ export function WorktreeSessionDialog({
                         </div>
                         <div
                           className="text-xs text-muted-foreground truncate"
-                          title={resolvedWorktreePath || ''}
+                          title={resolvedWorktreePath ? formatPath(resolvedWorktreePath) : ''}
                         >
                           {resolvedWorktreePath
                             ? formatPath(resolvedWorktreePath)

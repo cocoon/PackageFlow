@@ -17,6 +17,7 @@ import type { VulnScanResult, VulnSummary } from '../../types/security';
 import { SeveritySummaryBar, RiskLevelIndicator } from './SeverityBadge';
 import { cn } from '../../lib/utils';
 import { formatDate } from '../../lib/utils';
+import { useSettings } from '../../contexts/SettingsContext';
 import { Button } from '../ui/Button';
 
 interface SecurityScanCardProps {
@@ -122,6 +123,7 @@ export function SecurityScanCard({
   compact = false,
   className,
 }: SecurityScanCardProps) {
+  const { formatPath } = useSettings();
   const status = getSecurityStatus(scanResult?.summary);
   const StatusIcon = status.icon;
 
@@ -193,8 +195,8 @@ export function SecurityScanCard({
             >
               {projectName}
             </h3>
-            <p className="text-xs text-muted-foreground truncate" title={projectPath}>
-              {projectPath}
+            <p className="text-xs text-muted-foreground truncate" title={formatPath(projectPath)}>
+              {formatPath(projectPath)}
             </p>
           </div>
         </div>

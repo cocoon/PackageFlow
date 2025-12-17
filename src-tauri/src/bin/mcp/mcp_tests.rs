@@ -22,7 +22,7 @@
 
 use super::security::{get_tool_category, is_tool_allowed, ToolCategory};
 use super::state::ToolRateLimiters;
-use super::background::CircularBuffer;
+use super::background::types::CircularBuffer;
 use packageflow_lib::models::mcp::{DevServerMode, MCPEncryptedSecrets, MCPPermissionMode, MCPServerConfig};
 
 // ============================================================================
@@ -710,7 +710,7 @@ mod rate_limiter_tests {
 
     #[test]
     fn test_rate_limiter_default_creation() {
-        let limiter = ToolRateLimiters::default();
+        let _limiter = ToolRateLimiters::default();
         // Just verify it can be created without panic
         assert!(true, "ToolRateLimiters should be created successfully");
     }

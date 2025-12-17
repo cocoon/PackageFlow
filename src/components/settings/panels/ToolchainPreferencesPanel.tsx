@@ -19,6 +19,7 @@ import {
   Terminal,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { useSettings } from '../../../contexts/SettingsContext';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Button } from '../../ui/Button';
 import type {
@@ -55,6 +56,7 @@ const strategyConfig: Record<ToolchainStrategy, { label: string; color: string; 
   };
 
 export const ToolchainPreferencesPanel: React.FC = () => {
+  const { formatPath } = useSettings();
   const [preferences, setPreferences] = useState<ProjectPreference[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isClearing, setIsClearing] = useState<string | null>(null);
@@ -620,7 +622,7 @@ export const ToolchainPreferencesPanel: React.FC = () => {
                     {diagnostics.package_managers.npm && (
                       <span
                         className="px-2 py-1 rounded text-xs bg-muted text-foreground"
-                        title={diagnostics.package_managers.npm.path}
+                        title={formatPath(diagnostics.package_managers.npm.path)}
                       >
                         npm {diagnostics.package_managers.npm.version}
                       </span>
@@ -628,7 +630,7 @@ export const ToolchainPreferencesPanel: React.FC = () => {
                     {diagnostics.package_managers.pnpm && (
                       <span
                         className="px-2 py-1 rounded text-xs bg-muted text-foreground"
-                        title={diagnostics.package_managers.pnpm.path}
+                        title={formatPath(diagnostics.package_managers.pnpm.path)}
                       >
                         pnpm {diagnostics.package_managers.pnpm.version}
                       </span>
@@ -636,7 +638,7 @@ export const ToolchainPreferencesPanel: React.FC = () => {
                     {diagnostics.package_managers.yarn && (
                       <span
                         className="px-2 py-1 rounded text-xs bg-muted text-foreground"
-                        title={diagnostics.package_managers.yarn.path}
+                        title={formatPath(diagnostics.package_managers.yarn.path)}
                       >
                         yarn {diagnostics.package_managers.yarn.version}
                       </span>

@@ -26,6 +26,7 @@ import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { DeleteConfirmDialog } from '../ui/ConfirmDialog';
 import { Select, type SelectOption } from '../ui/Select';
+import { useSettings } from '../../contexts/SettingsContext';
 
 interface WorktreeTemplateDialogProps {
   isOpen: boolean;
@@ -108,6 +109,7 @@ export function WorktreeTemplateDialog({
   onWorktreeCreated,
   onRunPostCreateScript,
 }: WorktreeTemplateDialogProps) {
+  const { formatPath } = useSettings();
   const [view, setView] = useState<DialogView>('select');
   const [templates, setTemplates] = useState<WorktreeTemplate[]>([]);
   const [defaultTemplates, setDefaultTemplates] = useState<WorktreeTemplate[]>([]);
@@ -532,9 +534,9 @@ export function WorktreeTemplateDialog({
                     <span className="text-muted-foreground">Path:</span>
                     <span
                       className="font-mono text-foreground truncate ml-4"
-                      title={previewWorktreePath}
+                      title={formatPath(previewWorktreePath)}
                     >
-                      {previewWorktreePath}
+                      {formatPath(previewWorktreePath)}
                     </span>
                   </div>
                   {selectedTemplate.postCreateScripts &&

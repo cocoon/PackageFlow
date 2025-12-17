@@ -45,6 +45,7 @@ import { Collapsible, CollapsibleCard } from '../ui/Collapsible';
 import { Toggle } from '../ui/Toggle';
 import { Checkbox } from '../ui/Checkbox';
 import { MCPActionSettings, MCPActionHistory } from './mcp';
+import { useSettings } from '../../contexts/SettingsContext';
 
 // ============================================================================
 // Types
@@ -613,6 +614,7 @@ const PermissionSummaryBadge: React.FC<{
 // ============================================================================
 
 export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
+  const { formatPath } = useSettings();
   const [serverInfo, setServerInfo] = useState<McpServerInfo | null>(null);
   const [tools, setTools] = useState<McpToolInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -832,14 +834,6 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
     return grouped;
   }, [toolsWithPermissions]);
 
-  const formatPath = (path: string): string => {
-    const homeMatch = path.match(/^\/Users\/[^/]+/) || path.match(/^\/home\/[^/]+/);
-    if (homeMatch) {
-      return path.replace(homeMatch[0], '~');
-    }
-    return path;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
@@ -880,7 +874,7 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                     </div>
                     <p
                       className="text-xs text-muted-foreground truncate"
-                      title={serverInfo.binary_path}
+                      title={formatPath(serverInfo.binary_path)}
                     >
                       {formatPath(serverInfo.binary_path)}
                     </p>
@@ -1170,7 +1164,7 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                       <div className="mt-1 flex items-center gap-2">
                         <code
                           className="flex-1 text-xs font-mono text-foreground bg-muted/50 px-2 py-1.5 rounded truncate"
-                          title={serverInfo.binary_path}
+                          title={formatPath(serverInfo.binary_path)}
                         >
                           {formatPath(serverInfo.binary_path)}
                         </code>

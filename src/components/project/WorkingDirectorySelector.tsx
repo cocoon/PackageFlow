@@ -16,6 +16,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useSettings } from '../../contexts/SettingsContext';
 import type { Worktree, WorktreeStatus, EditorDefinition } from '../../lib/tauri-api';
 import { worktreeAPI } from '../../lib/tauri-api';
 
@@ -115,6 +116,7 @@ export function WorkingDirectorySelector({
   onChange,
   className,
 }: WorkingDirectorySelectorProps) {
+  const { formatPath } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -377,8 +379,8 @@ export function WorkingDirectorySelector({
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-muted-foreground truncate" title={worktree.path}>
-                      {worktree.path}
+                    <span className="text-xs text-muted-foreground truncate" title={formatPath(worktree.path)}>
+                      {formatPath(worktree.path)}
                     </span>
                     <WorktreeStatusIndicator status={status} compact />
                   </div>

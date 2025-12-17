@@ -770,9 +770,127 @@ Base dialog primitives (Dialog, DialogContent, DialogHeader, DialogTitle, Dialog
 
 Custom dropdown select with keyboard navigation, grouping, and search support.
 
-### Toggle
+### Toggle (Switch)
 
-macOS-style toggle switch with size variants (sm, md).
+macOS-style toggle switch for boolean settings with three size variants.
+
+**Import:**
+```typescript
+import { Toggle } from '@/components/ui/Toggle';
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `checked` | `boolean` | required | Whether the toggle is on |
+| `onChange` | `(checked: boolean) => void` | required | State change handler |
+| `disabled` | `boolean` | `false` | Disable interaction |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size variant |
+| `label` | `string` | - | Optional visible label |
+| `labelPosition` | `'left' \| 'right'` | `'right'` | Label position |
+| `description` | `string` | - | Optional description text |
+| `aria-label` | `string` | - | Accessible label |
+| `id` | `string` | - | ID for form association |
+| `className` | `string` | - | Additional CSS classes |
+
+**Size Variants:**
+| Size | Track | Thumb | Usage |
+|------|-------|-------|-------|
+| `sm` | 32x18px | 14x14px | Compact lists, dense UIs |
+| `md` | 40x22px | 18x18px | Default for most settings |
+| `lg` | 44x24px | 20x20px | Prominent feature toggles |
+
+**Examples:**
+
+```typescript
+// Basic toggle
+<Toggle
+  checked={enabled}
+  onChange={setEnabled}
+  aria-label="Enable feature"
+/>
+
+// Toggle with label (recommended for accessibility)
+<Toggle
+  checked={notifications}
+  onChange={setNotifications}
+  label="Enable notifications"
+  description="Receive desktop notifications for updates"
+/>
+
+// Large toggle for prominent settings
+<Toggle
+  checked={darkMode}
+  onChange={setDarkMode}
+  size="lg"
+  aria-label="Dark mode"
+/>
+
+// Small toggle in compact layouts
+<Toggle
+  checked={option}
+  onChange={setOption}
+  size="sm"
+  aria-label="Toggle option"
+/>
+
+// Toggle in a settings row pattern
+<div className="flex items-center justify-between p-4 rounded-xl border">
+  <div className="flex items-center gap-3">
+    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted">
+      <Bell className="w-4 h-4 text-muted-foreground" />
+    </div>
+    <span className="text-sm font-medium">Enable Feature</span>
+  </div>
+  <Toggle
+    checked={featureEnabled}
+    onChange={setFeatureEnabled}
+    size="lg"
+  />
+</div>
+```
+
+**Styling Details:**
+- **On state**: Uses `bg-blue-500/70` (light) / `bg-blue-400/60` (dark) - glassmorphism blue
+- **Off state**: Uses `bg-muted-foreground/20` (light) / `bg-muted-foreground/30` (dark)
+- **Glassmorphism**: `backdrop-blur-sm` for frosted glass effect
+- **Thumb**: White with subtle shadow and ring for depth
+- **Focus**: Ring with offset for keyboard navigation
+- **Transitions**: 200ms ease-in-out for smooth animations
+
+**Accessibility:**
+- Uses `role="switch"` with `aria-checked` for screen readers
+- Supports keyboard activation (Enter, Space)
+- Focus ring visible only on keyboard navigation (`focus-visible`)
+- Labels are clickable to toggle state
+
+**IMPORTANT - Always use the Toggle component:**
+```typescript
+// Never create inline switch implementations
+// Bad - custom inline implementation
+<button
+  role="switch"
+  aria-checked={enabled}
+  className={cn(
+    'relative w-11 h-6 rounded-full',
+    enabled ? 'bg-purple-600' : 'bg-muted'
+  )}
+  onClick={() => setEnabled(!enabled)}
+>
+  <span className={cn(
+    'absolute w-5 h-5 bg-white rounded-full',
+    enabled ? 'translate-x-5' : 'translate-x-0'
+  )} />
+</button>
+
+// Good - use Toggle component
+<Toggle
+  checked={enabled}
+  onChange={setEnabled}
+  size="lg"
+  aria-label="Enable feature"
+/>
+```
 
 ### Tabs
 

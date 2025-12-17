@@ -601,7 +601,7 @@ export function ProjectExplorer({
                       ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
                       : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
                   }`}
-                  title={`Current worktree: ${currentWorktree.path}`}
+                  title={`Current worktree: ${formatPath(currentWorktree.path)}`}
                 >
                   <GitBranch className="w-3 h-3" />
                   <span className="max-w-[120px] truncate">

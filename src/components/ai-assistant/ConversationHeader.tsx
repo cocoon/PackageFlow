@@ -10,7 +10,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Settings, Sparkles, Folder, ChevronDown, Check, Loader2 } from 'lucide-react';
+import { Settings, Sparkles, Folder, ChevronDown, Check, Loader2, Bot } from 'lucide-react';
+import { AIProviderIcon } from '../ui/AIProviderIcon';
+import type { AIProvider } from '../../types/ai';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Dropdown, DropdownItem, DropdownSection } from '../ui/Dropdown';
@@ -121,6 +123,16 @@ function ModelSelector({
     );
   }
 
+  // Render provider icon based on provider type
+  const renderProviderIcon = (provider: string | undefined) => {
+    if (!provider) {
+      return <Bot className="w-3.5 h-3.5 text-muted-foreground" />;
+    }
+    // Map provider string to AIProvider type
+    const providerType = provider.toLowerCase() as AIProvider;
+    return <AIProviderIcon provider={providerType} size={14} />;
+  };
+
   return (
     <Dropdown
       trigger={
@@ -137,7 +149,7 @@ function ModelSelector({
           )}
           aria-label="Select AI provider"
         >
-          <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+          {renderProviderIcon(currentService?.provider)}
           <span className="truncate max-w-[100px]">
             {currentService?.name || 'Select provider'}
           </span>
@@ -150,20 +162,17 @@ function ModelSelector({
         {enabledServices.map((service) => (
           <DropdownItem
             key={service.id}
-            icon={
-              service.id === currentServiceId ? (
-                <Check className="w-4 h-4 text-primary" />
-              ) : (
-                <div className="w-4 h-4" />
-              )
-            }
+            icon={renderProviderIcon(service.provider)}
             onClick={() => onSelect(service.id)}
           >
-            <div className="flex flex-col">
-              <span className="font-medium">{service.name}</span>
-              <span className="text-[11px] text-muted-foreground/70">
-                {service.provider} - {service.model}
-              </span>
+            <div className="flex items-center gap-2 flex-1">
+              <div className="flex flex-col flex-1">
+                <span className="font-medium">{service.name}</span>
+                <span className="text-[11px] text-muted-foreground/70">{service.model}</span>
+              </div>
+              {service.id === currentServiceId && (
+                <Check className="w-4 h-4 text-primary flex-shrink-0" />
+              )}
             </div>
           </DropdownItem>
         ))}
