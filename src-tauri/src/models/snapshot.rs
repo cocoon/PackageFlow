@@ -1,6 +1,7 @@
 // Time Machine - Execution Snapshot Models
-// Captures dependency state at workflow execution time
+// Captures dependency state when lockfile changes or manually triggered
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 /// Lockfile type for a project
@@ -72,6 +73,37 @@ impl SnapshotStatus {
     }
 }
 
+/// Trigger source for snapshot capture
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum TriggerSource {
+    LockfileChange,
+    Manual,
+}
+
+impl TriggerSource {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::LockfileChange => "lockfile_change",
+            Self::Manual => "manual",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "lockfile_change" => Some(Self::LockfileChange),
+            "manual" => Some(Self::Manual),
+            _ => None,
+        }
+    }
+}
+
+impl Default for TriggerSource {
+    fn default() -> Self {
+        Self::Manual
+    }
+}
+
 /// A single dependency entry in the snapshot
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -93,10 +125,9 @@ pub struct SnapshotDependency {
 #[serde(rename_all = "camelCase")]
 pub struct ExecutionSnapshot {
     pub id: String,
-    pub workflow_id: String,
-    pub execution_id: String,
     pub project_path: String,
     pub status: SnapshotStatus,
+    pub trigger_source: TriggerSource,
     pub lockfile_type: Option<LockfileType>,
     pub lockfile_hash: Option<String>,
     pub dependency_tree_hash: Option<String>,
@@ -108,7 +139,6 @@ pub struct ExecutionSnapshot {
     pub postinstall_count: i32,
     pub storage_path: Option<String>,
     pub compressed_size: Option<i64>,
-    pub execution_duration_ms: Option<i64>,
     pub error_message: Option<String>,
     pub created_at: String,
 }
@@ -118,9 +148,9 @@ pub struct ExecutionSnapshot {
 #[serde(rename_all = "camelCase")]
 pub struct SnapshotListItem {
     pub id: String,
-    pub workflow_id: String,
-    pub execution_id: String,
+    pub project_path: String,
     pub status: SnapshotStatus,
+    pub trigger_source: TriggerSource,
     pub lockfile_type: Option<LockfileType>,
     pub total_dependencies: i32,
     pub security_score: Option<i32>,
@@ -225,16 +255,6 @@ pub struct DiffSummary {
     pub security_score_change: Option<i32>,
 }
 
-/// Timing information for diff
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TimingDiff {
-    pub old_duration_ms: Option<i64>,
-    pub new_duration_ms: Option<i64>,
-    pub diff_ms: Option<i64>,
-    pub diff_percentage: Option<f64>,
-}
-
 /// Full snapshot diff result
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -242,7 +262,6 @@ pub struct SnapshotDiff {
     pub snapshot_a_id: String,
     pub snapshot_b_id: String,
     pub summary: DiffSummary,
-    pub timing: TimingDiff,
     pub dependency_changes: Vec<DependencyChange>,
     pub postinstall_changes: Vec<PostinstallChange>,
     pub lockfile_type_changed: bool,
@@ -254,20 +273,50 @@ pub struct SnapshotDiff {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSnapshotRequest {
-    pub workflow_id: String,
-    pub execution_id: String,
     pub project_path: String,
+    #[serde(default)]
+    pub trigger_source: TriggerSource,
 }
 
 /// Snapshot filter options
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SnapshotFilter {
-    pub workflow_id: Option<String>,
     pub project_path: Option<String>,
+    pub trigger_source: Option<TriggerSource>,
     pub status: Option<SnapshotStatus>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
     pub limit: Option<i32>,
     pub offset: Option<i32>,
+}
+
+/// Project lockfile state - tracks the latest lockfile hash per project
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LockfileState {
+    pub project_path: String,
+    pub lockfile_type: Option<LockfileType>,
+    pub lockfile_hash: String,
+    pub last_snapshot_id: Option<String>,
+    pub updated_at: String,
+}
+
+/// Time Machine global settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimeMachineSettings {
+    pub auto_watch_enabled: bool,
+    pub debounce_ms: i32,
+    pub updated_at: String,
+}
+
+impl Default for TimeMachineSettings {
+    fn default() -> Self {
+        Self {
+            auto_watch_enabled: true,
+            debounce_ms: 2000,
+            updated_at: Utc::now().to_rfc3339(),
+        }
+    }
 }

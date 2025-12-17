@@ -32,6 +32,7 @@ import { ConfigSection } from '../../ui/ConfigSection';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
+import { CompactEmptyState } from '../../ui/EmptyState';
 import type { DeploymentConfig, PlatformType, GitHubWorkflowResult } from '../../../types/deploy';
 
 // Format platform name for display
@@ -98,16 +99,16 @@ function SettingsTabContent({
   if (!deploymentConfig) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border border-dashed border-border p-8 text-center">
-          <Settings className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <h3 className="mt-4 font-medium">No Configuration</h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Set up your deployment configuration to get started.
-          </p>
-          <Button onClick={onOpenSettings} className="mt-4">
-            Configure Deploy
-          </Button>
-        </div>
+        <CompactEmptyState
+          icon={Settings}
+          title="No Configuration"
+          description="Set up your deployment configuration to get started"
+          variant="blue"
+          action={{
+            label: 'Configure Deploy',
+            onClick: onOpenSettings,
+          }}
+        />
 
         {/* Deploy Accounts Info */}
         <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -395,17 +396,12 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
               </div>
             )}
             {!hasConnectedPlatform ? (
-              <div className="rounded-lg border border-dashed border-border p-8 text-center">
-                <Rocket className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <h3 className="mt-4 font-medium">Get Started with One-Click Deploy</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Connect a deployment platform to get started.
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Go to <span className="font-medium">Settings → Deploy Accounts</span> to add an
-                  account.
-                </p>
-              </div>
+              <CompactEmptyState
+                icon={Rocket}
+                title="Get Started with One-Click Deploy"
+                description="Connect a deployment platform in Settings → Deploy Accounts"
+                variant="blue"
+              />
             ) : (
               <>
                 {/* Deployment Progress - show current or last deployment for THIS project only */}

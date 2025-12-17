@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use crate::models::snapshot::{
     DependencyChange, DependencyChangeType, DiffSummary, ExecutionSnapshot, PostinstallChange,
-    SnapshotDependency, SnapshotDiff, TimingDiff,
+    SnapshotDependency, SnapshotDiff,
 };
 use crate::repositories::SnapshotRepository;
 use crate::services::security_guardian::patterns::{analyze_dependency_changes, PatternAnalysisResult};
@@ -181,9 +181,6 @@ impl SnapshotDiffService {
         dependency_changes.sort_by(|a, b| a.name.cmp(&b.name));
         postinstall_changes.sort_by(|a, b| a.package_name.cmp(&b.package_name));
 
-        // Calculate timing diff
-        let timing = self.calculate_timing_diff(snapshot_a, snapshot_b);
-
         // Calculate security score change
         let security_score_change = match (snapshot_a.security_score, snapshot_b.security_score) {
             (Some(a), Some(b)) => Some(b - a),
@@ -203,36 +200,11 @@ impl SnapshotDiffService {
                 postinstall_changed,
                 security_score_change,
             },
-            timing,
             dependency_changes,
             postinstall_changes,
             lockfile_type_changed: snapshot_a.lockfile_type != snapshot_b.lockfile_type,
             old_lockfile_type: snapshot_a.lockfile_type.clone(),
             new_lockfile_type: snapshot_b.lockfile_type.clone(),
-        }
-    }
-
-    /// Calculate timing difference between snapshots
-    fn calculate_timing_diff(
-        &self,
-        snapshot_a: &ExecutionSnapshot,
-        snapshot_b: &ExecutionSnapshot,
-    ) -> TimingDiff {
-        let diff_ms = match (snapshot_a.execution_duration_ms, snapshot_b.execution_duration_ms) {
-            (Some(a), Some(b)) => Some(b - a),
-            _ => None,
-        };
-
-        let diff_percentage = match (snapshot_a.execution_duration_ms, snapshot_b.execution_duration_ms) {
-            (Some(a), Some(b)) if a > 0 => Some((b - a) as f64 / a as f64 * 100.0),
-            _ => None,
-        };
-
-        TimingDiff {
-            old_duration_ms: snapshot_a.execution_duration_ms,
-            new_duration_ms: snapshot_b.execution_duration_ms,
-            diff_ms,
-            diff_percentage,
         }
     }
 
@@ -319,16 +291,16 @@ impl SnapshotDiffService {
         prompt
     }
 
-    /// Get snapshots for comparison (latest N for a workflow)
+    /// Get snapshots for comparison (latest N for a project)
     pub fn get_comparison_candidates(
         &self,
-        workflow_id: &str,
+        project_path: &str,
         limit: i32,
     ) -> Result<Vec<ExecutionSnapshot>, String> {
         let repo = SnapshotRepository::new(self.db.clone());
 
         let filter = crate::models::snapshot::SnapshotFilter {
-            workflow_id: Some(workflow_id.to_string()),
+            project_path: Some(project_path.to_string()),
             status: Some(crate::models::snapshot::SnapshotStatus::Completed),
             limit: Some(limit),
             ..Default::default()

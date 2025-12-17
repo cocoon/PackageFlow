@@ -5,8 +5,9 @@ use rusqlite::params;
 
 use crate::models::security_insight::{InsightSeverity, InsightType, InsightSummary, SecurityInsight};
 use crate::models::snapshot::{
-    ExecutionSnapshot, LockfileType, SnapshotDependency, SnapshotDiff, SnapshotFilter,
-    SnapshotListItem, SnapshotStatus, SnapshotWithDependencies,
+    ExecutionSnapshot, LockfileState, LockfileType, SnapshotDependency, SnapshotDiff,
+    SnapshotFilter, SnapshotListItem, SnapshotStatus, SnapshotWithDependencies,
+    TimeMachineSettings, TriggerSource,
 };
 use crate::utils::database::Database;
 
@@ -31,20 +32,19 @@ impl SnapshotRepository {
             conn.execute(
                 r#"
                 INSERT INTO execution_snapshots (
-                    id, workflow_id, execution_id, project_path, status,
+                    id, project_path, status, trigger_source,
                     lockfile_type, lockfile_hash, dependency_tree_hash, package_json_hash,
                     total_dependencies, direct_dependencies, dev_dependencies,
                     security_score, postinstall_count, storage_path, compressed_size,
-                    execution_duration_ms, error_message, created_at
+                    error_message, created_at
                 )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)
                 "#,
                 params![
                     snapshot.id,
-                    snapshot.workflow_id,
-                    snapshot.execution_id,
                     snapshot.project_path,
                     snapshot.status.as_str(),
+                    snapshot.trigger_source.as_str(),
                     snapshot.lockfile_type.as_ref().map(|t| t.as_str()),
                     snapshot.lockfile_hash,
                     snapshot.dependency_tree_hash,
@@ -56,7 +56,6 @@ impl SnapshotRepository {
                     snapshot.postinstall_count,
                     snapshot.storage_path,
                     snapshot.compressed_size,
-                    snapshot.execution_duration_ms,
                     snapshot.error_message,
                     snapshot.created_at,
                 ],
@@ -85,8 +84,7 @@ impl SnapshotRepository {
                     postinstall_count = ?11,
                     storage_path = ?12,
                     compressed_size = ?13,
-                    execution_duration_ms = ?14,
-                    error_message = ?15
+                    error_message = ?14
                 WHERE id = ?1
                 "#,
                 params![
@@ -103,7 +101,6 @@ impl SnapshotRepository {
                     snapshot.postinstall_count,
                     snapshot.storage_path,
                     snapshot.compressed_size,
-                    snapshot.execution_duration_ms,
                     snapshot.error_message,
                 ],
             )
@@ -118,11 +115,11 @@ impl SnapshotRepository {
         self.db.with_connection(|conn| {
             let result = conn.query_row(
                 r#"
-                SELECT id, workflow_id, execution_id, project_path, status,
+                SELECT id, project_path, status, trigger_source,
                        lockfile_type, lockfile_hash, dependency_tree_hash, package_json_hash,
                        total_dependencies, direct_dependencies, dev_dependencies,
                        security_score, postinstall_count, storage_path, compressed_size,
-                       execution_duration_ms, error_message, created_at
+                       error_message, created_at
                 FROM execution_snapshots
                 WHERE id = ?1
                 "#,
@@ -130,24 +127,22 @@ impl SnapshotRepository {
                 |row| {
                     Ok(SnapshotRow {
                         id: row.get(0)?,
-                        workflow_id: row.get(1)?,
-                        execution_id: row.get(2)?,
-                        project_path: row.get(3)?,
-                        status: row.get(4)?,
-                        lockfile_type: row.get(5)?,
-                        lockfile_hash: row.get(6)?,
-                        dependency_tree_hash: row.get(7)?,
-                        package_json_hash: row.get(8)?,
-                        total_dependencies: row.get(9)?,
-                        direct_dependencies: row.get(10)?,
-                        dev_dependencies: row.get(11)?,
-                        security_score: row.get(12)?,
-                        postinstall_count: row.get(13)?,
-                        storage_path: row.get(14)?,
-                        compressed_size: row.get(15)?,
-                        execution_duration_ms: row.get(16)?,
-                        error_message: row.get(17)?,
-                        created_at: row.get(18)?,
+                        project_path: row.get(1)?,
+                        status: row.get(2)?,
+                        trigger_source: row.get(3)?,
+                        lockfile_type: row.get(4)?,
+                        lockfile_hash: row.get(5)?,
+                        dependency_tree_hash: row.get(6)?,
+                        package_json_hash: row.get(7)?,
+                        total_dependencies: row.get(8)?,
+                        direct_dependencies: row.get(9)?,
+                        dev_dependencies: row.get(10)?,
+                        security_score: row.get(11)?,
+                        postinstall_count: row.get(12)?,
+                        storage_path: row.get(13)?,
+                        compressed_size: row.get(14)?,
+                        error_message: row.get(15)?,
+                        created_at: row.get(16)?,
                     })
                 },
             );
@@ -183,7 +178,7 @@ impl SnapshotRepository {
         self.db.with_connection(|conn| {
             let mut sql = String::from(
                 r#"
-                SELECT id, workflow_id, execution_id, status, lockfile_type,
+                SELECT id, project_path, status, trigger_source, lockfile_type,
                        total_dependencies, security_score, postinstall_count, created_at
                 FROM execution_snapshots
                 WHERE 1=1
@@ -192,14 +187,14 @@ impl SnapshotRepository {
 
             let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
-            if let Some(ref workflow_id) = filter.workflow_id {
-                sql.push_str(" AND workflow_id = ?");
-                params_vec.push(Box::new(workflow_id.clone()));
-            }
-
             if let Some(ref project_path) = filter.project_path {
                 sql.push_str(" AND project_path = ?");
                 params_vec.push(Box::new(project_path.clone()));
+            }
+
+            if let Some(ref trigger_source) = filter.trigger_source {
+                sql.push_str(" AND trigger_source = ?");
+                params_vec.push(Box::new(trigger_source.as_str().to_string()));
             }
 
             if let Some(ref status) = filter.status {
@@ -236,15 +231,17 @@ impl SnapshotRepository {
 
             let rows = stmt
                 .query_map(params_refs.as_slice(), |row| {
-                    let status_str: String = row.get(3)?;
+                    let status_str: String = row.get(2)?;
+                    let trigger_source_str: String = row.get(3)?;
                     let lockfile_type_str: Option<String> = row.get(4)?;
 
                     Ok(SnapshotListItem {
                         id: row.get(0)?,
-                        workflow_id: row.get(1)?,
-                        execution_id: row.get(2)?,
+                        project_path: row.get(1)?,
                         status: SnapshotStatus::from_str(&status_str)
                             .unwrap_or(SnapshotStatus::Failed),
+                        trigger_source: TriggerSource::from_str(&trigger_source_str)
+                            .unwrap_or(TriggerSource::Manual),
                         lockfile_type: lockfile_type_str.and_then(|s| LockfileType::from_str(&s)),
                         total_dependencies: row.get(5)?,
                         security_score: row.get(6)?,
@@ -263,43 +260,41 @@ impl SnapshotRepository {
         })
     }
 
-    /// Get the latest snapshot for a workflow
-    pub fn get_latest_snapshot(&self, workflow_id: &str) -> Result<Option<ExecutionSnapshot>, String> {
+    /// Get the latest snapshot for a project
+    pub fn get_latest_snapshot(&self, project_path: &str) -> Result<Option<ExecutionSnapshot>, String> {
         self.db.with_connection(|conn| {
             let result = conn.query_row(
                 r#"
-                SELECT id, workflow_id, execution_id, project_path, status,
+                SELECT id, project_path, status, trigger_source,
                        lockfile_type, lockfile_hash, dependency_tree_hash, package_json_hash,
                        total_dependencies, direct_dependencies, dev_dependencies,
                        security_score, postinstall_count, storage_path, compressed_size,
-                       execution_duration_ms, error_message, created_at
+                       error_message, created_at
                 FROM execution_snapshots
-                WHERE workflow_id = ?1 AND status = 'completed'
+                WHERE project_path = ?1 AND status = 'completed'
                 ORDER BY created_at DESC
                 LIMIT 1
                 "#,
-                params![workflow_id],
+                params![project_path],
                 |row| {
                     Ok(SnapshotRow {
                         id: row.get(0)?,
-                        workflow_id: row.get(1)?,
-                        execution_id: row.get(2)?,
-                        project_path: row.get(3)?,
-                        status: row.get(4)?,
-                        lockfile_type: row.get(5)?,
-                        lockfile_hash: row.get(6)?,
-                        dependency_tree_hash: row.get(7)?,
-                        package_json_hash: row.get(8)?,
-                        total_dependencies: row.get(9)?,
-                        direct_dependencies: row.get(10)?,
-                        dev_dependencies: row.get(11)?,
-                        security_score: row.get(12)?,
-                        postinstall_count: row.get(13)?,
-                        storage_path: row.get(14)?,
-                        compressed_size: row.get(15)?,
-                        execution_duration_ms: row.get(16)?,
-                        error_message: row.get(17)?,
-                        created_at: row.get(18)?,
+                        project_path: row.get(1)?,
+                        status: row.get(2)?,
+                        trigger_source: row.get(3)?,
+                        lockfile_type: row.get(4)?,
+                        lockfile_hash: row.get(5)?,
+                        dependency_tree_hash: row.get(6)?,
+                        package_json_hash: row.get(7)?,
+                        total_dependencies: row.get(8)?,
+                        direct_dependencies: row.get(9)?,
+                        dev_dependencies: row.get(10)?,
+                        security_score: row.get(11)?,
+                        postinstall_count: row.get(12)?,
+                        storage_path: row.get(13)?,
+                        compressed_size: row.get(14)?,
+                        error_message: row.get(15)?,
+                        created_at: row.get(16)?,
                     })
                 },
             );
@@ -323,8 +318,8 @@ impl SnapshotRepository {
         })
     }
 
-    /// Delete old snapshots (keep last N per workflow)
-    pub fn prune_snapshots(&self, keep_per_workflow: usize) -> Result<usize, String> {
+    /// Delete old snapshots (keep last N per project)
+    pub fn prune_snapshots(&self, keep_per_project: usize) -> Result<usize, String> {
         self.db.with_connection(|conn| {
             let rows_affected = conn
                 .execute(
@@ -333,7 +328,7 @@ impl SnapshotRepository {
                     WHERE id NOT IN (
                         SELECT id FROM (
                             SELECT id, ROW_NUMBER() OVER (
-                                PARTITION BY workflow_id
+                                PARTITION BY project_path
                                 ORDER BY created_at DESC
                             ) as rn
                             FROM execution_snapshots
@@ -341,7 +336,7 @@ impl SnapshotRepository {
                         WHERE rn <= ?1
                     )
                     "#,
-                    params![keep_per_workflow as i64],
+                    params![keep_per_project as i64],
                 )
                 .map_err(|e| format!("Failed to prune snapshots: {}", e))?;
 
@@ -753,15 +748,204 @@ impl SnapshotRepository {
             Ok(rows_affected)
         })
     }
+
+    // =========================================================================
+    // Snapshot by Hash (for deduplication)
+    // =========================================================================
+
+    /// Get a snapshot by project path and lockfile hash (to avoid duplicates)
+    pub fn get_snapshot_by_hash(
+        &self,
+        project_path: &str,
+        lockfile_hash: &str,
+    ) -> Result<Option<ExecutionSnapshot>, String> {
+        self.db.with_connection(|conn| {
+            let result = conn.query_row(
+                r#"
+                SELECT id, project_path, status, trigger_source,
+                       lockfile_type, lockfile_hash, dependency_tree_hash, package_json_hash,
+                       total_dependencies, direct_dependencies, dev_dependencies,
+                       security_score, postinstall_count, storage_path, compressed_size,
+                       error_message, created_at
+                FROM execution_snapshots
+                WHERE project_path = ?1 AND lockfile_hash = ?2 AND status = 'completed'
+                ORDER BY created_at DESC
+                LIMIT 1
+                "#,
+                params![project_path, lockfile_hash],
+                |row| {
+                    Ok(SnapshotRow {
+                        id: row.get(0)?,
+                        project_path: row.get(1)?,
+                        status: row.get(2)?,
+                        trigger_source: row.get(3)?,
+                        lockfile_type: row.get(4)?,
+                        lockfile_hash: row.get(5)?,
+                        dependency_tree_hash: row.get(6)?,
+                        package_json_hash: row.get(7)?,
+                        total_dependencies: row.get(8)?,
+                        direct_dependencies: row.get(9)?,
+                        dev_dependencies: row.get(10)?,
+                        security_score: row.get(11)?,
+                        postinstall_count: row.get(12)?,
+                        storage_path: row.get(13)?,
+                        compressed_size: row.get(14)?,
+                        error_message: row.get(15)?,
+                        created_at: row.get(16)?,
+                    })
+                },
+            );
+
+            match result {
+                Ok(row) => Ok(Some(row.into_snapshot())),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(format!("Failed to get snapshot by hash: {}", e)),
+            }
+        })
+    }
+
+    // =========================================================================
+    // Lockfile State Management
+    // =========================================================================
+
+    /// Get the current lockfile state for a project
+    pub fn get_lockfile_state(&self, project_path: &str) -> Result<Option<LockfileState>, String> {
+        self.db.with_connection(|conn| {
+            let result = conn.query_row(
+                r#"
+                SELECT project_path, lockfile_type, lockfile_hash, last_snapshot_id, updated_at
+                FROM project_lockfile_state
+                WHERE project_path = ?1
+                "#,
+                params![project_path],
+                |row| {
+                    let lockfile_type_str: Option<String> = row.get(1)?;
+                    Ok(LockfileState {
+                        project_path: row.get(0)?,
+                        lockfile_type: lockfile_type_str.and_then(|s| LockfileType::from_str(&s)),
+                        lockfile_hash: row.get(2)?,
+                        last_snapshot_id: row.get(3)?,
+                        updated_at: row.get(4)?,
+                    })
+                },
+            );
+
+            match result {
+                Ok(state) => Ok(Some(state)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(format!("Failed to get lockfile state: {}", e)),
+            }
+        })
+    }
+
+    /// Update or insert lockfile state for a project
+    pub fn update_lockfile_state(&self, state: &LockfileState) -> Result<(), String> {
+        self.db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                INSERT INTO project_lockfile_state (
+                    project_path, lockfile_type, lockfile_hash, last_snapshot_id, updated_at
+                )
+                VALUES (?1, ?2, ?3, ?4, ?5)
+                ON CONFLICT(project_path) DO UPDATE SET
+                    lockfile_type = excluded.lockfile_type,
+                    lockfile_hash = excluded.lockfile_hash,
+                    last_snapshot_id = excluded.last_snapshot_id,
+                    updated_at = excluded.updated_at
+                "#,
+                params![
+                    state.project_path,
+                    state.lockfile_type.as_ref().map(|t| t.as_str()),
+                    state.lockfile_hash,
+                    state.last_snapshot_id,
+                    state.updated_at,
+                ],
+            )
+            .map_err(|e| format!("Failed to update lockfile state: {}", e))?;
+
+            Ok(())
+        })
+    }
+
+    /// Delete lockfile state for a project
+    pub fn delete_lockfile_state(&self, project_path: &str) -> Result<bool, String> {
+        self.db.with_connection(|conn| {
+            let rows_affected = conn
+                .execute(
+                    "DELETE FROM project_lockfile_state WHERE project_path = ?1",
+                    params![project_path],
+                )
+                .map_err(|e| format!("Failed to delete lockfile state: {}", e))?;
+
+            Ok(rows_affected > 0)
+        })
+    }
+
+    // =========================================================================
+    // Time Machine Settings
+    // =========================================================================
+
+    /// Get Time Machine settings
+    pub fn get_time_machine_settings(&self) -> Result<TimeMachineSettings, String> {
+        self.db.with_connection(|conn| {
+            let result = conn.query_row(
+                r#"
+                SELECT auto_watch_enabled, debounce_ms, updated_at
+                FROM time_machine_settings
+                WHERE id = 1
+                "#,
+                [],
+                |row| {
+                    Ok(TimeMachineSettings {
+                        auto_watch_enabled: row.get::<_, i32>(0)? != 0,
+                        debounce_ms: row.get(1)?,
+                        updated_at: row.get(2)?,
+                    })
+                },
+            );
+
+            match result {
+                Ok(settings) => Ok(settings),
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    // Return default settings if not found
+                    Ok(TimeMachineSettings::default())
+                }
+                Err(e) => Err(format!("Failed to get Time Machine settings: {}", e)),
+            }
+        })
+    }
+
+    /// Update Time Machine settings
+    pub fn update_time_machine_settings(&self, settings: &TimeMachineSettings) -> Result<(), String> {
+        self.db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                INSERT INTO time_machine_settings (id, auto_watch_enabled, debounce_ms, updated_at)
+                VALUES (1, ?1, ?2, ?3)
+                ON CONFLICT(id) DO UPDATE SET
+                    auto_watch_enabled = excluded.auto_watch_enabled,
+                    debounce_ms = excluded.debounce_ms,
+                    updated_at = excluded.updated_at
+                "#,
+                params![
+                    settings.auto_watch_enabled as i32,
+                    settings.debounce_ms,
+                    settings.updated_at,
+                ],
+            )
+            .map_err(|e| format!("Failed to update Time Machine settings: {}", e))?;
+
+            Ok(())
+        })
+    }
 }
 
 /// Internal row structure for snapshots
 struct SnapshotRow {
     id: String,
-    workflow_id: String,
-    execution_id: String,
     project_path: String,
     status: String,
+    trigger_source: String,
     lockfile_type: Option<String>,
     lockfile_hash: Option<String>,
     dependency_tree_hash: Option<String>,
@@ -773,7 +957,6 @@ struct SnapshotRow {
     postinstall_count: i32,
     storage_path: Option<String>,
     compressed_size: Option<i64>,
-    execution_duration_ms: Option<i64>,
     error_message: Option<String>,
     created_at: String,
 }
@@ -782,10 +965,10 @@ impl SnapshotRow {
     fn into_snapshot(self) -> ExecutionSnapshot {
         ExecutionSnapshot {
             id: self.id,
-            workflow_id: self.workflow_id,
-            execution_id: self.execution_id,
             project_path: self.project_path,
             status: SnapshotStatus::from_str(&self.status).unwrap_or(SnapshotStatus::Failed),
+            trigger_source: TriggerSource::from_str(&self.trigger_source)
+                .unwrap_or(TriggerSource::Manual),
             lockfile_type: self.lockfile_type.and_then(|s| LockfileType::from_str(&s)),
             lockfile_hash: self.lockfile_hash,
             dependency_tree_hash: self.dependency_tree_hash,
@@ -797,7 +980,6 @@ impl SnapshotRow {
             postinstall_count: self.postinstall_count,
             storage_path: self.storage_path,
             compressed_size: self.compressed_size,
-            execution_duration_ms: self.execution_duration_ms,
             error_message: self.error_message,
             created_at: self.created_at,
         }

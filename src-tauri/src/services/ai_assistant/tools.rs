@@ -590,6 +590,148 @@ impl MCPToolHandler {
                 requires_confirmation: true,
                 category: "script".to_string(),
             },
+            // =========================================================================
+            // Time Machine & Security Guardian Tools (Feature 025)
+            // =========================================================================
+            ToolDefinition {
+                name: "list_snapshots".to_string(),
+                description: "List Time Machine snapshots for a project. Snapshots capture dependency state when lockfile changes or manually triggered.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "project_path": {
+                            "type": "string",
+                            "description": "The project path to list snapshots for"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of snapshots to return (default: 20)"
+                        }
+                    },
+                    "required": ["project_path"]
+                }),
+                requires_confirmation: false,
+                category: "time_machine".to_string(),
+            },
+            ToolDefinition {
+                name: "get_snapshot_details".to_string(),
+                description: "Get detailed information about a specific execution snapshot including all dependencies, postinstall scripts, and security score.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "snapshot_id": {
+                            "type": "string",
+                            "description": "The snapshot ID to get details for"
+                        }
+                    },
+                    "required": ["snapshot_id"]
+                }),
+                requires_confirmation: false,
+                category: "time_machine".to_string(),
+            },
+            ToolDefinition {
+                name: "compare_snapshots".to_string(),
+                description: "Compare two snapshots to see dependency changes: added, removed, updated packages, new postinstall scripts, and security score changes.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "snapshot_a_id": {
+                            "type": "string",
+                            "description": "The first (older) snapshot ID"
+                        },
+                        "snapshot_b_id": {
+                            "type": "string",
+                            "description": "The second (newer) snapshot ID"
+                        }
+                    },
+                    "required": ["snapshot_a_id", "snapshot_b_id"]
+                }),
+                requires_confirmation: false,
+                category: "time_machine".to_string(),
+            },
+            ToolDefinition {
+                name: "search_snapshots".to_string(),
+                description: "Search execution snapshots across all projects. Find snapshots containing specific packages or within date ranges.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "package_name": {
+                            "type": "string",
+                            "description": "Package name to search for (supports partial match)"
+                        },
+                        "project_path": {
+                            "type": "string",
+                            "description": "Filter by project path"
+                        },
+                        "from_date": {
+                            "type": "string",
+                            "description": "Start date for search (ISO 8601 format)"
+                        },
+                        "to_date": {
+                            "type": "string",
+                            "description": "End date for search (ISO 8601 format)"
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum results to return (default: 20)"
+                        }
+                    }
+                }),
+                requires_confirmation: false,
+                category: "time_machine".to_string(),
+            },
+            ToolDefinition {
+                name: "check_dependency_integrity".to_string(),
+                description: "Check if current dependencies match a reference snapshot. Detects drift from known good state.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "project_path": {
+                            "type": "string",
+                            "description": "Path to the project directory"
+                        },
+                        "reference_snapshot_id": {
+                            "type": "string",
+                            "description": "Optional snapshot ID to compare against. If not provided, uses the latest snapshot."
+                        }
+                    },
+                    "required": ["project_path"]
+                }),
+                requires_confirmation: false,
+                category: "security".to_string(),
+            },
+            ToolDefinition {
+                name: "get_security_insights".to_string(),
+                description: "Get security insights for a project: risk score, typosquatting alerts, postinstall script changes, and suspicious patterns.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "project_path": {
+                            "type": "string",
+                            "description": "Path to the project directory"
+                        }
+                    },
+                    "required": ["project_path"]
+                }),
+                requires_confirmation: false,
+                category: "security".to_string(),
+            },
+            ToolDefinition {
+                name: "capture_snapshot".to_string(),
+                description: "Manually capture a Time Machine snapshot for a project. Captures current dependency state from lockfile.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "project_path": {
+                            "type": "string",
+                            "description": "Path to the project directory to snapshot"
+                        }
+                    },
+                    "required": ["project_path"]
+                }),
+                requires_confirmation: true,
+                category: "time_machine".to_string(),
+            },
         ];
 
         AvailableTools { tools }
@@ -645,6 +787,13 @@ impl MCPToolHandler {
             "get_action_permissions" => self.execute_get_action_permissions(tool_call).await,
             "list_background_processes" => self.execute_list_background_processes(tool_call).await,
             "get_background_process_output" => self.execute_get_background_process_output(tool_call).await,
+            // Time Machine & Security Guardian tools (Feature 025)
+            "list_snapshots" => self.execute_list_snapshots(tool_call).await,
+            "get_snapshot_details" => self.execute_get_snapshot_details(tool_call).await,
+            "compare_snapshots" => self.execute_compare_snapshots(tool_call).await,
+            "search_snapshots" => self.execute_search_snapshots(tool_call).await,
+            "check_dependency_integrity" => self.execute_check_dependency_integrity(tool_call).await,
+            "get_security_insights" => self.execute_get_security_insights(tool_call).await,
             _ => {
                 log::warn!("[AI Tool] Unknown tool in execute_tool_call: {}", tool_call.name);
                 ToolResult::failure(
@@ -698,6 +847,13 @@ impl MCPToolHandler {
             "get_action_permissions" => self.execute_get_action_permissions(tool_call).await,
             "list_background_processes" => self.execute_list_background_processes(tool_call).await,
             "get_background_process_output" => self.execute_get_background_process_output(tool_call).await,
+            // Time Machine & Security Guardian tools (Feature 025)
+            "list_snapshots" => self.execute_list_snapshots(tool_call).await,
+            "get_snapshot_details" => self.execute_get_snapshot_details(tool_call).await,
+            "compare_snapshots" => self.execute_compare_snapshots(tool_call).await,
+            "search_snapshots" => self.execute_search_snapshots(tool_call).await,
+            "check_dependency_integrity" => self.execute_check_dependency_integrity(tool_call).await,
+            "get_security_insights" => self.execute_get_security_insights(tool_call).await,
             // Confirmation-required tools
             "run_script" => self.execute_run_script(tool_call).await,
             "run_npm_script" => self.execute_run_npm_script(tool_call).await,
@@ -708,6 +864,8 @@ impl MCPToolHandler {
             // New confirmation-required tools synced with MCP Server
             "create_step_template" => self.execute_create_step_template(tool_call).await,
             "stop_background_process" => self.execute_stop_background_process(tool_call).await,
+            // Time Machine capture
+            "capture_snapshot" => self.execute_capture_snapshot(tool_call).await,
             // Package manager commands
             "run_package_manager_command" => self.execute_run_package_manager_command(tool_call).await,
             _ => ToolResult::failure(
@@ -2256,6 +2414,415 @@ impl MCPToolHandler {
             serde_json::to_string_pretty(&output_json).unwrap_or_default(),
             None,
         )
+    }
+
+    // =========================================================================
+    // Time Machine & Security Guardian Tool Execution (Feature 025)
+    // =========================================================================
+
+    /// Execute list_snapshots tool
+    async fn execute_list_snapshots(&self, tool_call: &ToolCall) -> ToolResult {
+        let project_path = match tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+            Some(path) => path,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: project_path".to_string(),
+            ),
+        };
+
+        let limit = tool_call.arguments
+            .get("limit")
+            .and_then(|v| v.as_i64())
+            .map(|l| l as i32)
+            .unwrap_or(20);
+
+        if let Some(ref db) = self.db {
+            let repo = crate::repositories::SnapshotRepository::new(db.clone());
+            let filter = crate::models::snapshot::SnapshotFilter {
+                project_path: Some(project_path.to_string()),
+                limit: Some(limit),
+                ..Default::default()
+            };
+            match repo.list_snapshots(&filter) {
+                Ok(snapshots) => {
+                    let output = serde_json::json!({
+                        "snapshots": snapshots.iter().map(|s| serde_json::json!({
+                            "id": s.id,
+                            "projectPath": s.project_path,
+                            "triggerSource": s.trigger_source,
+                            "status": s.status,
+                            "totalDependencies": s.total_dependencies,
+                            "securityScore": s.security_score,
+                            "createdAt": s.created_at,
+                        })).collect::<Vec<_>>(),
+                        "count": snapshots.len()
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to list snapshots: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute get_snapshot_details tool
+    async fn execute_get_snapshot_details(&self, tool_call: &ToolCall) -> ToolResult {
+        let snapshot_id = match tool_call.arguments.get("snapshot_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: snapshot_id".to_string(),
+            ),
+        };
+
+        if let Some(ref db) = self.db {
+            let repo = crate::repositories::SnapshotRepository::new(db.clone());
+            match repo.get_snapshot_with_dependencies(snapshot_id) {
+                Ok(Some(snapshot_with_deps)) => {
+                    let snapshot = &snapshot_with_deps.snapshot;
+                    let dependencies = &snapshot_with_deps.dependencies;
+                    let output = serde_json::json!({
+                        "snapshot": {
+                            "id": snapshot.id,
+                            "projectPath": snapshot.project_path,
+                            "triggerSource": snapshot.trigger_source,
+                            "status": snapshot.status,
+                            "totalDependencies": snapshot.total_dependencies,
+                            "securityScore": snapshot.security_score,
+                            "lockfileHash": snapshot.lockfile_hash,
+                            "createdAt": snapshot.created_at,
+                        },
+                        "dependencies": dependencies.iter().map(|d| serde_json::json!({
+                            "name": d.name,
+                            "version": d.version,
+                            "isDev": d.is_dev,
+                            "hasPostinstall": d.has_postinstall,
+                            "postinstallScript": d.postinstall_script,
+                        })).collect::<Vec<_>>(),
+                        "dependencyCount": dependencies.len()
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Ok(None) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Snapshot not found: {}", snapshot_id),
+                ),
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to get snapshot: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute compare_snapshots tool
+    async fn execute_compare_snapshots(&self, tool_call: &ToolCall) -> ToolResult {
+        let snapshot_a_id = match tool_call.arguments.get("snapshot_a_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: snapshot_a_id".to_string(),
+            ),
+        };
+
+        let snapshot_b_id = match tool_call.arguments.get("snapshot_b_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: snapshot_b_id".to_string(),
+            ),
+        };
+
+        if let Some(ref db) = self.db {
+            let diff_service = crate::services::snapshot::SnapshotDiffService::new(db.clone());
+            match diff_service.compare_snapshots(snapshot_a_id, snapshot_b_id) {
+                Ok(diff) => {
+                    let output = serde_json::json!({
+                        "snapshotAId": diff.snapshot_a_id,
+                        "snapshotBId": diff.snapshot_b_id,
+                        "summary": {
+                            "addedCount": diff.summary.added_count,
+                            "removedCount": diff.summary.removed_count,
+                            "updatedCount": diff.summary.updated_count,
+                            "unchangedCount": diff.summary.unchanged_count,
+                            "postinstallAdded": diff.summary.postinstall_added,
+                            "postinstallRemoved": diff.summary.postinstall_removed,
+                            "postinstallChanged": diff.summary.postinstall_changed,
+                            "securityScoreChange": diff.summary.security_score_change,
+                        },
+                        "dependencyChanges": diff.dependency_changes.iter().map(|c| serde_json::json!({
+                            "name": c.name,
+                            "changeType": c.change_type,
+                            "oldVersion": c.old_version,
+                            "newVersion": c.new_version,
+                        })).collect::<Vec<_>>(),
+                        "postinstallChanges": diff.postinstall_changes.iter().map(|p| serde_json::json!({
+                            "packageName": p.package_name,
+                            "changeType": p.change_type,
+                        })).collect::<Vec<_>>(),
+                        "lockfileTypeChanged": diff.lockfile_type_changed,
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to compare snapshots: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute search_snapshots tool
+    async fn execute_search_snapshots(&self, tool_call: &ToolCall) -> ToolResult {
+        let package_name = tool_call.arguments
+            .get("package_name")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        let project_path = tool_call.arguments
+            .get("project_path")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        let from_date = tool_call.arguments
+            .get("from_date")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        let to_date = tool_call.arguments
+            .get("to_date")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+
+        let limit = tool_call.arguments
+            .get("limit")
+            .and_then(|v| v.as_i64())
+            .map(|l| l as i32)
+            .unwrap_or(20);
+
+        if let Some(ref db) = self.db {
+            use crate::services::snapshot::search::SnapshotSearchCriteria;
+            let criteria = SnapshotSearchCriteria {
+                package_name,
+                package_version: None,
+                project_path,
+                from_date,
+                to_date,
+                has_postinstall: None,
+                min_security_score: None,
+                max_security_score: None,
+                limit: Some(limit),
+                offset: None,
+            };
+
+            let search_service = crate::services::snapshot::SnapshotSearchService::new(db.clone());
+            match search_service.search(&criteria) {
+                Ok(response) => {
+                    let output = serde_json::json!({
+                        "summary": {
+                            "totalMatches": response.summary.total_matches,
+                            "totalSnapshots": response.summary.total_snapshots,
+                        },
+                        "results": response.results.iter().map(|r| serde_json::json!({
+                            "snapshotId": r.snapshot.id,
+                            "projectPath": r.snapshot.project_path,
+                            "createdAt": r.snapshot.created_at,
+                            "totalDependencies": r.snapshot.total_dependencies,
+                            "securityScore": r.snapshot.security_score,
+                            "matchCount": r.match_count,
+                            "matchedDependencies": r.matched_dependencies.iter().map(|d| serde_json::json!({
+                                "name": d.name,
+                                "version": d.version,
+                            })).collect::<Vec<_>>(),
+                        })).collect::<Vec<_>>(),
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to search snapshots: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute check_dependency_integrity tool
+    async fn execute_check_dependency_integrity(&self, tool_call: &ToolCall) -> ToolResult {
+        let project_path = match tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+            Some(p) => p,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: project_path".to_string(),
+            ),
+        };
+
+        if let Some(ref db) = self.db {
+            let integrity_service = crate::services::security_guardian::DependencyIntegrityService::new(db.clone());
+            match integrity_service.check_integrity(project_path) {
+                Ok(result) => {
+                    let output = serde_json::json!({
+                        "hasDrift": result.has_drift,
+                        "referenceSnapshotId": result.reference_snapshot_id,
+                        "referenceSnapshotDate": result.reference_snapshot_date,
+                        "currentLockfileHash": result.current_lockfile_hash,
+                        "referenceLockfileHash": result.reference_lockfile_hash,
+                        "lockfileMatches": result.lockfile_matches,
+                        "summary": {
+                            "totalChanges": result.summary.total_changes,
+                            "addedCount": result.summary.added_count,
+                            "removedCount": result.summary.removed_count,
+                            "updatedCount": result.summary.updated_count,
+                            "postinstallChanges": result.summary.postinstall_changes,
+                            "typosquattingSuspects": result.summary.typosquatting_suspects,
+                            "riskLevel": result.summary.risk_level,
+                        },
+                        "dependencyChanges": result.dependency_changes.len(),
+                        "postinstallAlerts": result.postinstall_alerts.len(),
+                        "typosquattingAlerts": result.typosquatting_alerts.len(),
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to check integrity: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute get_security_insights tool
+    async fn execute_get_security_insights(&self, tool_call: &ToolCall) -> ToolResult {
+        let project_path = match tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+            Some(p) => p,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: project_path".to_string(),
+            ),
+        };
+
+        if let Some(ref db) = self.db {
+            let insights_service = crate::services::security_guardian::SecurityInsightsService::new(db.clone());
+            match insights_service.get_project_overview(project_path) {
+                Ok(overview) => {
+                    let output = serde_json::json!({
+                        "projectPath": overview.project_path,
+                        "riskScore": overview.risk_score,
+                        "riskLevel": overview.risk_level,
+                        "totalSnapshots": overview.total_snapshots,
+                        "latestSnapshotId": overview.latest_snapshot_id,
+                        "latestSnapshotDate": overview.latest_snapshot_date,
+                        "insightSummary": {
+                            "critical": overview.insight_summary.critical,
+                            "high": overview.insight_summary.high,
+                            "medium": overview.insight_summary.medium,
+                            "low": overview.insight_summary.low,
+                            "total": overview.insight_summary.total,
+                        },
+                        "typosquattingAlerts": overview.typosquatting_alerts.iter().map(|a| serde_json::json!({
+                            "packageName": a.package_name,
+                            "similarTo": a.similar_to,
+                            "firstSeen": a.first_seen,
+                        })).collect::<Vec<_>>(),
+                        "frequentUpdaters": overview.frequent_updaters.iter().map(|f| serde_json::json!({
+                            "packageName": f.package_name,
+                            "updateCount": f.update_count,
+                        })).collect::<Vec<_>>(),
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to get security insights: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
+    }
+
+    /// Execute capture_snapshot tool
+    async fn execute_capture_snapshot(&self, tool_call: &ToolCall) -> ToolResult {
+        let project_path = match tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+            Some(p) => p,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: project_path".to_string(),
+            ),
+        };
+
+        if let Some(ref db) = self.db {
+            // Use the capture service to create a manual snapshot
+            let storage_base = dirs::data_dir()
+                .map(|p| p.join("com.packageflow.app").join("time-machine"))
+                .unwrap_or_else(|| std::path::PathBuf::from("."));
+            let storage = crate::services::snapshot::SnapshotStorage::new(storage_base);
+            let capture_service = crate::services::snapshot::SnapshotCaptureService::new(storage, db.clone());
+
+            match capture_service.capture_manual_snapshot(project_path) {
+                Ok(snapshot) => {
+                    let output = serde_json::json!({
+                        "success": true,
+                        "snapshot": {
+                            "id": snapshot.id,
+                            "projectPath": snapshot.project_path,
+                            "triggerSource": snapshot.trigger_source,
+                            "status": snapshot.status,
+                            "totalDependencies": snapshot.total_dependencies,
+                            "securityScore": snapshot.security_score,
+                            "createdAt": snapshot.created_at,
+                        },
+                        "message": format!("Snapshot captured successfully: {}", snapshot.id)
+                    });
+                    ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string_pretty(&output).unwrap_or_default(),
+                        None,
+                    )
+                }
+                Err(e) => ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Failed to capture snapshot: {}", e),
+                ),
+            }
+        } else {
+            ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+        }
     }
 
     /// Check if a tool requires user confirmation

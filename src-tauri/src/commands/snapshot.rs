@@ -10,7 +10,7 @@ use crate::models::ai::{ChatMessage, ChatOptions, FinishReason};
 use crate::models::security_insight::{InsightSummary, SecurityInsight};
 use crate::models::snapshot::{
     CreateSnapshotRequest, ExecutionSnapshot, SnapshotDiff, SnapshotFilter, SnapshotListItem,
-    SnapshotWithDependencies,
+    SnapshotWithDependencies, TimeMachineSettings,
 };
 use crate::repositories::{AIRepository, SnapshotRepository};
 use crate::services::ai::{create_provider, AIKeychain};
@@ -78,17 +78,17 @@ pub async fn get_snapshot_with_dependencies(
     .map_err(|e| format!("Task failed: {}", e))?
 }
 
-/// Get the latest snapshot for a workflow
+/// Get the latest snapshot for a project
 #[tauri::command]
 pub async fn get_latest_snapshot(
     db: State<'_, DatabaseState>,
-    workflow_id: String,
+    project_path: String,
 ) -> Result<Option<ExecutionSnapshot>, String> {
     let db = (*db.0).clone();
 
     tokio::task::spawn_blocking(move || {
         let repo = SnapshotRepository::new(db);
-        repo.get_latest_snapshot(&workflow_id)
+        repo.get_latest_snapshot(&project_path)
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -138,12 +138,11 @@ pub async fn prune_snapshots(
 // Snapshot Capture
 // =========================================================================
 
-/// Capture a new snapshot for a workflow execution
+/// Capture a new snapshot for a project
 #[tauri::command]
 pub async fn capture_snapshot(
     db: State<'_, DatabaseState>,
     request: CreateSnapshotRequest,
-    duration_ms: Option<i64>,
 ) -> Result<ExecutionSnapshot, String> {
     let db = (*db.0).clone();
     let base_path = get_storage_base_path()?;
@@ -151,19 +150,18 @@ pub async fn capture_snapshot(
     tokio::task::spawn_blocking(move || {
         let storage = SnapshotStorage::new(base_path);
         let service = SnapshotCaptureService::new(storage, db);
-        service.capture_snapshot(&request, duration_ms)
+        service.capture_snapshot(&request)
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
 
 /// Capture snapshot in background (non-blocking)
-/// Used by workflow executor to capture snapshots after execution completes
+/// Used when lockfile changes are detected
 #[allow(dead_code)]
 pub fn capture_snapshot_background(
     db: Arc<Database>,
     request: CreateSnapshotRequest,
-    duration_ms: Option<i64>,
 ) {
     std::thread::spawn(move || {
         let base_path = match get_storage_base_path() {
@@ -177,13 +175,13 @@ pub fn capture_snapshot_background(
         let storage = SnapshotStorage::new(base_path);
         let service = SnapshotCaptureService::new(storage, (*db).clone());
 
-        match service.capture_snapshot(&request, duration_ms) {
+        match service.capture_snapshot(&request) {
             Ok(snapshot) => {
                 log::info!(
-                    "[snapshot] Captured snapshot {} for workflow {} ({}ms)",
+                    "[snapshot] Captured snapshot {} for project {} (trigger: {:?})",
                     snapshot.id,
-                    snapshot.workflow_id,
-                    snapshot.execution_duration_ms.unwrap_or(0)
+                    snapshot.project_path,
+                    snapshot.trigger_source
                 );
             }
             Err(e) => {
@@ -232,11 +230,11 @@ pub async fn get_diff_ai_prompt(
     .map_err(|e| format!("Task failed: {}", e))?
 }
 
-/// Get comparison candidates (latest N snapshots for a workflow)
+/// Get comparison candidates (latest N snapshots for a project)
 #[tauri::command]
 pub async fn get_comparison_candidates(
     db: State<'_, DatabaseState>,
-    workflow_id: String,
+    project_path: String,
     limit: Option<i32>,
 ) -> Result<Vec<ExecutionSnapshot>, String> {
     let db = (*db.0).clone();
@@ -244,7 +242,7 @@ pub async fn get_comparison_candidates(
 
     tokio::task::spawn_blocking(move || {
         let service = SnapshotDiffService::new(db);
-        service.get_comparison_candidates(&workflow_id, limit)
+        service.get_comparison_candidates(&project_path, limit)
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -594,18 +592,17 @@ pub async fn request_ai_analysis(
 // Dependency Integrity Monitoring
 // =========================================================================
 
-/// Check dependency integrity for a project against the last successful execution
+/// Check dependency integrity for a project against the last successful snapshot
 #[tauri::command]
 pub async fn check_dependency_integrity(
     db: State<'_, DatabaseState>,
     project_path: String,
-    workflow_id: Option<String>,
 ) -> Result<crate::services::security_guardian::IntegrityCheckResult, String> {
     let db = (*db.0).clone();
 
     tokio::task::spawn_blocking(move || {
         let service = crate::services::security_guardian::DependencyIntegrityService::new(db);
-        service.check_integrity(&project_path, workflow_id.as_deref())
+        service.check_integrity(&project_path)
     })
     .await
     .map_err(|e| format!("Task failed: {}", e))?
@@ -789,3 +786,118 @@ pub async fn export_security_report(
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
+
+// =========================================================================
+// Time Machine Settings & Lockfile Watcher (Feature 025)
+// =========================================================================
+
+use crate::services::file_watcher::{LockfileWatcherConfig, LockfileWatcherManager};
+
+/// Capture a manual snapshot for a project
+#[tauri::command]
+pub async fn capture_manual_snapshot(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+) -> Result<ExecutionSnapshot, String> {
+    let db = (*db.0).clone();
+    let base_path = get_storage_base_path()?;
+
+    tokio::task::spawn_blocking(move || {
+        let storage = SnapshotStorage::new(base_path);
+        let service = SnapshotCaptureService::new(storage, db);
+        service.capture_manual_snapshot(&project_path)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Get Time Machine settings
+#[tauri::command]
+pub async fn get_time_machine_settings(
+    db: State<'_, DatabaseState>,
+) -> Result<TimeMachineSettings, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let repo = SnapshotRepository::new(db);
+        repo.get_time_machine_settings()
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Update Time Machine settings
+#[tauri::command]
+pub async fn update_time_machine_settings(
+    db: State<'_, DatabaseState>,
+    lockfile_watcher: State<'_, LockfileWatcherState>,
+    settings: TimeMachineSettings,
+) -> Result<(), String> {
+    let db_clone = (*db.0).clone();
+    let watcher = lockfile_watcher.0.clone();
+    let debounce_ms = settings.debounce_ms;
+    let auto_watch_enabled = settings.auto_watch_enabled;
+
+    // Save settings to database
+    tokio::task::spawn_blocking(move || {
+        let repo = SnapshotRepository::new(db_clone);
+        repo.update_time_machine_settings(&settings)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))??;
+
+    // Update watcher configuration
+    let config = LockfileWatcherConfig {
+        debounce_ms: debounce_ms as u64,
+        auto_capture: auto_watch_enabled,
+    };
+    watcher.set_config(config)?;
+
+    Ok(())
+}
+
+/// Start watching a project's lockfile for changes
+#[tauri::command]
+pub async fn start_lockfile_watching(
+    app: AppHandle,
+    db: State<'_, DatabaseState>,
+    lockfile_watcher: State<'_, LockfileWatcherState>,
+    project_path: String,
+) -> Result<(), String> {
+    let db = (*db.0).clone();
+    let watcher = lockfile_watcher.0.clone();
+
+    watcher.watch_project(&app, db, &project_path)
+}
+
+/// Stop watching a project's lockfile
+#[tauri::command]
+pub async fn stop_lockfile_watching(
+    lockfile_watcher: State<'_, LockfileWatcherState>,
+    project_path: String,
+) -> Result<(), String> {
+    let watcher = lockfile_watcher.0.clone();
+    watcher.unwatch_project(&project_path)
+}
+
+/// Get lockfile watcher status for a project
+#[tauri::command]
+pub async fn get_lockfile_watcher_status(
+    lockfile_watcher: State<'_, LockfileWatcherState>,
+    project_path: String,
+) -> Result<bool, String> {
+    let watcher = lockfile_watcher.0.clone();
+    watcher.is_watching(&project_path)
+}
+
+/// Get all lockfile-watched projects
+#[tauri::command]
+pub async fn get_lockfile_watched_projects(
+    lockfile_watcher: State<'_, LockfileWatcherState>,
+) -> Result<Vec<String>, String> {
+    let watcher = lockfile_watcher.0.clone();
+    watcher.get_watched_paths()
+}
+
+/// State wrapper for LockfileWatcherManager
+pub struct LockfileWatcherState(pub Arc<LockfileWatcherManager>);

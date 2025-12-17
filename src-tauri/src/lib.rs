@@ -23,7 +23,8 @@ use commands::{
     ai, ai_assistant, ai_cli, apk, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, notification, project, script, security,
     settings, shortcuts, snapshot, step_template, toolchain, version, webhook, workflow, worktree,
 };
-use services::{DatabaseWatcher, FileWatcherManager, IncomingWebhookManager};
+use services::{DatabaseWatcher, FileWatcherManager, IncomingWebhookManager, LockfileWatcherManager};
+use commands::snapshot::LockfileWatcherState;
 use services::ai_assistant::StreamManager;
 use tauri::Manager;
 use utils::database::{Database, get_database_path};
@@ -78,6 +79,7 @@ pub fn run() {
         .manage(IncomingWebhookManager::new())
         .manage(FileWatcherManager::new())
         .manage(DatabaseWatcher::new())
+        .manage(LockfileWatcherState(Arc::new(LockfileWatcherManager::new())))
         .manage(CLIExecutorState::new())
         .manage(StreamManager::new())
         // Register commands
@@ -453,6 +455,14 @@ pub fn run() {
             snapshot::get_snapshot_timeline,
             snapshot::generate_security_audit_report,
             snapshot::export_security_report,
+            // Time Machine - Lockfile Watcher & Settings (025-ai-workflow-generator)
+            snapshot::capture_manual_snapshot,
+            snapshot::get_time_machine_settings,
+            snapshot::update_time_machine_settings,
+            snapshot::start_lockfile_watching,
+            snapshot::stop_lockfile_watching,
+            snapshot::get_lockfile_watcher_status,
+            snapshot::get_lockfile_watched_projects,
         ])
         // Setup hook - sync incoming webhook server and start database watcher on app start
         .setup(|app| {

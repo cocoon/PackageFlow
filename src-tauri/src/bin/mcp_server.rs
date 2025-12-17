@@ -78,6 +78,7 @@ use packageflow_lib::models::mcp::{MCPServerConfig, DevServerMode};
 // Import snapshot services for Time Machine
 use packageflow_lib::services::snapshot::{
     SnapshotStorage, SnapshotDiffService, SnapshotReplayService, SnapshotSearchService,
+    SnapshotCaptureService,
 };
 
 // Import replay types from service module
@@ -2675,7 +2676,7 @@ impl PackageFlowMcp {
             .map_err(|e| McpError::internal_error(e, None))?;
 
         let service = DependencyIntegrityService::new(db);
-        let result = service.check_integrity(&params.project_path, params.workflow_id.as_deref())
+        let result = service.check_integrity(&params.project_path)
             .map_err(|e| McpError::internal_error(e, None))?;
 
         let json = serde_json::to_string_pretty(&result)
@@ -2712,8 +2713,8 @@ impl PackageFlowMcp {
 
         let repo = SnapshotRepository::new(db);
         let filter = SnapshotFilter {
-            workflow_id: params.workflow_id.clone(),
             project_path: params.project_path.clone(),
+            trigger_source: None,
             status: None,
             from_date: None,
             to_date: None,
@@ -2813,7 +2814,6 @@ impl PackageFlowMcp {
             package_name: params.package_name.clone(),
             package_version: params.package_version.clone(),
             project_path: params.project_path.clone(),
-            workflow_id: params.workflow_id.clone(),
             from_date: params.from_date.clone(),
             to_date: params.to_date.clone(),
             has_postinstall: None,
@@ -2910,6 +2910,45 @@ impl PackageFlowMcp {
         let content = service.export_report(&report, format);
 
         Ok(CallToolResult::success(vec![Content::text(content)]))
+    }
+
+    /// Capture a manual snapshot
+    #[tool(description = "Manually capture a Time Machine snapshot for a project. Captures current dependency state from lockfile.")]
+    async fn capture_snapshot(
+        &self,
+        Parameters(params): Parameters<CaptureSnapshotParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        // Use the capture service to create a manual snapshot
+        let storage_base = dirs::data_dir()
+            .map(|p| p.join("com.packageflow.app").join("time-machine"))
+            .ok_or_else(|| McpError::internal_error("Failed to get data directory", None))?;
+
+        let storage = SnapshotStorage::new(storage_base);
+        let capture_service = SnapshotCaptureService::new(storage, db);
+
+        let snapshot = capture_service.capture_manual_snapshot(&params.project_path)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let response = serde_json::json!({
+            "success": true,
+            "snapshot": {
+                "id": snapshot.id,
+                "projectPath": snapshot.project_path,
+                "triggerSource": snapshot.trigger_source,
+                "status": snapshot.status,
+                "totalDependencies": snapshot.total_dependencies,
+                "securityScore": snapshot.security_score,
+                "createdAt": snapshot.created_at,
+            },
+            "message": format!("Snapshot captured successfully: {}", snapshot.id)
+        });
+
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
     }
 
     /// List deployment history

@@ -708,9 +708,6 @@ pub struct GetSecurityInsightsParams {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ListExecutionSnapshotsParams {
-    /// Workflow ID to filter snapshots
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub workflow_id: Option<String>,
     /// Project path to filter snapshots
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_path: Option<String>,
@@ -757,9 +754,6 @@ pub struct SearchSnapshotsParams {
     /// Project path to filter
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project_path: Option<String>,
-    /// Workflow ID to filter
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub workflow_id: Option<String>,
     /// Start date (ISO 8601 format)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub from_date: Option<String>,
@@ -769,6 +763,14 @@ pub struct SearchSnapshotsParams {
     /// Maximum number of results (default: 20)
     #[serde(default = "default_search_limit")]
     pub limit: i32,
+}
+
+/// Parameters for capture_snapshot tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureSnapshotParams {
+    /// Path to the project directory to snapshot
+    pub project_path: String,
 }
 
 fn default_search_limit() -> i32 {

@@ -354,7 +354,7 @@ pub static MCP_ALL_TOOLS: &[MCPToolDefinition] = &[
     // ============================================================================
     MCPToolDefinition {
         name: "list_execution_snapshots",
-        description: "List execution snapshots for a workflow or project",
+        description: "List Time Machine snapshots for a project",
         display_category: "Time Machine",
         permission_category: MCPToolPermissionCategory::Read,
         applicable_permissions: &["read"],
@@ -383,6 +383,13 @@ pub static MCP_ALL_TOOLS: &[MCPToolDefinition] = &[
     MCPToolDefinition {
         name: "replay_execution",
         description: "Replay a workflow execution from a snapshot",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "capture_snapshot",
+        description: "Manually capture a Time Machine snapshot for a project",
         display_category: "Time Machine",
         permission_category: MCPToolPermissionCategory::Execute,
         applicable_permissions: &["read", "execute"],

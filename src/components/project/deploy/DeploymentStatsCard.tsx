@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { deployAPI, openUrl } from '../../../lib/tauri-api';
 import { Button } from '../../ui/Button';
+import { CompactEmptyState } from '../../ui/EmptyState';
 import type { DeploymentStats, PlatformType } from '../../../types/deploy';
 
 interface DeploymentStatsCardProps {
@@ -130,13 +131,12 @@ export function DeploymentStatsCard({
 
   if (!stats || stats.totalDeployments === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-6 text-center">
-        <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/50" />
-        <p className="mt-2 text-sm text-muted-foreground">No deployment history yet</p>
-        <p className="text-xs text-muted-foreground">
-          Stats will appear after your first deployment
-        </p>
-      </div>
+      <CompactEmptyState
+        icon={BarChart3}
+        title="No deployment history yet"
+        description="Stats will appear after your first deployment"
+        variant="blue"
+      />
     );
   }
 

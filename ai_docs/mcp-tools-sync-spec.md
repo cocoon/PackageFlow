@@ -66,6 +66,12 @@ These tools only query information and do not modify state.
 | `list_step_templates` | List workflow step templates | `category?`, `query?`, `include_builtin?` |
 | `list_background_processes` | List running/completed background processes | - |
 | `get_background_process_output` | Get output from a background process | `processId`, `tailLines?` |
+| `list_execution_snapshots` | List Time Machine snapshots for a workflow | `workflow_id`, `limit?` |
+| `get_snapshot_details` | Get snapshot with full dependency list | `snapshot_id` |
+| `compare_snapshots` | Compare two snapshots and show diff | `snapshot_a_id`, `snapshot_b_id` |
+| `search_snapshots` | Search snapshots by package, date, or project | `package_name?`, `project_path?`, `from_date?`, `to_date?`, `limit?` |
+| `check_dependency_integrity` | Check current dependencies against reference snapshot | `project_path`, `reference_snapshot_id?` |
+| `get_security_insights` | Get project security overview with risk score | `project_path` |
 
 ### 2. Write Tools (Confirmation Required)
 
@@ -370,10 +376,107 @@ app_handle.emit("ai-tool-result", payload)?;
 3. **Log tool executions**: Maintain audit trail
 4. **Block dangerous tools**: Never allow arbitrary command execution
 
+## AI Assistant Tool Integration
+
+### Dual Integration Requirement
+
+**IMPORTANT**: When adding new tools, they must be integrated in BOTH:
+
+1. **MCP Server** (`src-tauri/src/bin/mcp_server.rs`) - For external AI CLI tools
+2. **AI Assistant** (`src-tauri/src/services/ai_assistant/tools.rs`) - For built-in AI chat
+
+This ensures feature parity between external AI tools and the built-in AI Assistant.
+
+### Adding Tools to AI Assistant
+
+Location: `src-tauri/src/services/ai_assistant/tools.rs`
+
+#### Step 1: Add Tool Definition
+
+Add to the `get_available_tools()` method:
+
+```rust
+ToolDefinition {
+    name: "new_tool".to_string(),
+    description: "Description for AI to understand when to use this tool".to_string(),
+    category: "category_name".to_string(),  // e.g., "project", "workflow", "time_machine", "security"
+},
+```
+
+#### Step 2: Add Execution Handler
+
+Add a new async method:
+
+```rust
+/// Execute new_tool
+async fn execute_new_tool(&self, tool_call: &ToolCall) -> ToolResult {
+    // 1. Extract and validate parameters
+    let param = match tool_call.arguments.get("param").and_then(|v| v.as_str()) {
+        Some(p) => p,
+        None => return ToolResult::failure(
+            tool_call.id.clone(),
+            "Missing required parameter: param".to_string(),
+        ),
+    };
+
+    // 2. Execute logic
+    if let Some(ref db) = self.db {
+        // Database operations
+        match some_operation(db, param) {
+            Ok(result) => {
+                let output = serde_json::json!({
+                    "field": result.field,
+                });
+                ToolResult::success(
+                    tool_call.id.clone(),
+                    serde_json::to_string_pretty(&output).unwrap_or_default(),
+                    None,
+                )
+            }
+            Err(e) => ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Failed: {}", e),
+            ),
+        }
+    } else {
+        ToolResult::failure(tool_call.id.clone(), "Database not available".to_string())
+    }
+}
+```
+
+#### Step 3: Register in execute_tool_call
+
+For read-only tools, add to `execute_tool_call()`:
+
+```rust
+"new_tool" => self.execute_new_tool(tool_call).await,
+```
+
+For write tools (require confirmation), add to `execute_confirmed_tool_call()`:
+
+```rust
+"new_tool" => self.execute_new_tool(tool_call).await,
+```
+
+### Tool Categories
+
+| Category | Description | Examples |
+|----------|-------------|----------|
+| `project` | Project management operations | list_projects, get_project |
+| `workflow` | Workflow operations | list_workflows, run_workflow |
+| `git` | Git operations | get_git_status, list_worktrees |
+| `scripts` | Script execution | list_project_scripts, run_script |
+| `actions` | MCP action operations | list_actions, get_action |
+| `time_machine` | Snapshot operations | list_execution_snapshots, compare_snapshots |
+| `security` | Security analysis | check_dependency_integrity, get_security_insights |
+
 ## Checklist for New Tools
 
 - [ ] Tool definition added to `MCP_ALL_TOOLS` in `src-tauri/src/models/mcp.rs`
 - [ ] Execution handler implemented in `src-tauri/src/bin/mcp_server.rs`
+- [ ] **Tool definition added to AI Assistant** in `src-tauri/src/services/ai_assistant/tools.rs`
+- [ ] **Execution handler implemented in AI Assistant** with proper error handling
+- [ ] **Tool registered in `execute_tool_call` or `execute_confirmed_tool_call`**
 - [ ] Category icon added to `CATEGORY_ICON_MAP` (if new category)
 - [ ] Documentation updated (`docs/features/mcp-server.md`)
 - [ ] Tests written

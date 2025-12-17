@@ -4,7 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::models::snapshot::{
-    ExecutionSnapshot, SnapshotDependency, SnapshotFilter, SnapshotStatus,
+    ExecutionSnapshot, SnapshotDependency, SnapshotFilter, SnapshotStatus, TriggerSource,
 };
 use crate::repositories::SnapshotRepository;
 use crate::utils::database::Database;
@@ -20,7 +20,6 @@ pub struct SnapshotSearchCriteria {
     pub package_name: Option<String>,
     pub package_version: Option<String>,
     pub project_path: Option<String>,
-    pub workflow_id: Option<String>,
     pub from_date: Option<String>,
     pub to_date: Option<String>,
     pub has_postinstall: Option<bool>,
@@ -70,8 +69,8 @@ pub struct SearchResponse {
 #[serde(rename_all = "camelCase")]
 pub struct TimelineEntry {
     pub snapshot_id: String,
-    pub workflow_id: String,
     pub project_path: String,
+    pub trigger_source: TriggerSource,
     pub created_at: String,
     pub status: SnapshotStatus,
     pub total_dependencies: i32,
@@ -156,7 +155,6 @@ impl SnapshotSearchService {
 
         // Build filter from criteria
         let filter = SnapshotFilter {
-            workflow_id: criteria.workflow_id.clone(),
             project_path: criteria.project_path.clone(),
             from_date: criteria.from_date.clone(),
             to_date: criteria.to_date.clone(),
@@ -309,8 +307,8 @@ impl SnapshotSearchService {
 
             timeline.push(TimelineEntry {
                 snapshot_id: snapshot_item.id,
-                workflow_id: snapshot_item.workflow_id,
-                project_path: project_path.to_string(),
+                project_path: snapshot_item.project_path,
+                trigger_source: snapshot_item.trigger_source,
                 created_at: snapshot_item.created_at,
                 status: snapshot_item.status,
                 total_dependencies: snapshot_item.total_dependencies,

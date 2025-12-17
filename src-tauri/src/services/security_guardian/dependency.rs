@@ -117,14 +117,13 @@ impl DependencyIntegrityService {
         Self { db }
     }
 
-    /// Check dependency integrity for a project against its last successful execution
+    /// Check dependency integrity for a project against its last successful snapshot
     pub fn check_integrity(
         &self,
         project_path: &str,
-        workflow_id: Option<&str>,
     ) -> Result<IntegrityCheckResult, String> {
-        // Get reference snapshot (last successful execution)
-        let reference = self.get_reference_snapshot(project_path, workflow_id)?;
+        // Get reference snapshot (last successful snapshot)
+        let reference = self.get_reference_snapshot(project_path)?;
 
         // Scan current dependencies from lockfile
         let current_state = self.scan_current_dependencies(project_path)?;
@@ -145,13 +144,11 @@ impl DependencyIntegrityService {
     fn get_reference_snapshot(
         &self,
         project_path: &str,
-        workflow_id: Option<&str>,
     ) -> Result<Option<(ExecutionSnapshot, Vec<SnapshotDependency>)>, String> {
         let repo = SnapshotRepository::new(self.db.clone());
 
         // Build filter for latest successful snapshot
         let filter = crate::models::snapshot::SnapshotFilter {
-            workflow_id: workflow_id.map(|s| s.to_string()),
             project_path: Some(project_path.to_string()),
             status: Some(crate::models::snapshot::SnapshotStatus::Completed),
             limit: Some(1),

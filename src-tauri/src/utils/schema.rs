@@ -666,6 +666,168 @@ const MIGRATIONS: &[Migration] = &[
             CREATE INDEX idx_diff_cache_snapshots ON snapshot_diff_cache(snapshot_a_id, snapshot_b_id);
         "#,
     },
+    Migration {
+        version: 6,
+        description: "Time Machine - Project-level snapshots (remove workflow binding)",
+        up: r#"
+            -- Drop FTS triggers first
+            DROP TRIGGER IF EXISTS snapshot_deps_ai;
+            DROP TRIGGER IF EXISTS snapshot_deps_ad;
+            DROP TRIGGER IF EXISTS snapshot_deps_au;
+
+            -- Drop FTS table
+            DROP TABLE IF EXISTS snapshot_dependencies_fts;
+
+            -- Drop dependent tables
+            DROP TABLE IF EXISTS snapshot_diff_cache;
+            DROP TABLE IF EXISTS security_insights;
+            DROP TABLE IF EXISTS snapshot_dependencies;
+
+            -- Recreate execution_snapshots without workflow_id, execution_id, execution_duration_ms
+            CREATE TABLE execution_snapshots_new (
+                id TEXT PRIMARY KEY,
+                project_path TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('capturing', 'completed', 'failed')),
+                trigger_source TEXT NOT NULL DEFAULT 'lockfile_change' CHECK(trigger_source IN ('lockfile_change', 'manual')),
+                lockfile_type TEXT CHECK(lockfile_type IN ('npm', 'pnpm', 'yarn', 'bun')),
+                lockfile_hash TEXT,
+                dependency_tree_hash TEXT,
+                package_json_hash TEXT,
+                total_dependencies INTEGER DEFAULT 0,
+                direct_dependencies INTEGER DEFAULT 0,
+                dev_dependencies INTEGER DEFAULT 0,
+                security_score INTEGER,
+                postinstall_count INTEGER DEFAULT 0,
+                storage_path TEXT,
+                compressed_size INTEGER,
+                error_message TEXT,
+                created_at TEXT NOT NULL
+            );
+
+            -- Migrate existing data (drop workflow_id, execution_id, execution_duration_ms)
+            INSERT INTO execution_snapshots_new (
+                id, project_path, status, trigger_source, lockfile_type, lockfile_hash,
+                dependency_tree_hash, package_json_hash, total_dependencies, direct_dependencies,
+                dev_dependencies, security_score, postinstall_count, storage_path, compressed_size,
+                error_message, created_at
+            )
+            SELECT
+                id, project_path, status, 'lockfile_change', lockfile_type, lockfile_hash,
+                dependency_tree_hash, package_json_hash, total_dependencies, direct_dependencies,
+                dev_dependencies, security_score, postinstall_count, storage_path, compressed_size,
+                error_message, created_at
+            FROM execution_snapshots;
+
+            DROP TABLE execution_snapshots;
+            ALTER TABLE execution_snapshots_new RENAME TO execution_snapshots;
+
+            -- Recreate indexes (without workflow index)
+            CREATE INDEX idx_snapshots_project ON execution_snapshots(project_path);
+            CREATE INDEX idx_snapshots_created ON execution_snapshots(created_at DESC);
+            CREATE INDEX idx_snapshots_hash ON execution_snapshots(project_path, lockfile_hash);
+            CREATE INDEX idx_snapshots_trigger ON execution_snapshots(trigger_source);
+
+            -- Recreate snapshot_dependencies
+            CREATE TABLE snapshot_dependencies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                version TEXT NOT NULL,
+                is_direct INTEGER DEFAULT 0,
+                is_dev INTEGER DEFAULT 0,
+                has_postinstall INTEGER DEFAULT 0,
+                postinstall_script TEXT,
+                integrity_hash TEXT,
+                resolved_url TEXT,
+                FOREIGN KEY (snapshot_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_snapshot_deps_snapshot ON snapshot_dependencies(snapshot_id);
+            CREATE INDEX idx_snapshot_deps_name ON snapshot_dependencies(name);
+            CREATE INDEX idx_snapshot_deps_postinstall ON snapshot_dependencies(has_postinstall) WHERE has_postinstall = 1;
+
+            -- Recreate FTS5 virtual table
+            CREATE VIRTUAL TABLE snapshot_dependencies_fts USING fts5(
+                name,
+                version,
+                content=snapshot_dependencies,
+                content_rowid=id
+            );
+
+            -- Recreate triggers
+            CREATE TRIGGER snapshot_deps_ai AFTER INSERT ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(rowid, name, version) VALUES (new.id, new.name, new.version);
+            END;
+            CREATE TRIGGER snapshot_deps_ad AFTER DELETE ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(snapshot_dependencies_fts, rowid, name, version) VALUES('delete', old.id, old.name, old.version);
+            END;
+            CREATE TRIGGER snapshot_deps_au AFTER UPDATE ON snapshot_dependencies BEGIN
+                INSERT INTO snapshot_dependencies_fts(snapshot_dependencies_fts, rowid, name, version) VALUES('delete', old.id, old.name, old.version);
+                INSERT INTO snapshot_dependencies_fts(rowid, name, version) VALUES (new.id, new.name, new.version);
+            END;
+
+            -- Recreate security_insights
+            CREATE TABLE security_insights (
+                id TEXT PRIMARY KEY,
+                snapshot_id TEXT NOT NULL,
+                insight_type TEXT NOT NULL CHECK(insight_type IN (
+                    'new_dependency', 'removed_dependency', 'version_change',
+                    'postinstall_added', 'postinstall_removed', 'postinstall_changed',
+                    'integrity_mismatch', 'typosquatting_suspect', 'frequent_updater',
+                    'suspicious_script'
+                )),
+                severity TEXT NOT NULL CHECK(severity IN ('info', 'low', 'medium', 'high', 'critical')),
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                package_name TEXT,
+                previous_value TEXT,
+                current_value TEXT,
+                recommendation TEXT,
+                metadata TEXT,
+                is_dismissed INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (snapshot_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE
+            );
+            CREATE INDEX idx_insights_snapshot ON security_insights(snapshot_id);
+            CREATE INDEX idx_insights_type ON security_insights(insight_type);
+            CREATE INDEX idx_insights_severity ON security_insights(severity);
+            CREATE INDEX idx_insights_package ON security_insights(package_name);
+
+            -- Recreate snapshot_diff_cache
+            CREATE TABLE snapshot_diff_cache (
+                id TEXT PRIMARY KEY,
+                snapshot_a_id TEXT NOT NULL,
+                snapshot_b_id TEXT NOT NULL,
+                diff_data TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (snapshot_a_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE,
+                FOREIGN KEY (snapshot_b_id) REFERENCES execution_snapshots(id) ON DELETE CASCADE,
+                UNIQUE(snapshot_a_id, snapshot_b_id)
+            );
+            CREATE INDEX idx_diff_cache_snapshots ON snapshot_diff_cache(snapshot_a_id, snapshot_b_id);
+
+            -- New table: Track lockfile state per project (for change detection)
+            CREATE TABLE project_lockfile_state (
+                project_path TEXT PRIMARY KEY,
+                lockfile_type TEXT CHECK(lockfile_type IN ('npm', 'pnpm', 'yarn', 'bun')),
+                lockfile_hash TEXT NOT NULL,
+                last_snapshot_id TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (last_snapshot_id) REFERENCES execution_snapshots(id) ON DELETE SET NULL
+            );
+
+            -- New table: Time Machine settings
+            CREATE TABLE time_machine_settings (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                auto_watch_enabled INTEGER DEFAULT 1,
+                debounce_ms INTEGER DEFAULT 2000,
+                updated_at TEXT NOT NULL
+            );
+
+            -- Initialize default settings
+            INSERT INTO time_machine_settings (id, auto_watch_enabled, debounce_ms, updated_at)
+            VALUES (1, 1, 2000, datetime('now'));
+        "#,
+    },
 ];
 
 /// Run all pending migrations using Database wrapper

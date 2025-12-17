@@ -20,7 +20,7 @@ use crate::utils::database::Database;
 #[serde(rename_all = "camelCase")]
 pub struct ReplayPreparation {
     pub snapshot_id: String,
-    pub workflow_id: String,
+    pub project_path: String,
     pub ready_to_replay: bool,
     pub has_mismatch: bool,
     pub mismatch_details: Option<ReplayMismatch>,
@@ -137,7 +137,7 @@ impl SnapshotReplayService {
 
         Ok(ReplayPreparation {
             snapshot_id: snapshot_id.to_string(),
-            workflow_id: snapshot.workflow_id.clone(),
+            project_path: snapshot.project_path.clone(),
             ready_to_replay: !has_mismatch,
             has_mismatch,
             mismatch_details: mismatch,

@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::models::snapshot::{
     CreateSnapshotRequest, ExecutionSnapshot, LockfileType, PostinstallEntry, SecurityContext,
-    SnapshotDependency, SnapshotStatus, TyposquattingAlert,
+    SnapshotDependency, SnapshotStatus, TriggerSource, TyposquattingAlert,
 };
 use crate::repositories::SnapshotRepository;
 use crate::services::snapshot::storage::SnapshotStorage;
@@ -26,11 +26,10 @@ impl SnapshotCaptureService {
         Self { storage, db }
     }
 
-    /// Capture a snapshot for a workflow execution
+    /// Capture a snapshot for a project
     pub fn capture_snapshot(
         &self,
         request: &CreateSnapshotRequest,
-        duration_ms: Option<i64>,
     ) -> Result<ExecutionSnapshot, String> {
         let snapshot_id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().to_rfc3339();
@@ -38,10 +37,9 @@ impl SnapshotCaptureService {
         // Create initial snapshot record
         let mut snapshot = ExecutionSnapshot {
             id: snapshot_id.clone(),
-            workflow_id: request.workflow_id.clone(),
-            execution_id: request.execution_id.clone(),
             project_path: request.project_path.clone(),
             status: SnapshotStatus::Capturing,
+            trigger_source: request.trigger_source.clone(),
             lockfile_type: None,
             lockfile_hash: None,
             dependency_tree_hash: None,
@@ -53,7 +51,6 @@ impl SnapshotCaptureService {
             postinstall_count: 0,
             storage_path: None,
             compressed_size: None,
-            execution_duration_ms: duration_ms,
             error_message: None,
             created_at: now,
         };
@@ -79,6 +76,30 @@ impl SnapshotCaptureService {
                 Err(e)
             }
         }
+    }
+
+    /// Capture a snapshot triggered by lockfile change
+    pub fn capture_lockfile_change_snapshot(
+        &self,
+        project_path: &str,
+    ) -> Result<ExecutionSnapshot, String> {
+        let request = CreateSnapshotRequest {
+            project_path: project_path.to_string(),
+            trigger_source: TriggerSource::LockfileChange,
+        };
+        self.capture_snapshot(&request)
+    }
+
+    /// Capture a snapshot triggered manually
+    pub fn capture_manual_snapshot(
+        &self,
+        project_path: &str,
+    ) -> Result<ExecutionSnapshot, String> {
+        let request = CreateSnapshotRequest {
+            project_path: project_path.to_string(),
+            trigger_source: TriggerSource::Manual,
+        };
+        self.capture_snapshot(&request)
     }
 
     /// Capture snapshot data from the project

@@ -643,9 +643,12 @@ function App() {
     <div className="h-screen flex flex-col bg-background rounded-lg overflow-hidden select-none">
       <header
         data-tauri-drag-region
-        className="flex items-center justify-between border-b border-border bg-card h-12 flex-shrink-0"
+        className="flex items-center border-b border-border bg-card h-12 flex-shrink-0"
       >
-        <div data-tauri-drag-region className="flex-1 h-full pl-20" />
+        {/* Left: Space for macOS traffic lights */}
+        <div data-tauri-drag-region className="w-20 h-full" />
+        {/* Center: Draggable region */}
+        <div data-tauri-drag-region className="flex-1 h-full" />
         <div className="flex items-center gap-1 px-2">
           {/* Background Tasks */}
           <BackgroundTasksButton />

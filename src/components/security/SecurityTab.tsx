@@ -29,6 +29,7 @@ import { useAIService } from '../../hooks/useAIService';
 import { cn } from '../../lib/utils';
 import { formatDate } from '../../lib/utils';
 import { openUrl } from '../../lib/tauri-api';
+import { EmptyState } from '../ui/EmptyState';
 
 interface SecurityTabProps {
   /** Project ID (reserved for future use) */
@@ -382,20 +383,20 @@ interface NotScannedStateProps {
 
 function NotScannedState({ projectName, onScan, isScanning }: NotScannedStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="p-4 bg-secondary rounded-full mb-4">
-        <Shield className="w-12 h-12 text-muted-foreground" aria-hidden="true" />
-      </div>
-      <h3 className="text-lg font-medium text-foreground mb-2">Security Not Yet Scanned</h3>
-      <p className="text-sm text-muted-foreground max-w-md mb-6">
-        Run a security audit to check <strong className="text-foreground">{projectName}</strong> for
-        known vulnerabilities in its dependencies.
-      </p>
-      <Button variant="default" onClick={onScan} disabled={isScanning}>
-        <RefreshCw className={cn('w-4 h-4 mr-2', isScanning && 'animate-spin')} />
-        {isScanning ? 'Scanning...' : 'Run Security Scan'}
-      </Button>
-      <div className="mt-6 flex flex-col items-center gap-2 text-xs text-muted-foreground">
+    <EmptyState
+      icon={Shield}
+      title="Security Not Yet Scanned"
+      description={`Run a security audit to check ${projectName} for known vulnerabilities in its dependencies.`}
+      variant="blue"
+      showBackgroundPattern
+      action={{
+        label: isScanning ? 'Scanning...' : 'Run Security Scan',
+        icon: RefreshCw,
+        onClick: onScan,
+      }}
+      className="min-h-[400px] rounded-xl border border-border"
+    >
+      <div className="flex flex-col items-center gap-2 text-xs text-muted-foreground mt-2">
         <p>Supports npm, pnpm, yarn, and bun</p>
         <button
           onClick={() => openUrl('https://docs.npmjs.com/cli/v9/commands/npm-audit')}
@@ -405,7 +406,7 @@ function NotScannedState({ projectName, onScan, isScanning }: NotScannedStatePro
           Learn about npm audit
         </button>
       </div>
-    </div>
+    </EmptyState>
   );
 }
 

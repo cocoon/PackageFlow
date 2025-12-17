@@ -247,9 +247,6 @@ export function EmptyState({
         {/* Description */}
         <p className="text-sm text-muted-foreground leading-relaxed mb-6">{description}</p>
 
-        {/* Custom children content */}
-        {children}
-
         {/* Action buttons */}
         {(action || secondaryAction) && (
           <div className="flex items-center gap-3 mb-6">
@@ -270,6 +267,9 @@ export function EmptyState({
             )}
           </div>
         )}
+
+        {/* Custom children content (after action buttons) */}
+        {children}
 
         {/* Keyboard shortcuts */}
         {shortcuts && shortcuts.length > 0 && (
@@ -307,15 +307,19 @@ export function CompactEmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center',
+        'relative flex flex-col items-center justify-center',
         'py-12 px-6 text-center',
+        'rounded-lg border border-border',
         className
       )}
     >
+      {/* Background dot pattern */}
+      <BackgroundPattern />
+
       {/* Icon */}
       <div
         className={cn(
-          'w-14 h-14 rounded-2xl mb-4',
+          'relative z-10 w-14 h-14 rounded-2xl mb-4',
           'flex items-center justify-center',
           variant === 'muted' ? 'bg-muted/50' : 'bg-gradient-to-br',
           variant !== 'muted' && config.gradient,
@@ -328,11 +332,11 @@ export function CompactEmptyState({
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <h3 className="relative z-10 text-sm font-semibold text-foreground">{title}</h3>
 
       {/* Description */}
       {description && (
-        <p className="mt-2 text-xs text-muted-foreground max-w-[200px] leading-relaxed">
+        <p className="relative z-10 mt-2 text-xs text-muted-foreground max-w-[200px] leading-relaxed">
           {description}
         </p>
       )}
@@ -343,7 +347,7 @@ export function CompactEmptyState({
           variant={action.variant || 'default'}
           size="sm"
           onClick={action.onClick}
-          className="mt-4"
+          className="relative z-10 mt-4"
         >
           {action.icon && <action.icon className="w-4 h-4 mr-1.5" />}
           {action.label}

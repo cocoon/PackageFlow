@@ -34,7 +34,6 @@ import {
   ArrowUpDown,
   Rocket,
   RotateCcw,
-  Play,
   Ban,
 } from 'lucide-react';
 import type { Deployment, DeploymentStatus, PlatformType } from '../../../types/deploy';
@@ -42,6 +41,7 @@ import { deployAPI, openUrl } from '../../../lib/tauri-api';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Button } from '../../ui/Button';
 import { Select } from '../../ui/Select';
+import { CompactEmptyState } from '../../ui/EmptyState';
 import { NetlifyIcon } from '../../ui/icons/NetlifyIcon';
 import { CloudflareIcon } from '../../ui/icons/CloudflareIcon';
 import { GithubIcon } from '../../ui/icons/GithubIcon';
@@ -476,8 +476,8 @@ function DateSeparator({ label }: { label: string }) {
   );
 }
 
-/** Empty state component */
-function EmptyState({
+/** Empty state component using shared CompactEmptyState */
+function HistoryEmptyState({
   hasFilters,
   onClearFilters,
 }: {
@@ -486,28 +486,27 @@ function EmptyState({
 }) {
   if (hasFilters) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Filter className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <p className="text-sm font-medium text-muted-foreground">No matching deployments</p>
-        <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters</p>
-        <Button
-          variant="link"
-          size="sm"
-          onClick={onClearFilters}
-          className="mt-3 h-auto p-0 text-xs"
-        >
-          Clear filters
-        </Button>
-      </div>
+      <CompactEmptyState
+        icon={Filter}
+        title="No matching deployments"
+        description="Try adjusting your filters to see more results"
+        variant="blue"
+        action={{
+          label: 'Clear filters',
+          onClick: onClearFilters,
+          variant: 'outline',
+        }}
+      />
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <Play className="h-10 w-10 text-muted-foreground/30 mb-3" />
-      <p className="text-sm font-medium text-muted-foreground">No deployments yet</p>
-      <p className="text-xs text-muted-foreground mt-1">Your deployments will appear here</p>
-    </div>
+    <CompactEmptyState
+      icon={Rocket}
+      title="No deployments yet"
+      description="Deploy your project and the history will appear here"
+      variant="blue"
+    />
   );
 }
 
@@ -776,9 +775,9 @@ export function DeploymentHistory({
         {isLoading && deployments.length === 0 ? (
           <LoadingState />
         ) : deployments.length === 0 ? (
-          <EmptyState hasFilters={false} onClearFilters={clearFilters} />
+          <HistoryEmptyState hasFilters={false} onClearFilters={clearFilters} />
         ) : filteredDeployments.length === 0 ? (
-          <EmptyState hasFilters={hasActiveFilters} onClearFilters={clearFilters} />
+          <HistoryEmptyState hasFilters={hasActiveFilters} onClearFilters={clearFilters} />
         ) : (
           <div className="space-y-4 pr-1" role="list" aria-label="Deployment history">
             {Array.from(groupedDeployments.entries()).map(([dateLabel, items]) => (
