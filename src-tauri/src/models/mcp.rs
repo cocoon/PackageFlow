@@ -327,6 +327,66 @@ pub static MCP_ALL_TOOLS: &[MCPToolDefinition] = &[
         permission_category: MCPToolPermissionCategory::Execute,
         applicable_permissions: &["read", "execute"],
     },
+    MCPToolDefinition {
+        name: "check_dependency_integrity",
+        description: "Check dependency integrity against reference snapshot",
+        display_category: "Security",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_security_insights",
+        description: "Get security insights and risk overview for a project",
+        display_category: "Security",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "export_security_report",
+        description: "Generate and export security audit report (JSON/MD/HTML)",
+        display_category: "Security",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // Time Machine (Execution Snapshots)
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_execution_snapshots",
+        description: "List execution snapshots for a workflow or project",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_snapshot_details",
+        description: "Get detailed snapshot info including dependencies",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "compare_snapshots",
+        description: "Compare two snapshots and get dependency changes",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "search_snapshots",
+        description: "Search snapshots by package name, version, or date range",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "replay_execution",
+        description: "Replay a workflow execution from a snapshot",
+        display_category: "Time Machine",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
 
     // ============================================================================
     // Deployments

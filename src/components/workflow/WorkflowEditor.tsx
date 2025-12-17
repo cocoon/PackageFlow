@@ -906,6 +906,8 @@ export function WorkflowEditor({
               onReorderByPosition={reorderByPosition}
               onExportNode={handleExportNode}
               onSaveAsTemplate={handleSaveAsTemplate}
+              onAddStep={handleAddNode}
+              onFromTemplate={handleImportNodeFromToolbar}
             />
           </div>
 

@@ -680,3 +680,130 @@ pub struct FailedStepInfo {
     pub exit_code: i32,
     pub error_message: String,
 }
+
+// ============================================================================
+// Time Machine & Security Guardian Tool Parameters
+// ============================================================================
+
+/// Parameters for check_dependency_integrity tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckDependencyIntegrityParams {
+    /// Path to the project - use actual path from list_projects
+    pub project_path: String,
+    /// Optional workflow ID to use for reference snapshot
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_id: Option<String>,
+}
+
+/// Parameters for get_security_insights tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSecurityInsightsParams {
+    /// Path to the project - use actual path from list_projects
+    pub project_path: String,
+}
+
+/// Parameters for list_execution_snapshots tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ListExecutionSnapshotsParams {
+    /// Workflow ID to filter snapshots
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_id: Option<String>,
+    /// Project path to filter snapshots
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_path: Option<String>,
+    /// Maximum number of snapshots to return (default: 10)
+    #[serde(default = "default_snapshot_limit")]
+    pub limit: i32,
+}
+
+fn default_snapshot_limit() -> i32 {
+    10
+}
+
+/// Parameters for get_snapshot_details tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSnapshotDetailsParams {
+    /// Snapshot ID to retrieve
+    pub snapshot_id: String,
+    /// Whether to include full dependency list (default: false)
+    #[serde(default)]
+    pub include_dependencies: bool,
+}
+
+/// Parameters for compare_snapshots tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CompareSnapshotsParams {
+    /// ID of the base snapshot (older)
+    pub snapshot_a_id: String,
+    /// ID of the comparison snapshot (newer)
+    pub snapshot_b_id: String,
+}
+
+/// Parameters for search_snapshots tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchSnapshotsParams {
+    /// Package name to search for
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package_name: Option<String>,
+    /// Package version to filter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package_version: Option<String>,
+    /// Project path to filter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_path: Option<String>,
+    /// Workflow ID to filter
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_id: Option<String>,
+    /// Start date (ISO 8601 format)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_date: Option<String>,
+    /// End date (ISO 8601 format)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_date: Option<String>,
+    /// Maximum number of results (default: 20)
+    #[serde(default = "default_search_limit")]
+    pub limit: i32,
+}
+
+fn default_search_limit() -> i32 {
+    20
+}
+
+/// Parameters for replay_execution tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ReplayExecutionParams {
+    /// Snapshot ID to replay from
+    pub snapshot_id: String,
+    /// Option for handling mismatches: "abort", "view_diff", "restore_lockfile", "proceed_with_current"
+    #[serde(default = "default_replay_option")]
+    pub option: String,
+    /// Force replay even if there are significant mismatches
+    #[serde(default)]
+    pub force: bool,
+}
+
+fn default_replay_option() -> String {
+    "abort".to_string()
+}
+
+/// Parameters for export_security_report tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportSecurityReportParams {
+    /// Path to the project
+    pub project_path: String,
+    /// Export format: "json", "markdown", or "html"
+    #[serde(default = "default_export_format")]
+    pub format: String,
+}
+
+fn default_export_format() -> String {
+    "markdown".to_string()
+}

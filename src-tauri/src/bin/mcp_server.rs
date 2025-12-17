@@ -51,7 +51,7 @@ use packageflow_lib::repositories::{
     MCPActionRepository,
     // New repositories for enhanced MCP tools
     AIRepository, AIConversationRepository, NotificationRepository,
-    SecurityRepository, DeployRepository,
+    SecurityRepository, DeployRepository, SnapshotRepository,
 };
 
 // Import MCP action models and services
@@ -74,6 +74,25 @@ use packageflow_lib::utils::shared_store::{
 
 // Import MCP types from models
 use packageflow_lib::models::mcp::{MCPServerConfig, DevServerMode};
+
+// Import snapshot services for Time Machine
+use packageflow_lib::services::snapshot::{
+    SnapshotStorage, SnapshotDiffService, SnapshotReplayService, SnapshotSearchService,
+};
+
+// Import replay types from service module
+use packageflow_lib::services::snapshot::replay::{ReplayOption, ExecuteReplayRequest};
+
+// Import search types from service module
+use packageflow_lib::services::snapshot::search::{SnapshotSearchCriteria, ExportFormat};
+
+// Import security guardian services
+use packageflow_lib::services::security_guardian::{
+    DependencyIntegrityService, SecurityInsightsService,
+};
+
+// Import snapshot models
+use packageflow_lib::models::snapshot::SnapshotFilter;
 
 // Import path_resolver for proper command execution on macOS GUI apps
 use packageflow_lib::utils::path_resolver;
@@ -2640,6 +2659,257 @@ impl PackageFlowMcp {
                 Ok(CallToolResult::success(vec![Content::text(json)]))
             }
         }
+    }
+
+    // ========================================================================
+    // Time Machine & Security Guardian Tools
+    // ========================================================================
+
+    /// Check dependency integrity against reference snapshot
+    #[tool(description = "Check dependency integrity against a reference snapshot. Detects added, removed, or modified packages including postinstall script changes. Use this to verify dependencies haven't unexpectedly changed.")]
+    async fn check_dependency_integrity(
+        &self,
+        Parameters(params): Parameters<CheckDependencyIntegrityParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let service = DependencyIntegrityService::new(db);
+        let result = service.check_integrity(&params.project_path, params.workflow_id.as_deref())
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Get security insights for a project
+    #[tool(description = "Get security insights and risk overview for a project. Returns risk score, typosquatting alerts, frequent updaters, and dependency health information.")]
+    async fn get_security_insights(
+        &self,
+        Parameters(params): Parameters<GetSecurityInsightsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let service = SecurityInsightsService::new(db);
+        let overview = service.get_project_overview(&params.project_path)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let json = serde_json::to_string_pretty(&overview)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// List execution snapshots
+    #[tool(description = "List execution snapshots for a workflow or project. Snapshots capture the dependency state at execution time for comparison and replay.")]
+    async fn list_execution_snapshots(
+        &self,
+        Parameters(params): Parameters<ListExecutionSnapshotsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let repo = SnapshotRepository::new(db);
+        let filter = SnapshotFilter {
+            workflow_id: params.workflow_id.clone(),
+            project_path: params.project_path.clone(),
+            status: None,
+            from_date: None,
+            to_date: None,
+            limit: Some(params.limit),
+            offset: None,
+        };
+
+        let snapshots = repo.list_snapshots(&filter)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let response = serde_json::json!({
+            "snapshots": snapshots,
+            "total": snapshots.len()
+        });
+
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Get snapshot details
+    #[tool(description = "Get detailed information about a specific snapshot including lockfile info, dependency counts, and security score. Optionally include full dependency list.")]
+    async fn get_snapshot_details(
+        &self,
+        Parameters(params): Parameters<GetSnapshotDetailsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let repo = SnapshotRepository::new(db);
+
+        if params.include_dependencies {
+            let snapshot = repo.get_snapshot_with_dependencies(&params.snapshot_id)
+                .map_err(|e| McpError::internal_error(e, None))?;
+
+            match snapshot {
+                Some(s) => {
+                    let json = serde_json::to_string_pretty(&s)
+                        .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+                    Ok(CallToolResult::success(vec![Content::text(json)]))
+                }
+                None => {
+                    Ok(CallToolResult::error(vec![Content::text(
+                        format!("Snapshot not found: {}", params.snapshot_id)
+                    )]))
+                }
+            }
+        } else {
+            let snapshot = repo.get_snapshot(&params.snapshot_id)
+                .map_err(|e| McpError::internal_error(e, None))?;
+
+            match snapshot {
+                Some(s) => {
+                    let json = serde_json::to_string_pretty(&s)
+                        .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+                    Ok(CallToolResult::success(vec![Content::text(json)]))
+                }
+                None => {
+                    Ok(CallToolResult::error(vec![Content::text(
+                        format!("Snapshot not found: {}", params.snapshot_id)
+                    )]))
+                }
+            }
+        }
+    }
+
+    /// Compare two snapshots
+    #[tool(description = "Compare two snapshots to see dependency changes between executions. Returns added, removed, and updated packages with version changes and postinstall script modifications.")]
+    async fn compare_snapshots(
+        &self,
+        Parameters(params): Parameters<CompareSnapshotsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let diff_service = SnapshotDiffService::new(db);
+
+        let diff = diff_service.compare_snapshots(&params.snapshot_a_id, &params.snapshot_b_id)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let json = serde_json::to_string_pretty(&diff)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Search snapshots
+    #[tool(description = "Search snapshots by package name, version, or date range. Find when specific packages were added, removed, or updated across executions.")]
+    async fn search_snapshots(
+        &self,
+        Parameters(params): Parameters<SearchSnapshotsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let service = SnapshotSearchService::new(db);
+        let criteria = SnapshotSearchCriteria {
+            package_name: params.package_name.clone(),
+            package_version: params.package_version.clone(),
+            project_path: params.project_path.clone(),
+            workflow_id: params.workflow_id.clone(),
+            from_date: params.from_date.clone(),
+            to_date: params.to_date.clone(),
+            has_postinstall: None,
+            min_security_score: None,
+            max_security_score: None,
+            limit: Some(params.limit),
+            offset: None,
+        };
+
+        let results = service.search(&criteria)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let json = serde_json::to_string_pretty(&results)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Replay execution from snapshot
+    #[tool(description = "Replay a workflow execution from a snapshot. Can restore lockfile to match the snapshot state before re-running the workflow.")]
+    async fn replay_execution(
+        &self,
+        Parameters(params): Parameters<ReplayExecutionParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        // Get storage base path for time machine
+        let storage_base = dirs::data_dir()
+            .map(|p| p.join("com.packageflow.app").join("time-machine"))
+            .ok_or_else(|| McpError::internal_error("Failed to get data directory", None))?;
+
+        let storage = SnapshotStorage::new(storage_base);
+        let service = SnapshotReplayService::new(storage, db);
+
+        // Parse replay option
+        let option = match params.option.as_str() {
+            "abort" => ReplayOption::Abort,
+            "view_diff" => ReplayOption::ViewDiff,
+            "restore_lockfile" => ReplayOption::RestoreLockfile,
+            "proceed_with_current" => ReplayOption::ProceedWithCurrent,
+            _ => ReplayOption::Abort,
+        };
+
+        let request = ExecuteReplayRequest {
+            snapshot_id: params.snapshot_id.clone(),
+            option,
+            force: params.force,
+        };
+
+        // First prepare the replay to check for mismatches
+        let preparation = service.prepare_replay(&params.snapshot_id)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        if !preparation.ready_to_replay && !params.force {
+            // Return preparation info so user can see mismatches
+            let json = serde_json::to_string_pretty(&preparation)
+                .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+            return Ok(CallToolResult::success(vec![Content::text(json)]));
+        }
+
+        // Execute the replay
+        let result = service.execute_replay(&request)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let json = serde_json::to_string_pretty(&result)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
+    /// Export security report
+    #[tool(description = "Generate and export a security audit report for a project. Supports JSON, Markdown, or HTML formats.")]
+    async fn export_security_report(
+        &self,
+        Parameters(params): Parameters<ExportSecurityReportParams>,
+    ) -> Result<CallToolResult, McpError> {
+        let db = open_database()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let service = SnapshotSearchService::new(db);
+
+        // Generate the audit report
+        let report = service.generate_audit_report(&params.project_path)
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        // Parse format
+        let format = match params.format.to_lowercase().as_str() {
+            "json" => ExportFormat::Json,
+            "markdown" | "md" => ExportFormat::Markdown,
+            "html" => ExportFormat::Html,
+            _ => ExportFormat::Markdown,
+        };
+
+        // Export the report
+        let content = service.export_report(&report, format);
+
+        Ok(CallToolResult::success(vec![Content::text(content)]))
     }
 
     /// List deployment history
