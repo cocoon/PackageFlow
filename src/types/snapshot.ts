@@ -442,3 +442,92 @@ export interface ProjectSecurityOverview {
   frequentUpdaters: FrequentUpdater[];
   dependencyHealth: DependencyHealth[];
 }
+
+// =========================================================================
+// Searchable Execution History Types (US6)
+// =========================================================================
+
+export interface SnapshotSearchCriteria {
+  packageName?: string;
+  packageVersion?: string;
+  projectPath?: string;
+  workflowId?: string;
+  fromDate?: string;
+  toDate?: string;
+  hasPostinstall?: boolean;
+  minSecurityScore?: number;
+  maxSecurityScore?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SnapshotSearchResult {
+  snapshot: ExecutionSnapshot;
+  matchedDependencies: SnapshotDependency[];
+  matchCount: number;
+}
+
+export interface DateRange {
+  earliest: string;
+  latest: string;
+}
+
+export interface SearchResultsSummary {
+  totalSnapshots: number;
+  totalMatches: number;
+  dateRange?: DateRange;
+  projectsInvolved: string[];
+}
+
+export interface SearchResponse {
+  results: SnapshotSearchResult[];
+  summary: SearchResultsSummary;
+}
+
+export interface TimelineEntry {
+  snapshotId: string;
+  workflowId: string;
+  projectPath: string;
+  createdAt: string;
+  status: SnapshotStatus;
+  totalDependencies: number;
+  securityScore?: number;
+  postinstallCount: number;
+  hasSecurityIssues: boolean;
+}
+
+export type ExportFormat = 'json' | 'markdown' | 'html';
+
+export interface RiskSummary {
+  overallRisk: string;
+  avgSecurityScore?: number;
+  totalPostinstallScripts: number;
+  totalSecurityIssues: number;
+}
+
+export interface DependencyAnalysis {
+  packageName: string;
+  versionsSeen: string[];
+  firstSeen: string;
+  lastSeen: string;
+  hasPostinstall: boolean;
+  securityConcerns: string[];
+}
+
+export interface SecurityEvent {
+  timestamp: string;
+  snapshotId: string;
+  eventType: string;
+  description: string;
+  severity: string;
+}
+
+export interface SecurityAuditReport {
+  generatedAt: string;
+  projectPath: string;
+  totalSnapshots: number;
+  dateRange?: DateRange;
+  riskSummary: RiskSummary;
+  dependencyAnalysis: DependencyAnalysis[];
+  securityEvents: SecurityEvent[];
+}

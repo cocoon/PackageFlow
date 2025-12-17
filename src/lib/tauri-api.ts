@@ -2674,6 +2674,11 @@ import type {
   ReplayResult,
   ExecuteReplayRequest,
   ProjectSecurityOverview,
+  SnapshotSearchCriteria,
+  SearchResponse,
+  TimelineEntry,
+  SecurityAuditReport,
+  ExportFormat,
 } from '../types/snapshot';
 
 export const snapshotAPI = {
@@ -2786,6 +2791,23 @@ export const snapshotAPI = {
   /** Get project security overview with risk score */
   getProjectSecurityOverview: (projectPath: string): Promise<ProjectSecurityOverview> =>
     invoke<ProjectSecurityOverview>('get_project_security_overview', { projectPath }),
+
+  // Searchable Execution History (US6)
+  /** Search snapshots with criteria */
+  searchSnapshots: (criteria: SnapshotSearchCriteria): Promise<SearchResponse> =>
+    invoke<SearchResponse>('search_snapshots', { criteria }),
+
+  /** Get snapshot timeline for a project */
+  getSnapshotTimeline: (projectPath: string, limit?: number): Promise<TimelineEntry[]> =>
+    invoke<TimelineEntry[]>('get_snapshot_timeline', { projectPath, limit }),
+
+  /** Generate a security audit report for a project */
+  generateSecurityAuditReport: (projectPath: string): Promise<SecurityAuditReport> =>
+    invoke<SecurityAuditReport>('generate_security_audit_report', { projectPath }),
+
+  /** Export a security report in the specified format */
+  exportSecurityReport: (report: SecurityAuditReport, format: ExportFormat): Promise<string> =>
+    invoke<string>('export_security_report', { report, format }),
 };
 
 export const tauriAPI = {

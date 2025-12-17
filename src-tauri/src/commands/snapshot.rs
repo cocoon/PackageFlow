@@ -713,3 +713,79 @@ pub async fn get_project_security_overview(
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
+
+// =========================================================================
+// Searchable Execution History (US6)
+// =========================================================================
+
+use crate::services::snapshot::search::{
+    ExportFormat, SearchResponse, SecurityAuditReport, SnapshotSearchCriteria,
+    SnapshotSearchService, TimelineEntry,
+};
+
+/// Search snapshots by criteria
+#[tauri::command]
+pub async fn search_snapshots(
+    db: State<'_, DatabaseState>,
+    criteria: SnapshotSearchCriteria,
+) -> Result<SearchResponse, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = SnapshotSearchService::new(db);
+        service.search(&criteria)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Get snapshot timeline for a project
+#[tauri::command]
+pub async fn get_snapshot_timeline(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+    limit: Option<i32>,
+) -> Result<Vec<TimelineEntry>, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = SnapshotSearchService::new(db);
+        service.get_timeline(&project_path, limit)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Generate security audit report
+#[tauri::command]
+pub async fn generate_security_audit_report(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+) -> Result<SecurityAuditReport, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = SnapshotSearchService::new(db);
+        service.generate_audit_report(&project_path)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Export security audit report in specified format
+#[tauri::command]
+pub async fn export_security_report(
+    db: State<'_, DatabaseState>,
+    project_path: String,
+    format: ExportFormat,
+) -> Result<String, String> {
+    let db = (*db.0).clone();
+
+    tokio::task::spawn_blocking(move || {
+        let service = SnapshotSearchService::new(db);
+        let report = service.generate_audit_report(&project_path)?;
+        Ok(service.export_report(&report, format))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
