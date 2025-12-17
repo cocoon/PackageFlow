@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
+use crate::models::mcp::MCP_ALL_TOOLS;
 use crate::repositories::SettingsRepository;
 use crate::DatabaseState;
 
@@ -196,81 +197,35 @@ pub async fn test_mcp_connection(app: AppHandle) -> Result<McpHealthCheckResult,
 }
 
 /// Get available MCP tools (for display in UI)
+/// Uses centralized tool definitions from models::mcp
 #[tauri::command]
 pub fn get_mcp_tools() -> Vec<McpToolInfo> {
-    vec![
-        // Project Tools (Read-only)
-        McpToolInfo {
-            name: "list_projects".to_string(),
-            description: "List all registered projects in PackageFlow".to_string(),
-            category: "Project".to_string(),
-        },
-        // Git Tools (Read-only)
-        McpToolInfo {
-            name: "get_project".to_string(),
-            description: "Get project info (name, remote URL, current branch)".to_string(),
-            category: "Git".to_string(),
-        },
-        McpToolInfo {
-            name: "list_worktrees".to_string(),
-            description: "List all Git worktrees".to_string(),
-            category: "Git".to_string(),
-        },
-        McpToolInfo {
-            name: "get_worktree_status".to_string(),
-            description: "Get Git status (branch, ahead/behind, file status)".to_string(),
-            category: "Git".to_string(),
-        },
-        McpToolInfo {
-            name: "get_git_diff".to_string(),
-            description: "Get staged changes diff (for commit message generation)".to_string(),
-            category: "Git".to_string(),
-        },
-        // Workflow Tools
-        McpToolInfo {
-            name: "list_workflows".to_string(),
-            description: "List all workflows, optionally filtered by project".to_string(),
-            category: "Workflow".to_string(),
-        },
-        McpToolInfo {
-            name: "get_workflow".to_string(),
-            description: "Get detailed workflow info including all steps".to_string(),
-            category: "Workflow".to_string(),
-        },
-        McpToolInfo {
-            name: "create_workflow".to_string(),
-            description: "Create a new workflow".to_string(),
-            category: "Workflow".to_string(),
-        },
-        McpToolInfo {
-            name: "add_workflow_step".to_string(),
-            description: "Add a step (script node) to a workflow".to_string(),
-            category: "Workflow".to_string(),
-        },
-        McpToolInfo {
-            name: "run_workflow".to_string(),
-            description: "Execute a workflow and return results".to_string(),
-            category: "Workflow".to_string(),
-        },
-        // Template Tools
-        McpToolInfo {
-            name: "list_step_templates".to_string(),
-            description: "List available step templates (built-in + custom)".to_string(),
-            category: "Template".to_string(),
-        },
-        McpToolInfo {
-            name: "create_step_template".to_string(),
-            description: "Create a custom step template".to_string(),
-            category: "Template".to_string(),
-        },
-    ]
+    MCP_ALL_TOOLS
+        .iter()
+        .map(|tool| McpToolInfo {
+            name: tool.name.to_string(),
+            description: tool.description.to_string(),
+            category: tool.display_category.to_string(),
+            permission_category: tool.permission_category.as_str().to_string(),
+            applicable_permissions: tool.applicable_permissions.iter().map(|s| s.to_string()).collect(),
+        })
+        .collect()
 }
 
+/// MCP tool information for UI display
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct McpToolInfo {
+    /// Tool name (used in MCP calls)
     pub name: String,
+    /// Human-readable description
     pub description: String,
+    /// UI display category (e.g., "Project Management", "Git Worktree")
     pub category: String,
+    /// Permission category for access control ("read", "execute", "write")
+    pub permission_category: String,
+    /// Which permission types are applicable for this tool
+    pub applicable_permissions: Vec<String>,
 }
 
 // ============================================================================

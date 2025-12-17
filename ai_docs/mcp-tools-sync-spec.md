@@ -200,99 +200,94 @@ All tool executions must pass:
 
 ## Adding New Tools
 
-### Step 1: Define Tool in MCPToolHandler
+### Single Source of Truth
 
-Add to `get_available_tools()`:
+All MCP tool definitions are centralized in one location:
+
+```
+src-tauri/src/models/mcp.rs
+```
+
+This file contains:
+- `MCP_ALL_TOOLS` - Static array of all tool definitions
+- `MCPToolDefinition` - Tool metadata structure
+- `MCPToolPermissionCategory` - Permission categories (Read/Execute/Write)
+
+### Step 1: Add Tool Definition
+
+Add a new entry to `MCP_ALL_TOOLS` in `src-tauri/src/models/mcp.rs`:
 
 ```rust
-ToolDefinition {
-    name: "new_tool".to_string(),
-    description: "Description for AI".to_string(),
-    parameters: serde_json::json!({
-        "type": "object",
-        "properties": {
-            "param1": {
-                "type": "string",
-                "description": "Parameter description"
-            }
-        },
-        "required": ["param1"]
-    }),
-    requires_confirmation: true,  // or false for read-only
-    category: "category_name".to_string(),
-}
+MCPToolDefinition {
+    name: "new_tool",
+    description: "Description for AI and UI display",
+    display_category: "Category Name",  // e.g., "Project Management", "Workflows"
+    permission_category: MCPToolPermissionCategory::Execute,  // Read, Execute, or Write
+    applicable_permissions: &["read", "execute"],  // Which permissions apply
+},
 ```
 
 ### Step 2: Add Execution Handler
 
-Add match cases in `execute_tool_call()` and `execute_confirmed_tool_call()`:
+Add match cases in the MCP server (`src-tauri/src/bin/mcp_server.rs`):
 
 ```rust
-"new_tool" => self.execute_new_tool(tool_call).await,
+"new_tool" => self.execute_new_tool(context).await,
 ```
 
 ### Step 3: Implement Execution Method
 
 ```rust
-async fn execute_new_tool(&self, tool_call: &ToolCall) -> ToolResult {
+async fn execute_new_tool(&self, context: ToolCallContext) -> ToolResult {
     // 1. Extract parameters
-    let param1 = match tool_call.arguments.get("param1").and_then(|v| v.as_str()) {
-        Some(v) => v,
-        None => return ToolResult::failure(
-            tool_call.id.clone(),
-            "Missing required parameter: param1".to_string(),
-        ),
-    };
+    let param1 = context.arguments.get("param1")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| "Missing required parameter: param1")?;
 
     // 2. Validate inputs (especially paths)
     // 3. Execute operation
     // 4. Return result
 
-    ToolResult::success(
-        tool_call.id.clone(),
-        serde_json::to_string(&output).unwrap_or_default(),
-        Some(duration_ms),
-    )
+    ToolResult::success(serde_json::to_string(&output)?)
 }
 ```
 
-### Step 4: Update requires_confirmation()
+### Step 4: Update Category Icon (Frontend)
 
-Add the tool to the appropriate category:
+If using a new display category, add icon mapping in `McpSettingsFullPanel.tsx`:
 
-```rust
-pub fn requires_confirmation(&self, tool_name: &str) -> bool {
-    match tool_name {
-        // Write tools - require confirmation
-        "run_script" | "run_workflow" | "new_tool" => true,
-        // Read tools - no confirmation
-        "list_projects" | "get_project" => false,
-        _ => true, // Default to requiring confirmation
-    }
-}
+```typescript
+const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; iconColor: string }> = {
+  // ... existing categories
+  'New Category': { icon: <SomeIcon className="w-4 h-4" />, iconColor: 'text-indigo-500' },
+};
 ```
 
-### Step 5: Add to MCP Server (if applicable)
+### Automatic Synchronization
 
-If the tool should be available to external AI CLIs, also add it to:
-- `src-tauri/src/mcp/tools.rs` (MCP server tools)
+Once added to `MCP_ALL_TOOLS`, the tool automatically appears in:
 
-### Step 6: Update Frontend
-
-1. Add tool to type definitions
-2. Update confirmation dialog if needed
-3. Add any special UI handling
+| Component | Location | Syncs From |
+|-----------|----------|------------|
+| MCP Server CLI | `--list-tools` | `MCP_ALL_TOOLS` |
+| Frontend API | `mcpAPI.getTools()` | `get_mcp_tools` command |
+| Settings UI | Setup → Available Tools | Dynamic from API |
+| Permissions UI | Permissions tab | Dynamic from API |
+| Security checks | Permission validation | `get_mcp_tool_permission_category()` |
 
 ## MCP Server Synchronization
 
-The MCP Server (`packageflow-mcp`) should expose the same tools:
+All tools share the same definitions:
 
-| Location | Purpose |
-|----------|---------|
-| `src-tauri/src/services/ai_assistant/tools.rs` | AI Assistant tools |
-| `src-tauri/src/mcp/tools.rs` | MCP Server tools |
+| Location | Purpose | Data Source |
+|----------|---------|-------------|
+| `src-tauri/src/models/mcp.rs` | **Single source of truth** | N/A |
+| `src-tauri/src/bin/mcp_server.rs` | MCP Server tools | Uses `MCP_ALL_TOOLS` |
+| `src-tauri/src/commands/mcp.rs` | Frontend API | Uses `MCP_ALL_TOOLS` |
+| `src-tauri/src/bin/mcp/security.rs` | Permission checks | Uses `get_mcp_tool_permission_category()` |
+| `src/components/settings/...` | Frontend UI | Fetches via `mcpAPI.getTools()` |
 
-**Important**: Keep these in sync when adding/modifying tools.
+**Important**: Only modify `src-tauri/src/models/mcp.rs` when adding tools. All other components read from this source.
 
 ## Tool Response Format
 
@@ -377,11 +372,8 @@ app_handle.emit("ai-tool-result", payload)?;
 
 ## Checklist for New Tools
 
-- [ ] Tool definition added to MCPToolHandler
-- [ ] Execution handler implemented
-- [ ] requires_confirmation() updated
-- [ ] MCP Server tool added (if applicable)
-- [ ] Frontend type definitions updated
-- [ ] Confirmation dialog handling added
-- [ ] Documentation updated
+- [ ] Tool definition added to `MCP_ALL_TOOLS` in `src-tauri/src/models/mcp.rs`
+- [ ] Execution handler implemented in `src-tauri/src/bin/mcp_server.rs`
+- [ ] Category icon added to `CATEGORY_ICON_MAP` (if new category)
+- [ ] Documentation updated (`docs/features/mcp-server.md`)
 - [ ] Tests written

@@ -3375,65 +3375,23 @@ fn print_version() {
 }
 
 /// List all tools in a simple format
+/// Uses centralized tool definitions from tools_registry
 fn list_tools_simple() {
-    println!("PackageFlow MCP Tools:\n");
-    let tools = [
-        // Project management
-        ("list_projects", "List all registered projects with detailed info"),
-        ("get_project", "Get project details (scripts, workflows, git info)"),
-        ("get_project_dependencies", "Get dependencies from package.json"),
-        // Git worktree
-        ("list_worktrees", "List all git worktrees for a project"),
-        ("get_worktree_status", "Get git status (branch, staged, modified, untracked)"),
-        ("get_git_diff", "Get staged changes diff for commit messages"),
-        // Workflows
-        ("list_workflows", "List all workflows, filter by project"),
-        ("get_workflow", "Get detailed workflow info with all steps"),
-        ("create_workflow", "Create a new workflow"),
-        ("add_workflow_step", "Add a script step to a workflow"),
-        ("update_workflow", "Update workflow name/description"),
-        ("delete_workflow_step", "Remove a step from a workflow"),
-        ("run_workflow", "Execute a workflow synchronously"),
-        ("get_workflow_execution_details", "Get execution logs"),
-        // Templates
-        ("list_step_templates", "List available step templates"),
-        ("create_step_template", "Create a reusable step template"),
-        // NPM scripts
-        ("run_npm_script", "Run npm/yarn/pnpm scripts (supports background mode)"),
-        ("run_package_manager_command", "Run package manager commands (install, update, etc.)"),
-        // Background process tools
-        ("get_background_process_output", "Get output from a background process"),
-        ("stop_background_process", "Stop/terminate a background process"),
-        ("list_background_processes", "List all background processes"),
-        // MCP action tools
-        ("list_actions", "List all MCP actions"),
-        ("get_action", "Get action details by ID"),
-        ("run_script", "Execute a script action"),
-        ("trigger_webhook", "Trigger a webhook action"),
-        ("get_execution_status", "Get action execution status"),
-        ("list_action_executions", "List recent executions"),
-        ("get_action_permissions", "Get permission configuration"),
-        // AI Assistant tools
-        ("list_ai_providers", "List configured AI providers"),
-        ("list_conversations", "List past AI conversations"),
-        // Notification tools
-        ("get_notifications", "Get recent notifications"),
-        ("mark_notifications_read", "Mark notifications as read"),
-        // Security tools
-        ("get_security_scan_results", "Get vulnerability scan results"),
-        ("run_security_scan", "Run npm/yarn/pnpm audit"),
-        // Deployment tools
-        ("list_deployments", "List deployment history"),
-        // File operation tools
-        ("check_file_exists", "Check if files exist in project"),
-        ("search_project_files", "Search files by pattern"),
-        ("read_project_file", "Read file content (security-limited)"),
-        // System tools
-        ("get_environment_info", "Get system tool versions and paths"),
-    ];
+    use mcp::ALL_TOOLS;
 
-    for (name, desc) in tools {
-        println!("  {:<35} {}", name, desc);
+    println!("PackageFlow MCP Tools:\n");
+
+    // Group tools by category for better readability
+    let mut current_category = "";
+    for tool in ALL_TOOLS.iter() {
+        if tool.display_category != current_category {
+            if !current_category.is_empty() {
+                println!();
+            }
+            println!("  # {}", tool.display_category);
+            current_category = tool.display_category;
+        }
+        println!("  {:<35} {}", tool.name, tool.description);
     }
     println!();
 }

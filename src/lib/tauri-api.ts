@@ -2412,10 +2412,18 @@ export interface McpServerInfo {
   env_type: string;
 }
 
+/** MCP tool information from backend API */
 export interface McpToolInfo {
+  /** Tool name (used in MCP calls) */
   name: string;
+  /** Human-readable description */
   description: string;
+  /** UI display category (e.g., "Project Management", "Git Worktree") */
   category: string;
+  /** Permission category for access control ("read", "execute", "write") */
+  permissionCategory: 'read' | 'execute' | 'write';
+  /** Which permission types are applicable for this tool */
+  applicablePermissions: ('read' | 'execute' | 'write')[];
 }
 
 /** MCP permission mode */

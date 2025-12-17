@@ -11,6 +11,7 @@
 //! - `templates`: Built-in workflow step templates (~220 lines)
 //! - `store`: Database access and local data types (~370 lines)
 //! - `background/`: Background process management (~595 lines)
+//! - `tools_registry`: Centralized tool definitions (~300 lines)
 //!
 //! The main tool implementations remain in `mcp_server.rs` due to
 //! `rmcp` crate's requirement that all `#[tool]` methods be in a
@@ -23,10 +24,15 @@ pub mod state;
 pub mod templates;
 pub mod store;
 pub mod background;
+pub mod tools_registry;
 
 // Re-export commonly used items
 pub use types::*;
 pub use security::{ToolCategory, get_tool_category, is_tool_allowed};
+pub use tools_registry::{
+    ToolDefinition, PermissionCategory, ALL_TOOLS,
+    get_permission_category, get_tool, get_display_categories,
+};
 pub use state::{RATE_LIMITER, TOOL_RATE_LIMITERS, ACTION_SEMAPHORE};
 pub use templates::get_builtin_templates;
 pub use store::{

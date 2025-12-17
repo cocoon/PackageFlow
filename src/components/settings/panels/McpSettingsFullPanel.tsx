@@ -39,6 +39,7 @@ import {
   type McpServerConfig,
   type McpLogsResponse,
   type McpHealthCheckResult,
+  type McpToolInfo,
 } from '../../../lib/tauri-api';
 import type { DevServerMode } from '../../../types/mcp';
 import { cn } from '../../../lib/utils';
@@ -691,152 +692,77 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
 
 interface SetupTabProps {
   serverInfo: McpServerInfo;
+  tools: McpToolInfo[];
 }
 
 /** MCP Tools data structure */
-interface MCPToolCategory {
-  name: string;
-  icon: React.ReactNode;
-  iconColor: string;
-  tools: { name: string; description: string }[];
+/** Category icon and color mapping */
+const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; iconColor: string }> = {
+  'Project Management': { icon: <FolderGit2 className="w-4 h-4" />, iconColor: 'text-blue-500' },
+  'Git Worktree': { icon: <GitBranch className="w-4 h-4" />, iconColor: 'text-emerald-500' },
+  'Workflows': { icon: <Workflow className="w-4 h-4" />, iconColor: 'text-purple-500' },
+  'Templates': { icon: <FileCode className="w-4 h-4" />, iconColor: 'text-cyan-500' },
+  'NPM/Package Scripts': { icon: <Package className="w-4 h-4" />, iconColor: 'text-orange-500' },
+  'Background Processes': { icon: <Zap className="w-4 h-4" />, iconColor: 'text-yellow-500' },
+  'MCP Actions': { icon: <Target className="w-4 h-4" />, iconColor: 'text-amber-500' },
+  'AI Assistant': { icon: <Settings2 className="w-4 h-4" />, iconColor: 'text-violet-500' },
+  'Notifications': { icon: <AlertCircle className="w-4 h-4" />, iconColor: 'text-pink-500' },
+  'Security': { icon: <Shield className="w-4 h-4" />, iconColor: 'text-red-500' },
+  'Deployments': { icon: <Server className="w-4 h-4" />, iconColor: 'text-green-500' },
+  'File Operations': { icon: <FileText className="w-4 h-4" />, iconColor: 'text-slate-500' },
+  'System': { icon: <Wrench className="w-4 h-4" />, iconColor: 'text-gray-500' },
+};
+
+/** Default icon for unknown categories */
+const DEFAULT_CATEGORY_ICON = { icon: <Wrench className="w-4 h-4" />, iconColor: 'text-gray-500' };
+
+/** Group tools by category */
+function groupToolsByCategory(tools: McpToolInfo[]): { name: string; tools: McpToolInfo[] }[] {
+  const groups: Record<string, McpToolInfo[]> = {};
+  for (const tool of tools) {
+    const category = tool.category || 'Uncategorized';
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(tool);
+  }
+  // Sort categories in a logical order
+  const orderedCategories = [
+    'Project Management',
+    'Git Worktree',
+    'Workflows',
+    'Templates',
+    'NPM/Package Scripts',
+    'Background Processes',
+    'MCP Actions',
+    'AI Assistant',
+    'Notifications',
+    'Security',
+    'Deployments',
+    'File Operations',
+    'System',
+  ];
+  return orderedCategories
+    .filter((cat) => groups[cat])
+    .map((cat) => ({ name: cat, tools: groups[cat] }))
+    .concat(
+      Object.keys(groups)
+        .filter((cat) => !orderedCategories.includes(cat))
+        .map((cat) => ({ name: cat, tools: groups[cat] }))
+    );
 }
 
-const MCP_TOOL_CATEGORIES: MCPToolCategory[] = [
-  {
-    name: 'Project Management',
-    icon: <FolderGit2 className="w-4 h-4" />,
-    iconColor: 'text-blue-500',
-    tools: [
-      { name: 'list_projects', description: 'List all registered projects with detailed info' },
-      { name: 'get_project', description: 'Get project details (scripts, workflows, git info)' },
-      { name: 'get_project_dependencies', description: 'Get dependencies from package.json' },
-    ],
-  },
-  {
-    name: 'Git Worktree',
-    icon: <GitBranch className="w-4 h-4" />,
-    iconColor: 'text-emerald-500',
-    tools: [
-      { name: 'list_worktrees', description: 'List all git worktrees for a project' },
-      { name: 'get_worktree_status', description: 'Get git status (branch, staged, modified, untracked)' },
-      { name: 'get_git_diff', description: 'Get staged changes diff for commit messages' },
-    ],
-  },
-  {
-    name: 'Workflows',
-    icon: <Workflow className="w-4 h-4" />,
-    iconColor: 'text-purple-500',
-    tools: [
-      { name: 'list_workflows', description: 'List all workflows, filter by project' },
-      { name: 'get_workflow', description: 'Get detailed workflow info with all steps' },
-      { name: 'create_workflow', description: 'Create a new workflow' },
-      { name: 'add_workflow_step', description: 'Add a script step to a workflow' },
-      { name: 'update_workflow', description: 'Update workflow name/description' },
-      { name: 'delete_workflow_step', description: 'Remove a step from a workflow' },
-      { name: 'run_workflow', description: 'Execute a workflow synchronously' },
-      { name: 'get_workflow_execution_details', description: 'Get execution logs' },
-    ],
-  },
-  {
-    name: 'Templates',
-    icon: <FileCode className="w-4 h-4" />,
-    iconColor: 'text-cyan-500',
-    tools: [
-      { name: 'list_step_templates', description: 'List available step templates' },
-      { name: 'create_step_template', description: 'Create a reusable step template' },
-    ],
-  },
-  {
-    name: 'NPM/Package Scripts',
-    icon: <Package className="w-4 h-4" />,
-    iconColor: 'text-orange-500',
-    tools: [
-      { name: 'run_npm_script', description: 'Run npm/yarn/pnpm scripts (volta/corepack support)' },
-    ],
-  },
-  {
-    name: 'Background Processes',
-    icon: <Zap className="w-4 h-4" />,
-    iconColor: 'text-yellow-500',
-    tools: [
-      { name: 'get_background_process_output', description: 'Get output from a background process' },
-      { name: 'stop_background_process', description: 'Stop/terminate a background process' },
-      { name: 'list_background_processes', description: 'List all background processes' },
-    ],
-  },
-  {
-    name: 'MCP Actions',
-    icon: <Target className="w-4 h-4" />,
-    iconColor: 'text-amber-500',
-    tools: [
-      { name: 'list_actions', description: 'List all MCP actions' },
-      { name: 'get_action', description: 'Get action details by ID' },
-      { name: 'run_script', description: 'Execute a script action' },
-      { name: 'trigger_webhook', description: 'Trigger a webhook action' },
-      { name: 'get_execution_status', description: 'Get action execution status' },
-      { name: 'list_action_executions', description: 'List recent executions' },
-      { name: 'get_action_permissions', description: 'Get permission configuration' },
-    ],
-  },
-  {
-    name: 'AI Assistant',
-    icon: <Settings2 className="w-4 h-4" />,
-    iconColor: 'text-violet-500',
-    tools: [
-      { name: 'list_ai_providers', description: 'List configured AI providers' },
-      { name: 'list_conversations', description: 'List past AI conversations' },
-    ],
-  },
-  {
-    name: 'Notifications',
-    icon: <AlertCircle className="w-4 h-4" />,
-    iconColor: 'text-pink-500',
-    tools: [
-      { name: 'get_notifications', description: 'Get recent notifications' },
-      { name: 'mark_notifications_read', description: 'Mark notifications as read' },
-    ],
-  },
-  {
-    name: 'Security',
-    icon: <Shield className="w-4 h-4" />,
-    iconColor: 'text-red-500',
-    tools: [
-      { name: 'get_security_scan_results', description: 'Get vulnerability scan results' },
-      { name: 'run_security_scan', description: 'Run npm/yarn/pnpm audit' },
-    ],
-  },
-  {
-    name: 'Deployments',
-    icon: <Server className="w-4 h-4" />,
-    iconColor: 'text-green-500',
-    tools: [
-      { name: 'list_deployments', description: 'List deployment history' },
-    ],
-  },
-  {
-    name: 'File Operations',
-    icon: <FileText className="w-4 h-4" />,
-    iconColor: 'text-slate-500',
-    tools: [
-      { name: 'check_file_exists', description: 'Check if files exist in project' },
-      { name: 'search_project_files', description: 'Search files by pattern' },
-      { name: 'read_project_file', description: 'Read file content (security-limited)' },
-    ],
-  },
-  {
-    name: 'System',
-    icon: <Wrench className="w-4 h-4" />,
-    iconColor: 'text-gray-500',
-    tools: [
-      { name: 'get_environment_info', description: 'Get system tool versions and paths' },
-    ],
-  },
-];
+/** Available Tools Section - now uses dynamic tools from API */
+interface AvailableToolsSectionProps {
+  tools: McpToolInfo[];
+}
 
-/** Available Tools Section */
-const AvailableToolsSection: React.FC = () => {
+const AvailableToolsSection: React.FC<AvailableToolsSectionProps> = ({ tools }) => {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-  const totalTools = MCP_TOOL_CATEGORIES.reduce((sum, cat) => sum + cat.tools.length, 0);
+
+  // Group tools by category dynamically
+  const categories = useMemo(() => groupToolsByCategory(tools), [tools]);
+  const totalTools = tools.length;
 
   return (
     <div className="space-y-3">
@@ -845,7 +771,7 @@ const AvailableToolsSection: React.FC = () => {
         <Wrench className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">Available Tools</span>
         <span className="text-xs text-muted-foreground">
-          ({totalTools} tools in {MCP_TOOL_CATEGORIES.length} categories)
+          ({totalTools} tools in {categories.length} categories)
         </span>
       </div>
 
@@ -856,59 +782,62 @@ const AvailableToolsSection: React.FC = () => {
 
       {/* Categories */}
       <div className="space-y-2">
-        {MCP_TOOL_CATEGORIES.map((category) => (
-          <div key={category.name} className="border border-border rounded-lg overflow-hidden bg-card/50">
-            <button
-              type="button"
-              onClick={() =>
-                setExpandedCategory(expandedCategory === category.name ? null : category.name)
-              }
-              className={cn(
-                'w-full flex items-center gap-3 p-3',
-                'hover:bg-muted/50 transition-colors',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
-              )}
-            >
-              <span className={category.iconColor}>{category.icon}</span>
-              <span className="flex-1 text-left font-medium text-foreground text-sm">
-                {category.name}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {category.tools.length} tools
-              </span>
-              <ChevronDown
+        {categories.map((category) => {
+          const iconData = CATEGORY_ICON_MAP[category.name] || DEFAULT_CATEGORY_ICON;
+          return (
+            <div key={category.name} className="border border-border rounded-lg overflow-hidden bg-card/50">
+              <button
+                type="button"
+                onClick={() =>
+                  setExpandedCategory(expandedCategory === category.name ? null : category.name)
+                }
                 className={cn(
-                  'w-4 h-4 text-muted-foreground transition-transform duration-200',
-                  expandedCategory === category.name && 'rotate-180'
+                  'w-full flex items-center gap-3 p-3',
+                  'hover:bg-muted/50 transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                 )}
-              />
-            </button>
+              >
+                <span className={iconData.iconColor}>{iconData.icon}</span>
+                <span className="flex-1 text-left font-medium text-foreground text-sm">
+                  {category.name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {category.tools.length} tools
+                </span>
+                <ChevronDown
+                  className={cn(
+                    'w-4 h-4 text-muted-foreground transition-transform duration-200',
+                    expandedCategory === category.name && 'rotate-180'
+                  )}
+                />
+              </button>
 
-            {expandedCategory === category.name && (
-              <div className="border-t border-border bg-muted/20">
-                <div className="p-2 space-y-0.5">
-                  {category.tools.map((tool) => (
-                    <div
-                      key={tool.name}
-                      className="flex items-start gap-3 px-2 py-1.5 rounded hover:bg-muted/50 transition-colors"
-                    >
-                      <code className="text-xs font-mono text-primary shrink-0 min-w-[160px]">
-                        {tool.name}
-                      </code>
-                      <span className="text-xs text-muted-foreground">{tool.description}</span>
-                    </div>
-                  ))}
+              {expandedCategory === category.name && (
+                <div className="border-t border-border bg-muted/20">
+                  <div className="p-2 space-y-0.5">
+                    {category.tools.map((tool) => (
+                      <div
+                        key={tool.name}
+                        className="flex items-start gap-3 px-2 py-1.5 rounded hover:bg-muted/50 transition-colors"
+                      >
+                        <code className="text-xs font-mono text-primary shrink-0 min-w-[160px]">
+                          {tool.name}
+                        </code>
+                        <span className="text-xs text-muted-foreground">{tool.description}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const SetupTab: React.FC<SetupTabProps> = ({ serverInfo }) => {
+const SetupTab: React.FC<SetupTabProps> = ({ serverInfo, tools }) => {
   return (
     <div className="space-y-6 pb-8">
       <QuickSetupSection
@@ -921,7 +850,7 @@ const SetupTab: React.FC<SetupTabProps> = ({ serverInfo }) => {
       <GradientDivider opacity="subtle" />
 
       {/* Available Tools Section */}
-      <AvailableToolsSection />
+      <AvailableToolsSection tools={tools} />
     </div>
   );
 };
@@ -1185,6 +1114,9 @@ export function McpSettingsFullPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Tools state - loaded dynamically from backend
+  const [tools, setTools] = useState<McpToolInfo[]>([]);
+
   // Permission state
   const [permissionMatrix, setPermissionMatrix] = useState<ToolPermissionMatrixType>({});
   const [quickMode, setQuickMode] = useState<PermissionQuickMode>('read_only');
@@ -1198,10 +1130,21 @@ export function McpSettingsFullPanel() {
   const [healthCheckStatus, setHealthCheckStatus] = useState<HealthCheckStatus>('idle');
   const [healthCheckResult, setHealthCheckResult] = useState<McpHealthCheckResult | null>(null);
 
-  // Build tool permission entries from matrix
+  // Build tool permission entries from matrix using dynamic tools
   const toolEntries = useMemo<ToolPermissionEntry[]>(() => {
-    return buildToolPermissionEntries(permissionMatrix);
-  }, [permissionMatrix]);
+    if (tools.length === 0) {
+      // Fallback to static list if tools not loaded yet
+      return buildToolPermissionEntries(permissionMatrix);
+    }
+    // Use dynamic tools from API
+    return tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      permissions: permissionMatrix[tool.name] || { read: false, execute: false, write: false },
+      applicablePermissions: tool.applicablePermissions,
+      category: tool.permissionCategory,
+    }));
+  }, [permissionMatrix, tools]);
 
   // Count enabled tools
   const enabledToolCount = useMemo(() => {
@@ -1216,18 +1159,28 @@ export function McpSettingsFullPanel() {
     setError(null);
 
     try {
-      const [info, serverConfig] = await Promise.all([
+      const [info, serverConfig, toolsList] = await Promise.all([
         mcpAPI.getServerInfo(),
         mcpAPI.getConfig(),
+        mcpAPI.getTools(),
       ]);
 
       setServerInfo(info);
       setConfig(serverConfig);
+      setTools(toolsList);
 
       // Initialize devServerMode from config
       setDevServerMode(serverConfig.devServerMode || 'mcp_managed');
 
-      // Initialize permission matrix from config
+      // Initialize permission matrix from config using dynamic tools
+      const toolsToUse = toolsList.length > 0 ? toolsList : TOOL_DEFINITIONS_WITH_PERMISSIONS.map(t => ({
+        name: t.name,
+        description: t.description,
+        category: '',
+        permissionCategory: t.category as 'read' | 'execute' | 'write',
+        applicablePermissions: t.applicablePermissions as ('read' | 'execute' | 'write')[],
+      }));
+
       if (serverConfig.allowedTools.length === 0) {
         let mode: PermissionQuickMode = 'read_only';
         if (serverConfig.permissionMode === 'execute_with_confirm') {
@@ -1236,10 +1189,30 @@ export function McpSettingsFullPanel() {
           mode = 'full_access';
         }
         setQuickMode(mode);
-        setPermissionMatrix(getDefaultPermissionMatrix(mode));
+        // Use dynamic tools for matrix generation
+        const matrix: ToolPermissionMatrixType = {};
+        for (const tool of toolsToUse) {
+          const flags = { read: false, execute: false, write: false };
+          switch (mode) {
+            case 'read_only':
+              if (tool.applicablePermissions.includes('read')) flags.read = true;
+              break;
+            case 'standard':
+              if (tool.applicablePermissions.includes('read')) flags.read = true;
+              if (tool.applicablePermissions.includes('execute')) flags.execute = true;
+              break;
+            case 'full_access':
+              if (tool.applicablePermissions.includes('read')) flags.read = true;
+              if (tool.applicablePermissions.includes('execute')) flags.execute = true;
+              if (tool.applicablePermissions.includes('write')) flags.write = true;
+              break;
+          }
+          matrix[tool.name] = flags;
+        }
+        setPermissionMatrix(matrix);
       } else {
         const matrix: ToolPermissionMatrixType = {};
-        for (const tool of TOOL_DEFINITIONS_WITH_PERMISSIONS) {
+        for (const tool of toolsToUse) {
           const isAllowed = serverConfig.allowedTools.includes(tool.name);
           matrix[tool.name] = {
             read: isAllowed && tool.applicablePermissions.includes('read'),
@@ -1538,7 +1511,7 @@ export function McpSettingsFullPanel() {
             </TabsContent>
 
             <TabsContent value="setup" className="mt-0">
-              <SetupTab serverInfo={serverInfo} />
+              <SetupTab serverInfo={serverInfo} tools={tools} />
             </TabsContent>
           </div>
         </Tabs>

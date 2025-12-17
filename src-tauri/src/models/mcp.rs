@@ -5,6 +5,402 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+// ============================================================================
+// MCP Tool Registry (Single Source of Truth)
+// ============================================================================
+
+/// Tool permission category for access control
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MCPToolPermissionCategory {
+    /// Read-only operations (always allowed in read_only mode)
+    Read,
+    /// Execute operations (run commands, workflows)
+    Execute,
+    /// Write operations (create, update, delete)
+    Write,
+}
+
+impl MCPToolPermissionCategory {
+    /// Convert to string for serialization
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MCPToolPermissionCategory::Read => "read",
+            MCPToolPermissionCategory::Execute => "execute",
+            MCPToolPermissionCategory::Write => "write",
+        }
+    }
+}
+
+/// Tool definition with all metadata for UI display and permission management
+#[derive(Debug, Clone)]
+pub struct MCPToolDefinition {
+    /// Tool name (used in MCP calls)
+    pub name: &'static str,
+    /// Human-readable description
+    pub description: &'static str,
+    /// UI display category (e.g., "Project Management", "Git Worktree")
+    pub display_category: &'static str,
+    /// Permission category for access control
+    pub permission_category: MCPToolPermissionCategory,
+    /// Which permission types are applicable for this tool
+    pub applicable_permissions: &'static [&'static str],
+}
+
+/// All MCP tools registered in the system
+/// This is the single source of truth for tool definitions
+pub static MCP_ALL_TOOLS: &[MCPToolDefinition] = &[
+    // ============================================================================
+    // Project Management
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_projects",
+        description: "List all registered projects with detailed info",
+        display_category: "Project Management",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_project",
+        description: "Get project details (scripts, workflows, git info)",
+        display_category: "Project Management",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_project_dependencies",
+        description: "Get dependencies from package.json",
+        display_category: "Project Management",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // Git Worktree
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_worktrees",
+        description: "List all git worktrees for a project",
+        display_category: "Git Worktree",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_worktree_status",
+        description: "Get git status (branch, staged, modified, untracked)",
+        display_category: "Git Worktree",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_git_diff",
+        description: "Get staged changes diff for commit messages",
+        display_category: "Git Worktree",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // Workflows
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_workflows",
+        description: "List all workflows, filter by project",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_workflow",
+        description: "Get detailed workflow info with all steps",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "create_workflow",
+        description: "Create a new workflow",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+    MCPToolDefinition {
+        name: "add_workflow_step",
+        description: "Add a script step to a workflow",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+    MCPToolDefinition {
+        name: "update_workflow",
+        description: "Update workflow name/description",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+    MCPToolDefinition {
+        name: "delete_workflow_step",
+        description: "Remove a step from a workflow",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+    MCPToolDefinition {
+        name: "run_workflow",
+        description: "Execute a workflow synchronously",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "get_workflow_execution_details",
+        description: "Get execution logs",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // Templates
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_step_templates",
+        description: "List available step templates",
+        display_category: "Templates",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "create_step_template",
+        description: "Create a reusable step template",
+        display_category: "Templates",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+
+    // ============================================================================
+    // NPM/Package Scripts
+    // ============================================================================
+    MCPToolDefinition {
+        name: "run_npm_script",
+        description: "Run npm/yarn/pnpm scripts (volta/corepack support)",
+        display_category: "NPM/Package Scripts",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "run_package_manager_command",
+        description: "Run package manager commands (install, update, etc.)",
+        display_category: "NPM/Package Scripts",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+
+    // ============================================================================
+    // Background Processes
+    // ============================================================================
+    MCPToolDefinition {
+        name: "get_background_process_output",
+        description: "Get output from a background process",
+        display_category: "Background Processes",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "stop_background_process",
+        description: "Stop/terminate a background process",
+        display_category: "Background Processes",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "list_background_processes",
+        description: "List all background processes",
+        display_category: "Background Processes",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // MCP Actions
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_actions",
+        description: "List all MCP actions",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_action",
+        description: "Get action details by ID",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "run_script",
+        description: "Execute a script action",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "trigger_webhook",
+        description: "Trigger a webhook action",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+    MCPToolDefinition {
+        name: "get_execution_status",
+        description: "Get action execution status",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "list_action_executions",
+        description: "List recent executions",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "get_action_permissions",
+        description: "Get permission configuration",
+        display_category: "MCP Actions",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // AI Assistant
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_ai_providers",
+        description: "List configured AI providers",
+        display_category: "AI Assistant",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "list_conversations",
+        description: "List past AI conversations",
+        display_category: "AI Assistant",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // Notifications
+    // ============================================================================
+    MCPToolDefinition {
+        name: "get_notifications",
+        description: "Get recent notifications",
+        display_category: "Notifications",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "mark_notifications_read",
+        description: "Mark notifications as read",
+        display_category: "Notifications",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+
+    // ============================================================================
+    // Security
+    // ============================================================================
+    MCPToolDefinition {
+        name: "get_security_scan_results",
+        description: "Get vulnerability scan results",
+        display_category: "Security",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "run_security_scan",
+        description: "Run npm/yarn/pnpm audit",
+        display_category: "Security",
+        permission_category: MCPToolPermissionCategory::Execute,
+        applicable_permissions: &["read", "execute"],
+    },
+
+    // ============================================================================
+    // Deployments
+    // ============================================================================
+    MCPToolDefinition {
+        name: "list_deployments",
+        description: "List deployment history",
+        display_category: "Deployments",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // File Operations
+    // ============================================================================
+    MCPToolDefinition {
+        name: "check_file_exists",
+        description: "Check if files exist in project",
+        display_category: "File Operations",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "search_project_files",
+        description: "Search files by pattern",
+        display_category: "File Operations",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+    MCPToolDefinition {
+        name: "read_project_file",
+        description: "Read file content (security-limited)",
+        display_category: "File Operations",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+
+    // ============================================================================
+    // System
+    // ============================================================================
+    MCPToolDefinition {
+        name: "get_environment_info",
+        description: "Get system tool versions and paths",
+        display_category: "System",
+        permission_category: MCPToolPermissionCategory::Read,
+        applicable_permissions: &["read"],
+    },
+];
+
+/// Get the permission category for a tool by name
+pub fn get_mcp_tool_permission_category(tool_name: &str) -> MCPToolPermissionCategory {
+    MCP_ALL_TOOLS
+        .iter()
+        .find(|t| t.name == tool_name)
+        .map(|t| t.permission_category)
+        .unwrap_or(MCPToolPermissionCategory::Execute) // Unknown tools default to Execute (most restrictive)
+}
+
+/// Get a tool definition by name
+pub fn get_mcp_tool(tool_name: &str) -> Option<&'static MCPToolDefinition> {
+    MCP_ALL_TOOLS.iter().find(|t| t.name == tool_name)
+}
+
+/// Get all unique display categories
+pub fn get_mcp_display_categories() -> Vec<&'static str> {
+    let mut categories: Vec<&'static str> = MCP_ALL_TOOLS
+        .iter()
+        .map(|t| t.display_category)
+        .collect();
+    categories.sort();
+    categories.dedup();
+    categories
+}
+
 /// MCP Server permission modes
 ///
 /// Permission levels control what AI assistants can do:

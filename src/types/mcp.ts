@@ -490,7 +490,12 @@ export interface ToolDefinitionWithPermissions {
   applicablePermissions: PermissionType[];
 }
 
-/** Complete tool definitions with applicable permissions */
+/**
+ * Complete tool definitions with applicable permissions
+ * @deprecated Use mcpAPI.getTools() to get dynamic tool list from backend.
+ * This static list is kept for backward compatibility during migration.
+ * Backend is the single source of truth - see src-tauri/src/models/mcp.rs
+ */
 export const TOOL_DEFINITIONS_WITH_PERMISSIONS: ToolDefinitionWithPermissions[] = [
   // Read-only tools - only 'read' permission is applicable
   { name: 'list_projects', description: 'List all registered projects', category: 'read', applicablePermissions: ['read'] },
@@ -662,4 +667,75 @@ export function buildToolPermissionEntries(matrix: ToolPermissionMatrix): ToolPe
     applicablePermissions: tool.applicablePermissions,
     category: tool.category,
   }));
+}
+
+/**
+ * Build tool permission entries from matrix using dynamic tool list from API
+ * Use this instead of buildToolPermissionEntries when you have tools from mcpAPI.getTools()
+ */
+export function buildToolPermissionEntriesFromApi(
+  matrix: ToolPermissionMatrix,
+  tools: { name: string; description: string; permissionCategory: string; applicablePermissions: string[] }[]
+): ToolPermissionEntry[] {
+  return tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    permissions: matrix[tool.name] || { ...DEFAULT_PERMISSION_FLAGS },
+    applicablePermissions: tool.applicablePermissions as PermissionType[],
+    category: tool.permissionCategory as ToolCategory,
+  }));
+}
+
+/**
+ * Get default permission matrix for a quick mode using dynamic tool list
+ * Use this instead of getDefaultPermissionMatrix when you have tools from mcpAPI.getTools()
+ */
+export function getDefaultPermissionMatrixFromApi(
+  mode: PermissionQuickMode,
+  tools: { name: string; applicablePermissions: string[] }[]
+): ToolPermissionMatrix {
+  const matrix: ToolPermissionMatrix = {};
+
+  for (const tool of tools) {
+    const flags: ToolPermissionFlags = { read: false, execute: false, write: false };
+
+    switch (mode) {
+      case 'read_only':
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        break;
+
+      case 'standard':
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        if (tool.applicablePermissions.includes('execute')) {
+          flags.execute = true;
+        }
+        break;
+
+      case 'full_access':
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        if (tool.applicablePermissions.includes('execute')) {
+          flags.execute = true;
+        }
+        if (tool.applicablePermissions.includes('write')) {
+          flags.write = true;
+        }
+        break;
+
+      case 'custom':
+        if (tool.applicablePermissions.includes('read')) {
+          flags.read = true;
+        }
+        break;
+    }
+
+    matrix[tool.name] = flags;
+  }
+
+  return matrix;
 }
