@@ -75,7 +75,8 @@ const iconSizeMap = {
 };
 
 export interface CheckboxProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
+  extends
+    Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
     VariantProps<typeof checkboxVariants> {
   /** If true, shows indeterminate state (horizontal line) */
   indeterminate?: boolean;
@@ -126,10 +127,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     const iconSize = iconSizeMap[size || 'default'];
 
     const checkboxElement = (
-      <span
-        className={cn(checkboxVariants({ variant, size }), className)}
-        data-state={state}
-      >
+      <span className={cn(checkboxVariants({ variant, size }), className)} data-state={state}>
         {/* Hidden input for accessibility */}
         <input
           type="checkbox"
@@ -174,9 +172,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       >
         {checkboxElement}
         <span className="flex flex-col gap-0.5">
-          {label && (
-            <span className="text-sm text-foreground leading-tight">{label}</span>
-          )}
+          {label && <span className="text-sm text-foreground leading-tight">{label}</span>}
           {description && (
             <span className="text-xs text-muted-foreground leading-tight">{description}</span>
           )}

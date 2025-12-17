@@ -29,9 +29,15 @@ interface TriggerWorkflowPanelProps {
 function getStatusBadge(status?: NodeStatus) {
   switch (status) {
     case 'running':
-      return { label: 'Running', className: 'bg-purple-500/20 text-purple-400 border-purple-500/30' };
+      return {
+        label: 'Running',
+        className: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+      };
     case 'completed':
-      return { label: 'Completed', className: 'bg-green-500/20 text-green-400 border-green-500/30' };
+      return {
+        label: 'Completed',
+        className: 'bg-green-500/20 text-green-400 border-green-500/30',
+      };
     case 'failed':
       return { label: 'Failed', className: 'bg-red-500/20 text-red-400 border-red-500/30' };
     case 'skipped':
@@ -78,7 +84,10 @@ export function TriggerWorkflowPanel({
       setName(node.name);
       setTargetWorkflowId(triggerConfig.targetWorkflowId);
       // targetWorkflowName might be stored in the config or we just use the ID
-      setTargetWorkflowName((triggerConfig as TriggerWorkflowConfig & { targetWorkflowName?: string }).targetWorkflowName || '');
+      setTargetWorkflowName(
+        (triggerConfig as TriggerWorkflowConfig & { targetWorkflowName?: string })
+          .targetWorkflowName || ''
+      );
       setWaitForCompletion(triggerConfig.waitForCompletion);
       setOnChildFailure(triggerConfig.onChildFailure);
       setHasChanges(false);
@@ -152,12 +161,7 @@ export function TriggerWorkflowPanel({
   return (
     <>
       {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-40 lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={onClose} />}
 
       {/* Panel */}
       <div
@@ -175,20 +179,11 @@ export function TriggerWorkflowPanel({
               <Workflow className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Trigger Workflow
-              </h2>
-              {node && (
-                <span className="text-xs text-muted-foreground">#{node.order + 1}</span>
-              )}
+              <h2 className="text-lg font-semibold text-foreground">Trigger Workflow</h2>
+              {node && <span className="text-xs text-muted-foreground">#{node.order + 1}</span>}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-auto w-auto p-2"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-auto w-auto p-2">
             <X className="w-5 h-5 text-muted-foreground" />
           </Button>
         </div>
@@ -252,7 +247,7 @@ export function TriggerWorkflowPanel({
             </label>
             <div className="flex gap-2">
               <Button
-                variant={waitForCompletion ? "default" : "outline"}
+                variant={waitForCompletion ? 'default' : 'outline'}
                 type="button"
                 onClick={() => setWaitForCompletion(true)}
                 disabled={disabled}
@@ -264,7 +259,7 @@ export function TriggerWorkflowPanel({
                 Wait for completion
               </Button>
               <Button
-                variant={!waitForCompletion ? "default" : "outline"}
+                variant={!waitForCompletion ? 'default' : 'outline'}
                 type="button"
                 onClick={() => setWaitForCompletion(false)}
                 disabled={disabled}
@@ -292,7 +287,7 @@ export function TriggerWorkflowPanel({
               </label>
               <div className="flex gap-2">
                 <Button
-                  variant={onChildFailure === 'fail' ? "default" : "outline"}
+                  variant={onChildFailure === 'fail' ? 'default' : 'outline'}
                   type="button"
                   onClick={() => setOnChildFailure('fail')}
                   disabled={disabled}
@@ -304,13 +299,14 @@ export function TriggerWorkflowPanel({
                   Stop workflow
                 </Button>
                 <Button
-                  variant={onChildFailure === 'continue' ? "default" : "outline"}
+                  variant={onChildFailure === 'continue' ? 'default' : 'outline'}
                   type="button"
                   onClick={() => setOnChildFailure('continue')}
                   disabled={disabled}
                   className={cn(
                     'flex-1 h-auto px-3 py-2 text-sm',
-                    onChildFailure === 'continue' && 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                    onChildFailure === 'continue' &&
+                      'bg-amber-500/20 border-amber-500/50 text-amber-300'
                   )}
                 >
                   Continue anyway

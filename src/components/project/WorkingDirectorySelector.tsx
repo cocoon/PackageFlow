@@ -64,16 +64,10 @@ function WorktreeStatusIndicator({
           />
         )}
         {hasAheadBehind && ahead > 0 && (
-          <span
-            className="w-1.5 h-1.5 rounded-full bg-green-400"
-            title={`${ahead} ahead`}
-          />
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400" title={`${ahead} ahead`} />
         )}
         {hasAheadBehind && behind > 0 && (
-          <span
-            className="w-1.5 h-1.5 rounded-full bg-orange-400"
-            title={`${behind} behind`}
-          />
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-400" title={`${behind} behind`} />
         )}
       </div>
     );
@@ -172,15 +166,11 @@ export function WorkingDirectorySelector({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setFocusedIndex((prev) =>
-            prev < worktrees.length - 1 ? prev + 1 : 0
-          );
+          setFocusedIndex((prev) => (prev < worktrees.length - 1 ? prev + 1 : 0));
           break;
         case 'ArrowUp':
           e.preventDefault();
-          setFocusedIndex((prev) =>
-            prev > 0 ? prev - 1 : worktrees.length - 1
-          );
+          setFocusedIndex((prev) => (prev > 0 ? prev - 1 : worktrees.length - 1));
           break;
         case 'Enter':
         case ' ':
@@ -234,11 +224,7 @@ export function WorkingDirectorySelector({
   const isMainWorktree = selectedWorktree?.isMain ?? false;
 
   return (
-    <div
-      ref={containerRef}
-      className={cn('relative', className)}
-      onKeyDown={handleKeyDown}
-    >
+    <div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown}>
       {/* Selector Card */}
       <div
         role="combobox"
@@ -250,9 +236,7 @@ export function WorkingDirectorySelector({
         className={cn(
           'group flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer',
           'bg-card/60 hover:bg-card/80',
-          isOpen
-            ? 'border-blue-500/50 ring-1 ring-blue-500/20'
-            : 'border-border hover:border-muted'
+          isOpen ? 'border-blue-500/50 ring-1 ring-blue-500/20' : 'border-border hover:border-muted'
         )}
       >
         {/* Git Branch Icon */}
@@ -283,9 +267,7 @@ export function WorkingDirectorySelector({
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-sm font-medium text-foreground truncate">
-              {displayLabel}
-            </span>
+            <span className="text-sm font-medium text-foreground truncate">{displayLabel}</span>
             {/* Loading skeleton for status */}
             {isLoadingStatuses ? (
               <div className="h-3 w-12 bg-muted rounded animate-pulse" />
@@ -361,11 +343,7 @@ export function WorkingDirectorySelector({
                 }}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors',
-                  isSelected
-                    ? 'bg-blue-500/15'
-                    : isFocused
-                    ? 'bg-accent/70'
-                    : 'hover:bg-accent'
+                  isSelected ? 'bg-blue-500/15' : isFocused ? 'bg-accent/70' : 'hover:bg-accent'
                 )}
               >
                 {/* Branch Icon */}
@@ -399,10 +377,7 @@ export function WorkingDirectorySelector({
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className="text-xs text-muted-foreground truncate"
-                      title={worktree.path}
-                    >
+                    <span className="text-xs text-muted-foreground truncate" title={worktree.path}>
                       {worktree.path}
                     </span>
                     <WorktreeStatusIndicator status={status} compact />
@@ -410,9 +385,7 @@ export function WorkingDirectorySelector({
                 </div>
 
                 {/* Selected Indicator */}
-                {isSelected && (
-                  <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                )}
+                {isSelected && <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />}
               </div>
             );
           })}

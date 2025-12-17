@@ -1,5 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Check, Trash2, X, AlertCircle, CheckCircle, XCircle, GitBranch, Shield, Rocket, Webhook, Play } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  Trash2,
+  X,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  GitBranch,
+  Shield,
+  Rocket,
+  Webhook,
+  Play,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useNotificationCenter } from '../../hooks/useNotificationCenter';
@@ -86,7 +99,12 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
     >
       <div className="flex items-start gap-3">
         {/* Category icon */}
-        <div className={cn('mt-0.5 p-1.5 rounded-lg', statusColor.replace('text-', 'bg-').replace('400', '500/20'))}>
+        <div
+          className={cn(
+            'mt-0.5 p-1.5 rounded-lg',
+            statusColor.replace('text-', 'bg-').replace('400', '500/20')
+          )}
+        >
           <CategoryIcon className={cn('w-4 h-4', statusColor)} />
         </div>
 
@@ -95,7 +113,12 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <StatusIcon className={cn('w-3.5 h-3.5', statusColor)} />
-              <span className={cn('text-sm font-medium', notification.isRead ? 'text-muted-foreground' : 'text-foreground')}>
+              <span
+                className={cn(
+                  'text-sm font-medium',
+                  notification.isRead ? 'text-muted-foreground' : 'text-foreground'
+                )}
+              >
                 {notification.title}
               </span>
             </div>
@@ -103,9 +126,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
               <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5" />
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-            {notification.body}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notification.body}</p>
           <div className="flex items-center justify-between mt-1.5">
             <span className="text-[10px] text-muted-foreground/60">
               {formatRelativeTime(notification.createdAt)}
@@ -249,9 +270,7 @@ export const NotificationButton: React.FC = () => {
           {/* Notification list */}
           <div className="flex-1 overflow-y-auto">
             {isLoading && notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-muted-foreground text-sm">
-                Loading...
-              </div>
+              <div className="px-4 py-8 text-center text-muted-foreground text-sm">Loading...</div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />

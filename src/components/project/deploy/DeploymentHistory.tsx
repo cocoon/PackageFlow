@@ -250,12 +250,7 @@ function StatusIcon({ status, className }: { status: DeploymentStatus; className
   const shouldAnimate = 'animate' in config && config.animate;
   return (
     <IconComponent
-      className={cn(
-        'w-4 h-4',
-        config.iconColor,
-        shouldAnimate && 'animate-spin',
-        className
-      )}
+      className={cn('w-4 h-4', config.iconColor, shouldAnimate && 'animate-spin', className)}
     />
   );
 }
@@ -304,12 +299,7 @@ function LabeledSelect({
       <span className="text-[11px] text-muted-foreground whitespace-nowrap">{label}:</span>
       {/* Wrapper with min-width for dropdown panel */}
       <div className={cn(width, '[&_[role=listbox]]:min-w-[140px]')}>
-        <Select
-          value={value}
-          onValueChange={onChange}
-          options={options}
-          size="sm"
-        />
+        <Select value={value} onValueChange={onChange} options={options} size="sm" />
       </div>
     </div>
   );
@@ -379,7 +369,10 @@ function DeploymentItem({
         </div>
 
         {/* Right: Duration */}
-        <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 ml-auto" title="Build time">
+        <div
+          className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 ml-auto"
+          title="Build time"
+        >
           <Timer className="h-3 w-3" />
           <span className="font-mono">{getDisplayDuration(deployment)}</span>
         </div>
@@ -438,9 +431,7 @@ function DeploymentItem({
               {deployment.commitHash.substring(0, 7)}
             </code>
           )}
-          {deployment.commitMessage && (
-            <span className="truncate">{deployment.commitMessage}</span>
-          )}
+          {deployment.commitMessage && <span className="truncate">{deployment.commitMessage}</span>}
         </div>
       )}
 
@@ -499,7 +490,12 @@ function EmptyState({
         <Filter className="h-10 w-10 text-muted-foreground/30 mb-3" />
         <p className="text-sm font-medium text-muted-foreground">No matching deployments</p>
         <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters</p>
-        <Button variant="link" size="sm" onClick={onClearFilters} className="mt-3 h-auto p-0 text-xs">
+        <Button
+          variant="link"
+          size="sm"
+          onClick={onClearFilters}
+          className="mt-3 h-auto p-0 text-xs"
+        >
           Clear filters
         </Button>
       </div>
@@ -573,10 +569,18 @@ export function DeploymentHistory({
         case 'date':
           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
-        case 'status':
-          const statusOrder = { ready: 0, building: 1, deploying: 2, queued: 3, failed: 4, cancelled: 5 };
+        case 'status': {
+          const statusOrder = {
+            ready: 0,
+            building: 1,
+            deploying: 2,
+            queued: 3,
+            failed: 4,
+            cancelled: 5,
+          };
           comparison = (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
           break;
+        }
         case 'deployTime':
           comparison = (a.deployTime || 0) - (b.deployTime || 0);
           break;

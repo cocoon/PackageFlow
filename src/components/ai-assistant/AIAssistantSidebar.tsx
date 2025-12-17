@@ -56,7 +56,9 @@ interface AIAssistantSidebarProps {
 }
 
 /** Group conversations by date */
-function groupConversationsByDate(conversations: ConversationSummary[]): Map<string, ConversationSummary[]> {
+function groupConversationsByDate(
+  conversations: ConversationSummary[]
+): Map<string, ConversationSummary[]> {
   const groups = new Map<string, ConversationSummary[]>();
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -105,7 +107,9 @@ export function AIAssistantSidebar({
   className,
 }: AIAssistantSidebarProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [conversationToDelete, setConversationToDelete] = useState<ConversationSummary | null>(null);
+  const [conversationToDelete, setConversationToDelete] = useState<ConversationSummary | null>(
+    null
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [hoveredConvId, setHoveredConvId] = useState<string | null>(null);
 
@@ -115,8 +119,8 @@ export function AIAssistantSidebar({
     const query = searchQuery.toLowerCase();
     return conversations.filter(
       (conv) =>
-        (conv.title?.toLowerCase().includes(query)) ||
-        (conv.lastMessagePreview?.toLowerCase().includes(query))
+        conv.title?.toLowerCase().includes(query) ||
+        conv.lastMessagePreview?.toLowerCase().includes(query)
     );
   }, [conversations, searchQuery]);
 
@@ -127,13 +131,16 @@ export function AIAssistantSidebar({
   );
 
   // Handle delete button click
-  const handleDeleteClick = useCallback((conversationId: string) => {
-    const conversation = conversations.find((c) => c.id === conversationId);
-    if (conversation) {
-      setConversationToDelete(conversation);
-      setDeleteDialogOpen(true);
-    }
-  }, [conversations]);
+  const handleDeleteClick = useCallback(
+    (conversationId: string) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (conversation) {
+        setConversationToDelete(conversation);
+        setDeleteDialogOpen(true);
+      }
+    },
+    [conversations]
+  );
 
   // Handle delete confirmation
   const handleDeleteConfirm = useCallback(() => {
@@ -435,10 +442,7 @@ function ConversationListSkeleton() {
   return (
     <div className="space-y-2">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div
-          key={i}
-          className="flex items-start gap-2 px-2 py-2 rounded-lg"
-        >
+        <div key={i} className="flex items-start gap-2 px-2 py-2 rounded-lg">
           <Skeleton className="w-7 h-7 rounded-lg flex-shrink-0" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-3.5 w-3/4" />
@@ -467,18 +471,9 @@ function EmptyState({ onNewChat }: { onNewChat: () => void }) {
       >
         <Bot className="w-7 h-7 text-purple-500/70" />
       </div>
-      <p className="text-sm font-medium text-foreground mb-1">
-        No conversations yet
-      </p>
-      <p className="text-xs text-muted-foreground mb-4">
-        Start chatting with AI Assistant
-      </p>
-      <Button
-        variant="default"
-        size="sm"
-        onClick={onNewChat}
-        className="text-xs"
-      >
+      <p className="text-sm font-medium text-foreground mb-1">No conversations yet</p>
+      <p className="text-xs text-muted-foreground mb-4">Start chatting with AI Assistant</p>
+      <Button variant="default" size="sm" onClick={onNewChat} className="text-xs">
         <Plus className="w-3.5 h-3.5 mr-1.5" />
         New Chat
       </Button>
@@ -502,18 +497,9 @@ function NoSearchResults({ query, onClear }: { query: string; onClear: () => voi
       >
         <Search className="w-6 h-6 text-muted-foreground" />
       </div>
-      <p className="text-sm font-medium text-foreground mb-1">
-        No results found
-      </p>
-      <p className="text-xs text-muted-foreground mb-3">
-        No conversations match "{query}"
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onClear}
-        className="text-xs"
-      >
+      <p className="text-sm font-medium text-foreground mb-1">No results found</p>
+      <p className="text-xs text-muted-foreground mb-3">No conversations match "{query}"</p>
+      <Button variant="outline" size="sm" onClick={onClear} className="text-xs">
         Clear search
       </Button>
     </div>

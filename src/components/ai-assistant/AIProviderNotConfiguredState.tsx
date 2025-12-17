@@ -41,9 +41,7 @@ export function AIProviderNotConfiguredState({
         icon: Settings2,
         onClick: onOpenSettings,
       }}
-      shortcuts={[
-        { key: 'Cmd+,', label: 'Open Settings' },
-      ]}
+      shortcuts={[{ key: 'Cmd+,', label: 'Open Settings' }]}
       className={className}
     />
   );

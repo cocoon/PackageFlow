@@ -27,10 +27,7 @@ export function AngularIcon({ className, ...props }: IconProps) {
       {/* Shield shape */}
       <path d="M12 2L3 6v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4z" />
       {/* Letter A - dark in light mode, white in dark mode for contrast */}
-      <path
-        d="M12 7l-3 10M12 7l3 10M9.5 14h5"
-        className="stroke-slate-800 dark:stroke-white"
-      />
+      <path d="M12 7l-3 10M12 7l3 10M9.5 14h5" className="stroke-slate-800 dark:stroke-white" />
     </svg>
   );
 }

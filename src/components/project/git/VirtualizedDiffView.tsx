@@ -169,10 +169,13 @@ export function VirtualizedDiffView({
   const flattenedRows = useMemo(() => flattenDiff(diff.hunks), [diff.hunks]);
 
   // Estimate row heights
-  const estimateSize = useCallback((index: number) => {
-    const row = flattenedRows[index];
-    return row.type === 'hunk-header' ? HEADER_HEIGHT : LINE_HEIGHT;
-  }, [flattenedRows]);
+  const estimateSize = useCallback(
+    (index: number) => {
+      const row = flattenedRows[index];
+      return row.type === 'hunk-header' ? HEADER_HEIGHT : LINE_HEIGHT;
+    },
+    [flattenedRows]
+  );
 
   const virtualizer = useVirtualizer({
     count: flattenedRows.length,
@@ -218,10 +221,7 @@ export function VirtualizedDiffView({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div
-      ref={containerRef}
-      className="overflow-auto h-full bg-background"
-    >
+    <div ref={containerRef} className="overflow-auto h-full bg-background">
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,

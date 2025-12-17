@@ -185,243 +185,237 @@ export const NotificationSettingsPanel: React.FC = () => {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pt-4 space-y-6">
-      {/* Master Control Section */}
-      <SettingSection
-        title="Notification Status"
-        description="Control all desktop notifications"
-        icon={<Bell className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r',
-            settings.enabled
-              ? 'from-green-500/5 via-transparent to-transparent border-green-500/20'
-              : 'from-muted/50 via-transparent to-transparent border-border',
-            'border',
-            'transition-colors'
-          )}
+        {/* Master Control Section */}
+        <SettingSection
+          title="Notification Status"
+          description="Control all desktop notifications"
+          icon={<Bell className="w-4 h-4" />}
         >
-          <div className="flex items-start gap-3">
-            {/* Status Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                settings.enabled
-                  ? 'bg-green-500/10 text-green-500 dark:text-green-400'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              {settings.enabled ? (
-                <Bell className="w-5 h-5" />
-              ) : (
-                <BellOff className="w-5 h-5" />
-              )}
-            </div>
-
-            {/* Status Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  Desktop Notifications
-                </span>
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border',
-                    settings.enabled
-                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                      : 'bg-muted text-muted-foreground border-border'
-                  )}
-                >
-                  <CheckCircle2 className="w-3 h-3" />
-                  {settings.enabled ? 'Enabled' : 'Disabled'}
-                </span>
+          <div
+            className={cn(
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r',
+              settings.enabled
+                ? 'from-green-500/5 via-transparent to-transparent border-green-500/20'
+                : 'from-muted/50 via-transparent to-transparent border-border',
+              'border',
+              'transition-colors'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {/* Status Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  settings.enabled
+                    ? 'bg-green-500/10 text-green-500 dark:text-green-400'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {settings.enabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {settings.enabled
-                  ? `Receiving notifications for ${enabledCategoryCount} of ${totalCategoryCount} categories`
-                  : 'All notifications are currently disabled'}
-              </p>
-            </div>
 
-            {/* Toggle */}
-            <div className="flex-shrink-0">
-              <Toggle
-                checked={settings.enabled}
-                onChange={handleMasterToggle}
-                aria-label="Enable notifications"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Sound Setting */}
-        <SoundSettingCard
-          enabled={settings.soundEnabled}
-          disabled={!settings.enabled}
-          onToggle={handleSoundToggle}
-        />
-      </SettingSection>
-
-      {/* Categories Section */}
-      <SettingSection
-        title="Notification Categories"
-        description="Choose which types of events trigger notifications"
-        icon={<Bell className="w-4 h-4" />}
-      >
-        <div className="grid gap-3">
-          {NOTIFICATION_CATEGORIES.map((category) => {
-            const Icon = CATEGORY_ICONS[category.id];
-            const colors = CATEGORY_COLORS[category.id];
-            const isEnabled = settings.categories[category.id];
-
-            return (
-              <CategoryCard
-                key={category.id}
-                icon={<Icon className="w-4 h-4" />}
-                title={category.label}
-                description={category.description}
-                enabled={isEnabled}
-                disabled={!settings.enabled}
-                colors={colors}
-                onToggle={() => handleCategoryToggle(category.id)}
-              />
-            );
-          })}
-        </div>
-      </SettingSection>
-
-      {/* Do Not Disturb Section */}
-      <SettingSection
-        title="Do Not Disturb"
-        description="Schedule quiet hours when notifications are suppressed"
-        icon={<Moon className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r',
-            settings.doNotDisturb.enabled && settings.enabled
-              ? 'from-indigo-500/5 via-transparent to-transparent border-indigo-500/20'
-              : 'from-muted/30 via-transparent to-transparent border-border',
-            'border',
-            'transition-colors'
-          )}
-        >
-          <div className="flex items-start gap-3">
-            {/* DND Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                settings.doNotDisturb.enabled && settings.enabled
-                  ? 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              <Moon className="w-5 h-5" />
-            </div>
-
-            {/* DND Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Quiet Hours</span>
-                {settings.doNotDisturb.enabled && settings.enabled && (
+              {/* Status Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Desktop Notifications</span>
                   <span
                     className={cn(
-                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
-                      'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border',
+                      settings.enabled
+                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                        : 'bg-muted text-muted-foreground border-border'
                     )}
                   >
-                    <Clock className="w-3 h-3" />
-                    {settings.doNotDisturb.startTime} - {settings.doNotDisturb.endTime}
+                    <CheckCircle2 className="w-3 h-3" />
+                    {settings.enabled ? 'Enabled' : 'Disabled'}
                   </span>
-                )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {settings.enabled
+                    ? `Receiving notifications for ${enabledCategoryCount} of ${totalCategoryCount} categories`
+                    : 'All notifications are currently disabled'}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {settings.doNotDisturb.enabled && settings.enabled
-                  ? 'Notifications will be silenced during quiet hours'
-                  : 'Enable to suppress notifications during specified hours'}
-              </p>
-            </div>
 
-            {/* Toggle */}
-            <div className="flex-shrink-0">
-              <Toggle
-                checked={settings.doNotDisturb.enabled}
-                onChange={handleDndToggle}
-                disabled={!settings.enabled}
-                aria-label="Enable do not disturb"
-              />
+              {/* Toggle */}
+              <div className="flex-shrink-0">
+                <Toggle
+                  checked={settings.enabled}
+                  onChange={handleMasterToggle}
+                  aria-label="Enable notifications"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Time Picker */}
-          {settings.enabled && settings.doNotDisturb.enabled && (
-            <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">Schedule</span>
+          {/* Sound Setting */}
+          <SoundSettingCard
+            enabled={settings.soundEnabled}
+            disabled={!settings.enabled}
+            onToggle={handleSoundToggle}
+          />
+        </SettingSection>
+
+        {/* Categories Section */}
+        <SettingSection
+          title="Notification Categories"
+          description="Choose which types of events trigger notifications"
+          icon={<Bell className="w-4 h-4" />}
+        >
+          <div className="grid gap-3">
+            {NOTIFICATION_CATEGORIES.map((category) => {
+              const Icon = CATEGORY_ICONS[category.id];
+              const colors = CATEGORY_COLORS[category.id];
+              const isEnabled = settings.categories[category.id];
+
+              return (
+                <CategoryCard
+                  key={category.id}
+                  icon={<Icon className="w-4 h-4" />}
+                  title={category.label}
+                  description={category.description}
+                  enabled={isEnabled}
+                  disabled={!settings.enabled}
+                  colors={colors}
+                  onToggle={() => handleCategoryToggle(category.id)}
+                />
+              );
+            })}
+          </div>
+        </SettingSection>
+
+        {/* Do Not Disturb Section */}
+        <SettingSection
+          title="Do Not Disturb"
+          description="Schedule quiet hours when notifications are suppressed"
+          icon={<Moon className="w-4 h-4" />}
+        >
+          <div
+            className={cn(
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r',
+              settings.doNotDisturb.enabled && settings.enabled
+                ? 'from-indigo-500/5 via-transparent to-transparent border-indigo-500/20'
+                : 'from-muted/30 via-transparent to-transparent border-border',
+              'border',
+              'transition-colors'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {/* DND Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  settings.doNotDisturb.enabled && settings.enabled
+                    ? 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400'
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                <Moon className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-4">
+
+              {/* DND Info */}
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <label htmlFor="dnd-start" className="text-sm text-muted-foreground">
-                    From
-                  </label>
-                  <input
-                    id="dnd-start"
-                    type="time"
-                    value={settings.doNotDisturb.startTime}
-                    onChange={(e) => handleDndTimeChange('startTime', e.target.value)}
-                    className={cn(
-                      'px-2 py-1.5 rounded-md border border-input bg-background text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
-                      'transition-colors'
-                    )}
-                  />
+                  <span className="text-sm font-medium text-foreground">Quiet Hours</span>
+                  {settings.doNotDisturb.enabled && settings.enabled && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
+                      )}
+                    >
+                      <Clock className="w-3 h-3" />
+                      {settings.doNotDisturb.startTime} - {settings.doNotDisturb.endTime}
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <label htmlFor="dnd-end" className="text-sm text-muted-foreground">
-                    To
-                  </label>
-                  <input
-                    id="dnd-end"
-                    type="time"
-                    value={settings.doNotDisturb.endTime}
-                    onChange={(e) => handleDndTimeChange('endTime', e.target.value)}
-                    className={cn(
-                      'px-2 py-1.5 rounded-md border border-input bg-background text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
-                      'transition-colors'
-                    )}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {settings.doNotDisturb.enabled && settings.enabled
+                    ? 'Notifications will be silenced during quiet hours'
+                    : 'Enable to suppress notifications during specified hours'}
+                </p>
+              </div>
+
+              {/* Toggle */}
+              <div className="flex-shrink-0">
+                <Toggle
+                  checked={settings.doNotDisturb.enabled}
+                  onChange={handleDndToggle}
+                  disabled={!settings.enabled}
+                  aria-label="Enable do not disturb"
+                />
               </div>
             </div>
-          )}
-        </div>
-      </SettingSection>
 
-      {/* Tips Info Box */}
-      <SettingInfoBox title="Tips" variant="info">
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>Notifications use your system's native notification center</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              You can also manage notifications in your system's <strong>Settings</strong> app
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Do Not Disturb times wrap around midnight (e.g., 22:00 to 08:00 is overnight)
-            </span>
-          </li>
-        </ul>
-      </SettingInfoBox>
+            {/* Time Picker */}
+            {settings.enabled && settings.doNotDisturb.enabled && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Schedule</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="dnd-start" className="text-sm text-muted-foreground">
+                      From
+                    </label>
+                    <input
+                      id="dnd-start"
+                      type="time"
+                      value={settings.doNotDisturb.startTime}
+                      onChange={(e) => handleDndTimeChange('startTime', e.target.value)}
+                      className={cn(
+                        'px-2 py-1.5 rounded-md border border-input bg-background text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                        'transition-colors'
+                      )}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="dnd-end" className="text-sm text-muted-foreground">
+                      To
+                    </label>
+                    <input
+                      id="dnd-end"
+                      type="time"
+                      value={settings.doNotDisturb.endTime}
+                      onChange={(e) => handleDndTimeChange('endTime', e.target.value)}
+                      className={cn(
+                        'px-2 py-1.5 rounded-md border border-input bg-background text-sm',
+                        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                        'transition-colors'
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </SettingSection>
+
+        {/* Tips Info Box */}
+        <SettingInfoBox title="Tips" variant="info">
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>Notifications use your system's native notification center</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                You can also manage notifications in your system's <strong>Settings</strong> app
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                Do Not Disturb times wrap around midnight (e.g., 22:00 to 08:00 is overnight)
+              </span>
+            </li>
+          </ul>
+        </SettingInfoBox>
       </div>
     </div>
   );
@@ -530,7 +524,9 @@ const SoundSettingCard: React.FC<SoundSettingCardProps> = ({ enabled, disabled, 
       <div
         className={cn(
           'p-2 rounded-lg flex-shrink-0',
-          enabled ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-muted text-muted-foreground'
+          enabled
+            ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+            : 'bg-muted text-muted-foreground'
         )}
       >
         {enabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -585,7 +581,9 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       <div
         className={cn(
           'p-2 rounded-lg flex-shrink-0 transition-colors',
-          enabled && !disabled ? cn(colors.iconBg, colors.iconColor) : 'bg-muted text-muted-foreground'
+          enabled && !disabled
+            ? cn(colors.iconBg, colors.iconColor)
+            : 'bg-muted text-muted-foreground'
         )}
       >
         {icon}

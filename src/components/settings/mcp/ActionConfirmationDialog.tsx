@@ -77,12 +77,7 @@ interface RequestCardProps {
   isProcessing: boolean;
 }
 
-const RequestCard: React.FC<RequestCardProps> = ({
-  request,
-  onApprove,
-  onDeny,
-  isProcessing,
-}) => {
+const RequestCard: React.FC<RequestCardProps> = ({ request, onApprove, onDeny, isProcessing }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [denyReason, setDenyReason] = useState('');
   const [showDenyInput, setShowDenyInput] = useState(false);
@@ -230,11 +225,7 @@ const RequestCard: React.FC<RequestCardProps> = ({
             isProcessing && 'opacity-50 cursor-not-allowed'
           )}
         >
-          {isProcessing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <X className="w-4 h-4" />
-          )}
+          {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
           {showDenyInput ? 'Confirm Deny' : 'Deny'}
         </button>
       </div>
@@ -324,9 +315,7 @@ export const ActionConfirmationDialog: React.FC<ActionConfirmationDialogProps> =
         onClick={() => setIsMinimized(!isMinimized)}
       >
         <AlertTriangle className="w-4 h-4 text-amber-500" />
-        <span className="flex-1 font-medium text-sm">
-          Action Confirmation Required
-        </span>
+        <span className="flex-1 font-medium text-sm">Action Confirmation Required</span>
         <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-xs font-medium">
           {pendingCount}
         </span>

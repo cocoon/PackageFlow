@@ -3,7 +3,24 @@
  * @see specs/001-expo-workflow-automation/spec.md - US1
  */
 
-import { ArrowLeft, Play, Square, SkipForward, Plus, Loader2, CheckCircle2, Download, Upload, Webhook, ArrowUpFromLine, ArrowDownToLine, Workflow, Terminal, History, MoreHorizontal } from 'lucide-react';
+import {
+  ArrowLeft,
+  Play,
+  Square,
+  SkipForward,
+  Plus,
+  Loader2,
+  CheckCircle2,
+  Download,
+  Upload,
+  Webhook,
+  ArrowUpFromLine,
+  ArrowDownToLine,
+  Workflow,
+  Terminal,
+  History,
+  MoreHorizontal,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -148,12 +165,8 @@ export function WorkflowToolbar({
       {/* Right Section: Actions */}
       <div className="flex items-center gap-2 shrink-0">
         {/* Auto-save Indicator */}
-        {isSaving && (
-          <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-        )}
-        {!isSaving && saveSuccess && (
-          <CheckCircle2 className="w-4 h-4 text-green-500" />
-        )}
+        {isSaving && <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />}
+        {!isSaving && saveSuccess && <CheckCircle2 className="w-4 h-4 text-green-500" />}
 
         {/* Add Step Dropdown */}
         <Dropdown
@@ -170,25 +183,16 @@ export function WorkflowToolbar({
             </Button>
           }
         >
-          <DropdownItem
-            onClick={onAddNode}
-            icon={<Terminal className="w-4 h-4" />}
-          >
+          <DropdownItem onClick={onAddNode} icon={<Terminal className="w-4 h-4" />}>
             Script Step
           </DropdownItem>
           {onAddTriggerWorkflow && (
-            <DropdownItem
-              onClick={onAddTriggerWorkflow}
-              icon={<Workflow className="w-4 h-4" />}
-            >
+            <DropdownItem onClick={onAddTriggerWorkflow} icon={<Workflow className="w-4 h-4" />}>
               Trigger Workflow
             </DropdownItem>
           )}
           {onImportNode && (
-            <DropdownItem
-              onClick={onImportNode}
-              icon={<Upload className="w-4 h-4" />}
-            >
+            <DropdownItem onClick={onImportNode} icon={<Upload className="w-4 h-4" />}>
               Import Step
             </DropdownItem>
           )}
@@ -211,17 +215,17 @@ export function WorkflowToolbar({
                 <MoreHorizontal className="w-4 h-4 mr-1.5" />
                 More
                 {hasAnyWebhook && (
-                  <span className="ml-1.5 w-2 h-2 rounded-full bg-purple-500" title="Webhook enabled" />
+                  <span
+                    className="ml-1.5 w-2 h-2 rounded-full bg-purple-500"
+                    title="Webhook enabled"
+                  />
                 )}
               </Button>
             }
           >
             {/* Webhook Settings */}
             {onWebhookSettings && (
-              <DropdownItem
-                onClick={onWebhookSettings}
-                icon={<Webhook className="w-4 h-4" />}
-              >
+              <DropdownItem onClick={onWebhookSettings} icon={<Webhook className="w-4 h-4" />}>
                 <span className="flex items-center gap-2">
                   Webhook Settings
                   {hasAnyWebhook && (
@@ -247,18 +251,12 @@ export function WorkflowToolbar({
 
             {/* Share options */}
             {onExportWorkflow && (
-              <DropdownItem
-                onClick={onExportWorkflow}
-                icon={<Download className="w-4 h-4" />}
-              >
+              <DropdownItem onClick={onExportWorkflow} icon={<Download className="w-4 h-4" />}>
                 Export Workflow
               </DropdownItem>
             )}
             {onImportWorkflow && (
-              <DropdownItem
-                onClick={onImportWorkflow}
-                icon={<Upload className="w-4 h-4" />}
-              >
+              <DropdownItem onClick={onImportWorkflow} icon={<Upload className="w-4 h-4" />}>
                 Import Workflow
               </DropdownItem>
             )}
@@ -268,10 +266,7 @@ export function WorkflowToolbar({
 
             {/* History */}
             {onHistory && (
-              <DropdownItem
-                onClick={onHistory}
-                icon={<History className="w-4 h-4" />}
-              >
+              <DropdownItem onClick={onHistory} icon={<History className="w-4 h-4" />}>
                 <span className="flex items-center gap-2">
                   Execution History
                   {historyCount !== undefined && historyCount > 0 && (
@@ -305,23 +300,14 @@ export function WorkflowToolbar({
 
         {/* Execution Controls */}
         {!isRunning && !isPaused && (
-          <Button
-            size="sm"
-            onClick={onExecute}
-            disabled={!canExecute}
-            variant="success"
-          >
+          <Button size="sm" onClick={onExecute} disabled={!canExecute} variant="success">
             <Play className="w-4 h-4 mr-1.5" />
             Run
           </Button>
         )}
 
         {isRunning && (
-          <Button
-            size="sm"
-            onClick={onCancel}
-            variant="destructive"
-          >
+          <Button size="sm" onClick={onCancel} variant="destructive">
             <Square className="w-4 h-4 mr-1.5" />
             Stop
           </Button>
@@ -329,19 +315,11 @@ export function WorkflowToolbar({
 
         {isPaused && (
           <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onContinue}
-            >
+            <Button variant="default" size="sm" onClick={onContinue}>
               <SkipForward className="w-4 h-4 mr-1.5" />
               Continue
             </Button>
-            <Button
-              size="sm"
-              onClick={onCancel}
-              variant="destructive"
-            >
+            <Button size="sm" onClick={onCancel} variant="destructive">
               <Square className="w-4 h-4 mr-1.5" />
               Stop
             </Button>

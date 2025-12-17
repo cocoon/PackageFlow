@@ -347,9 +347,7 @@ export function UpdateDialog({
             )}
 
             {(state === 'downloading' || state === 'installing') && (
-              <span className="text-sm text-muted-foreground">
-                Please wait...
-              </span>
+              <span className="text-sm text-muted-foreground">Please wait...</span>
             )}
 
             {state === 'complete' && (

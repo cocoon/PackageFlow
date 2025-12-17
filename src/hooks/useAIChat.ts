@@ -185,10 +185,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
           const lastMessage = prev[prev.length - 1];
           if (lastMessage && lastMessage.id === messageId) {
             // Update existing message
-            return [
-              ...prev.slice(0, -1),
-              { ...lastMessage, content: lastMessage.content + token },
-            ];
+            return [...prev.slice(0, -1), { ...lastMessage, content: lastMessage.content + token }];
           }
           return prev;
         });
@@ -196,31 +193,57 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       unlisteners.push(unlistenToken);
 
       // Complete event - finalize the message
-      const unlistenComplete = await listen<ChatCompletePayload>('ai:chat-complete', async (event) => {
-        const { streamSessionId, fullContent, messageId, tokensUsed, model, finishReason, conversationId } = event.payload;
+      const unlistenComplete = await listen<ChatCompletePayload>(
+        'ai:chat-complete',
+        async (event) => {
+          const {
+            streamSessionId,
+            fullContent,
+            messageId,
+            tokensUsed,
+            model,
+            finishReason,
+            conversationId,
+          } = event.payload;
 
-        if (streamSessionId !== currentStreamIdRef.current) return;
+          if (streamSessionId !== currentStreamIdRef.current) return;
 
-        console.log('[AI Chat] Response complete:', {
-          messageId,
-          tokensUsed,
-          model,
-          finishReason,
-          contentLength: fullContent.length,
-        });
+          console.log('[AI Chat] Response complete:', {
+            messageId,
+            tokensUsed,
+            model,
+            finishReason,
+            contentLength: fullContent.length,
+          });
 
-        // Reload messages from database to sync all intermediate messages
-        // (tool call messages, tool result messages, etc.)
-        if (conversationId) {
-          try {
-            const dbMessages = await invoke<Message[]>(
-              'ai_assistant_get_messages',
-              { conversationId }
-            );
-            setMessages(dbMessages);
-          } catch (err) {
-            console.error('[AI Chat] Failed to reload messages:', err);
-            // Fallback: update the streaming message only
+          // Reload messages from database to sync all intermediate messages
+          // (tool call messages, tool result messages, etc.)
+          if (conversationId) {
+            try {
+              const dbMessages = await invoke<Message[]>('ai_assistant_get_messages', {
+                conversationId,
+              });
+              setMessages(dbMessages);
+            } catch (err) {
+              console.error('[AI Chat] Failed to reload messages:', err);
+              // Fallback: update the streaming message only
+              setMessages((prev) => {
+                return prev.map((msg) => {
+                  if (msg.id === messageId) {
+                    return {
+                      ...msg,
+                      content: fullContent,
+                      status: 'sent',
+                      tokensUsed,
+                      model,
+                    };
+                  }
+                  return msg;
+                });
+              });
+            }
+          } else {
+            // No conversation ID, just update the message
             setMessages((prev) => {
               return prev.map((msg) => {
                 if (msg.id === messageId) {
@@ -236,28 +259,12 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
               });
             });
           }
-        } else {
-          // No conversation ID, just update the message
-          setMessages((prev) => {
-            return prev.map((msg) => {
-              if (msg.id === messageId) {
-                return {
-                  ...msg,
-                  content: fullContent,
-                  status: 'sent',
-                  tokensUsed,
-                  model,
-                };
-              }
-              return msg;
-            });
-          });
-        }
 
-        setIsGenerating(false);
-        currentStreamIdRef.current = null;
-        streamingMessageIdRef.current = null;
-      });
+          setIsGenerating(false);
+          currentStreamIdRef.current = null;
+          streamingMessageIdRef.current = null;
+        }
+      );
       unlisteners.push(unlistenComplete);
 
       // Error event - handle streaming errors
@@ -371,117 +378,120 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   }, []);
 
   // Send a message
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isGenerating) return;
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim() || isGenerating) return;
 
-    console.log('[AI Chat] Sending message:', {
-      content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-      conversationId: conversation?.id,
-      projectPath,
-      providerId,
-    });
-
-    setError(null);
-    setResponseStatus(null); // Clear previous status (Feature 023)
-
-    // Create user message
-    const userMessageId = `msg_${Date.now()}_user`;
-    const userMessage: Message = {
-      id: userMessageId,
-      conversationId: conversation?.id || '',
-      role: 'user',
-      content: content.trim(),
-      toolCalls: null,
-      toolResults: null,
-      status: 'sent',
-      tokensUsed: null,
-      model: null,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Create placeholder assistant message
-    const assistantMessageId = `msg_${Date.now()}_assistant`;
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      conversationId: conversation?.id || '',
-      role: 'assistant',
-      content: '',
-      toolCalls: null,
-      toolResults: null,
-      status: 'pending',
-      tokensUsed: null,
-      model: null,
-      createdAt: new Date().toISOString(),
-    };
-
-    // Add both messages to state
-    setMessages((prev) => [...prev, userMessage, assistantMessage]);
-    setIsGenerating(true);
-
-    try {
-      // Call Tauri command to send message
-      const response = await invoke<{
-        streamSessionId: string;
-        conversationId: string;
-        messageId: string;
-      }>('ai_assistant_send_message', {
-        request: {
-          conversationId: conversation?.id,
-          content: content.trim(),
-          projectPath: projectPath,
-          // Use conversation's providerId if available, otherwise use the hook's providerId
-          providerId: conversation?.providerId ?? providerId,
-        },
+      console.log('[AI Chat] Sending message:', {
+        content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+        conversationId: conversation?.id,
+        projectPath,
+        providerId,
       });
 
-      // Store stream session ID for event handling
-      currentStreamIdRef.current = response.streamSessionId;
+      setError(null);
+      setResponseStatus(null); // Clear previous status (Feature 023)
 
-      console.log('[AI Chat] Stream started:', {
-        streamSessionId: response.streamSessionId,
-        conversationId: response.conversationId,
-        messageId: response.messageId,
-      });
+      // Create user message
+      const userMessageId = `msg_${Date.now()}_user`;
+      const userMessage: Message = {
+        id: userMessageId,
+        conversationId: conversation?.id || '',
+        role: 'user',
+        content: content.trim(),
+        toolCalls: null,
+        toolResults: null,
+        status: 'sent',
+        tokensUsed: null,
+        model: null,
+        createdAt: new Date().toISOString(),
+      };
 
-      // Update assistant message with real ID
-      setMessages((prev) => {
-        return prev.map((msg) => {
-          if (msg.id === assistantMessageId) {
-            return { ...msg, id: response.messageId };
-          }
-          return msg;
+      // Create placeholder assistant message
+      const assistantMessageId = `msg_${Date.now()}_assistant`;
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        conversationId: conversation?.id || '',
+        role: 'assistant',
+        content: '',
+        toolCalls: null,
+        toolResults: null,
+        status: 'pending',
+        tokensUsed: null,
+        model: null,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Add both messages to state
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      setIsGenerating(true);
+
+      try {
+        // Call Tauri command to send message
+        const response = await invoke<{
+          streamSessionId: string;
+          conversationId: string;
+          messageId: string;
+        }>('ai_assistant_send_message', {
+          request: {
+            conversationId: conversation?.id,
+            content: content.trim(),
+            projectPath: projectPath,
+            // Use conversation's providerId if available, otherwise use the hook's providerId
+            providerId: conversation?.providerId ?? providerId,
+          },
         });
-      });
 
-      // Update conversation if it was created
-      if (!conversation && response.conversationId) {
-        setConversation({
-          id: response.conversationId,
-          title: null,
-          projectPath: projectPath || null,
-          providerId: providerId || null,
-          messageCount: 2,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+        // Store stream session ID for event handling
+        currentStreamIdRef.current = response.streamSessionId;
+
+        console.log('[AI Chat] Stream started:', {
+          streamSessionId: response.streamSessionId,
+          conversationId: response.conversationId,
+          messageId: response.messageId,
         });
+
+        // Update assistant message with real ID
+        setMessages((prev) => {
+          return prev.map((msg) => {
+            if (msg.id === assistantMessageId) {
+              return { ...msg, id: response.messageId };
+            }
+            return msg;
+          });
+        });
+
+        // Update conversation if it was created
+        if (!conversation && response.conversationId) {
+          setConversation({
+            id: response.conversationId,
+            title: null,
+            projectPath: projectPath || null,
+            providerId: providerId || null,
+            messageCount: 2,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error('Failed to send message:', err);
+        setError(err instanceof Error ? err.message : 'Failed to send message');
+
+        // Mark assistant message as error
+        setMessages((prev) => {
+          return prev.map((msg) => {
+            if (msg.id === assistantMessageId) {
+              return { ...msg, status: 'error', content: 'Failed to get response' };
+            }
+            return msg;
+          });
+        });
+
+        setIsGenerating(false);
       }
-    } catch (err) {
-      console.error('Failed to send message:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send message');
-
-      // Mark assistant message as error
-      setMessages((prev) => {
-        return prev.map((msg) => {
-          if (msg.id === assistantMessageId) {
-            return { ...msg, status: 'error', content: 'Failed to get response' };
-          }
-          return msg;
-        });
-      });
-
-      setIsGenerating(false);
-    }
-  }, [conversation, isGenerating, projectPath, providerId]);
+    },
+    [conversation, isGenerating, projectPath, providerId]
+  );
 
   // Stop current generation
   const stopGeneration = useCallback(async () => {
@@ -520,20 +530,18 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
 
     try {
       // Fetch conversation details
-      const conv = await invoke<Conversation | null>(
-        'ai_assistant_get_conversation',
-        { conversationId }
-      );
+      const conv = await invoke<Conversation | null>('ai_assistant_get_conversation', {
+        conversationId,
+      });
 
       if (!conv) {
         throw new Error('Conversation not found');
       }
 
       // Fetch messages
-      const conversationMessages = await invoke<Message[]>(
-        'ai_assistant_get_messages',
-        { conversationId }
-      );
+      const conversationMessages = await invoke<Message[]>('ai_assistant_get_messages', {
+        conversationId,
+      });
 
       setConversation(conv);
       setMessages(conversationMessages);
@@ -648,9 +656,7 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
       // Update placeholder with real message ID
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === continuationMessageId
-            ? { ...msg, id: response.messageId }
-            : msg
+          msg.id === continuationMessageId ? { ...msg, id: response.messageId } : msg
         )
       );
     } catch (err) {
@@ -662,126 +668,132 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
   }, [conversation, projectPath, providerId]);
 
   // Approve a tool call
-  const approveToolCall = useCallback(async (toolCallId: string): Promise<ToolResult> => {
-    console.log('[AI Chat] Approving tool call:', toolCallId);
+  const approveToolCall = useCallback(
+    async (toolCallId: string): Promise<ToolResult> => {
+      console.log('[AI Chat] Approving tool call:', toolCallId);
 
-    if (!conversation) {
-      throw new Error('No active conversation');
-    }
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
 
-    const messageId = currentMessageIdRef.current;
-    if (!messageId) {
-      throw new Error('No active message');
-    }
+      const messageId = currentMessageIdRef.current;
+      if (!messageId) {
+        throw new Error('No active message');
+      }
 
-    setIsExecutingTool(true);
-    setError(null);
+      setIsExecutingTool(true);
+      setError(null);
 
-    try {
-      console.log('[AI Chat] Executing tool via backend...');
-      const result = await invoke<ToolResult>('ai_assistant_approve_tool_call', {
-        conversationId: conversation.id,
-        messageId,
-        toolCallId,
-      });
-
-      console.log('[AI Chat] Tool execution result:', {
-        callId: result.callId,
-        success: result.success,
-        outputLength: result.output?.length || 0,
-        error: result.error,
-      });
-
-      // Remove from pending
-      setPendingToolCalls((prev) => {
-        const updated = new Map(prev);
-        updated.delete(toolCallId);
-        return updated;
-      });
-
-      // Update message with result
-      setMessages((prev) => {
-        return prev.map((msg) => {
-          if (msg.id === messageId) {
-            const existingResults = msg.toolResults || [];
-            const newStatus: ToolCallStatus = result.success ? 'completed' : 'failed';
-            const updatedCalls: ToolCall[] | null = msg.toolCalls?.map((tc) =>
-              tc.id === toolCallId
-                ? { ...tc, status: newStatus }
-                : tc
-            ) ?? null;
-            return {
-              ...msg,
-              toolCalls: updatedCalls,
-              toolResults: [...existingResults, result],
-            };
-          }
-          return msg;
+      try {
+        console.log('[AI Chat] Executing tool via backend...');
+        const result = await invoke<ToolResult>('ai_assistant_approve_tool_call', {
+          conversationId: conversation.id,
+          messageId,
+          toolCallId,
         });
-      });
 
-      // Continue conversation after successful tool execution
-      // This allows AI to respond with a summary of the tool result
-      setIsExecutingTool(false);
-      await continueAfterToolApproval();
+        console.log('[AI Chat] Tool execution result:', {
+          callId: result.callId,
+          success: result.success,
+          outputLength: result.output?.length || 0,
+          error: result.error,
+        });
 
-      return result;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to execute tool';
-      setError(errorMsg);
-      setIsExecutingTool(false);
-      throw err;
-    }
-  }, [conversation, continueAfterToolApproval]);
+        // Remove from pending
+        setPendingToolCalls((prev) => {
+          const updated = new Map(prev);
+          updated.delete(toolCallId);
+          return updated;
+        });
+
+        // Update message with result
+        setMessages((prev) => {
+          return prev.map((msg) => {
+            if (msg.id === messageId) {
+              const existingResults = msg.toolResults || [];
+              const newStatus: ToolCallStatus = result.success ? 'completed' : 'failed';
+              const updatedCalls: ToolCall[] | null =
+                msg.toolCalls?.map((tc) =>
+                  tc.id === toolCallId ? { ...tc, status: newStatus } : tc
+                ) ?? null;
+              return {
+                ...msg,
+                toolCalls: updatedCalls,
+                toolResults: [...existingResults, result],
+              };
+            }
+            return msg;
+          });
+        });
+
+        // Continue conversation after successful tool execution
+        // This allows AI to respond with a summary of the tool result
+        setIsExecutingTool(false);
+        await continueAfterToolApproval();
+
+        return result;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to execute tool';
+        setError(errorMsg);
+        setIsExecutingTool(false);
+        throw err;
+      }
+    },
+    [conversation, continueAfterToolApproval]
+  );
 
   // Deny a tool call
-  const denyToolCall = useCallback(async (toolCallId: string, reason?: string): Promise<void> => {
-    if (!conversation) {
-      throw new Error('No active conversation');
-    }
+  const denyToolCall = useCallback(
+    async (toolCallId: string, reason?: string): Promise<void> => {
+      if (!conversation) {
+        throw new Error('No active conversation');
+      }
 
-    const messageId = currentMessageIdRef.current;
-    if (!messageId) {
-      throw new Error('No active message');
-    }
+      const messageId = currentMessageIdRef.current;
+      if (!messageId) {
+        throw new Error('No active message');
+      }
 
-    try {
-      await invoke('ai_assistant_deny_tool_call', {
-        conversationId: conversation.id,
-        messageId,
-        toolCallId,
-        reason,
-      });
-
-      // Remove from pending
-      setPendingToolCalls((prev) => {
-        const updated = new Map(prev);
-        updated.delete(toolCallId);
-        return updated;
-      });
-
-      // Update message with denied status
-      setMessages((prev) => {
-        return prev.map((msg) => {
-          if (msg.id === messageId) {
-            const deniedStatus: ToolCallStatus = 'denied';
-            const updatedCalls: ToolCall[] | null = msg.toolCalls?.map((tc) =>
-              tc.id === toolCallId ? { ...tc, status: deniedStatus } : tc
-            ) ?? null;
-            return {
-              ...msg,
-              toolCalls: updatedCalls,
-            };
-          }
-          return msg;
+      try {
+        await invoke('ai_assistant_deny_tool_call', {
+          conversationId: conversation.id,
+          messageId,
+          toolCallId,
+          reason,
         });
-      });
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to deny tool';
-      setError(errorMsg);
-      throw err;
-    }
-  }, [conversation]);
+
+        // Remove from pending
+        setPendingToolCalls((prev) => {
+          const updated = new Map(prev);
+          updated.delete(toolCallId);
+          return updated;
+        });
+
+        // Update message with denied status
+        setMessages((prev) => {
+          return prev.map((msg) => {
+            if (msg.id === messageId) {
+              const deniedStatus: ToolCallStatus = 'denied';
+              const updatedCalls: ToolCall[] | null =
+                msg.toolCalls?.map((tc) =>
+                  tc.id === toolCallId ? { ...tc, status: deniedStatus } : tc
+                ) ?? null;
+              return {
+                ...msg,
+                toolCalls: updatedCalls,
+              };
+            }
+            return msg;
+          });
+        });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Failed to deny tool';
+        setError(errorMsg);
+        throw err;
+      }
+    },
+    [conversation]
+  );
 
   // Stop/cancel an executing tool call
   const stopToolExecution = useCallback(async (toolCallId: string): Promise<void> => {
@@ -814,9 +826,10 @@ export function useAIChat(options: UseAIChatOptions = {}): UseAIChatReturn {
         return prev.map((msg) => {
           if (msg.id === messageId) {
             const failedStatus: ToolCallStatus = 'failed';
-            const updatedCalls: ToolCall[] | null = msg.toolCalls?.map((tc) =>
-              tc.id === toolCallId ? { ...tc, status: failedStatus } : tc
-            ) ?? null;
+            const updatedCalls: ToolCall[] | null =
+              msg.toolCalls?.map((tc) =>
+                tc.id === toolCallId ? { ...tc, status: failedStatus } : tc
+              ) ?? null;
             const existingResults = msg.toolResults || [];
             const cancelledResult: ToolResult = {
               callId: toolCallId,

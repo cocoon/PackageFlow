@@ -4,8 +4,33 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { GitBranch, Plus, Trash2, FolderOpen, AlertCircle, RefreshCw, Code2, ChevronDown, Layers, List, LayoutGrid, ArrowDownToLine, Loader2, Archive, Search, X, Bookmark } from 'lucide-react';
-import { worktreeAPI, scriptAPI, gitAPI, settingsAPI, type Worktree, type EditorDefinition } from '../../../lib/tauri-api';
+import {
+  GitBranch,
+  Plus,
+  Trash2,
+  FolderOpen,
+  AlertCircle,
+  RefreshCw,
+  Code2,
+  ChevronDown,
+  Layers,
+  List,
+  LayoutGrid,
+  ArrowDownToLine,
+  Loader2,
+  Archive,
+  Search,
+  X,
+  Bookmark,
+} from 'lucide-react';
+import {
+  worktreeAPI,
+  scriptAPI,
+  gitAPI,
+  settingsAPI,
+  type Worktree,
+  type EditorDefinition,
+} from '../../../lib/tauri-api';
 import type { Project } from '../../../types/project';
 import type { Workflow } from '../../../types/workflow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../ui/Dialog';
@@ -167,7 +192,7 @@ export function GitWorktreeList({
       try {
         const response = await worktreeAPI.getAvailableEditors();
         if (response.success && response.editors) {
-          setAvailableEditors(response.editors.filter(e => e.isAvailable));
+          setAvailableEditors(response.editors.filter((e) => e.isAvailable));
         }
       } catch (err) {
         console.error('Failed to load available editors:', err);
@@ -195,33 +220,36 @@ export function GitWorktreeList({
   }, []);
 
   // Pull a single worktree
-  const handlePull = useCallback(async (worktree: Worktree) => {
-    if (pullingWorktreePath) return; // Already pulling
+  const handlePull = useCallback(
+    async (worktree: Worktree) => {
+      if (pullingWorktreePath) return; // Already pulling
 
-    setPullingWorktreePath(worktree.path);
-    setError(null);
+      setPullingWorktreePath(worktree.path);
+      setError(null);
 
-    try {
-      const result = await gitAPI.pull(worktree.path);
-      if (!result.success) {
-        const errorMessages: Record<string, string> = {
-          MERGE_CONFLICT: 'Conflicts detected, resolve manually',
-          NO_UPSTREAM: 'No upstream branch configured',
-          NO_REMOTE: 'No remote configured',
-          AUTH_FAILED: 'Authentication failed',
-          NETWORK_ERROR: 'Network error',
-        };
-        setError(errorMessages[result.error || ''] || result.error || 'Pull failed');
+      try {
+        const result = await gitAPI.pull(worktree.path);
+        if (!result.success) {
+          const errorMessages: Record<string, string> = {
+            MERGE_CONFLICT: 'Conflicts detected, resolve manually',
+            NO_UPSTREAM: 'No upstream branch configured',
+            NO_REMOTE: 'No remote configured',
+            AUTH_FAILED: 'Authentication failed',
+            NETWORK_ERROR: 'Network error',
+          };
+          setError(errorMessages[result.error || ''] || result.error || 'Pull failed');
+        }
+        // Refresh statuses after pull
+        refreshStatuses();
+      } catch (err) {
+        console.error('Failed to pull:', err);
+        setError('Failed to pull');
+      } finally {
+        setPullingWorktreePath(null);
       }
-      // Refresh statuses after pull
-      refreshStatuses();
-    } catch (err) {
-      console.error('Failed to pull:', err);
-      setError('Failed to pull');
-    } finally {
-      setPullingWorktreePath(null);
-    }
-  }, [pullingWorktreePath, refreshStatuses]);
+    },
+    [pullingWorktreePath, refreshStatuses]
+  );
 
   // Sync a single worktree
   const handleSync = useCallback((worktree: Worktree) => {
@@ -266,8 +294,8 @@ export function GitWorktreeList({
   }, [projectPath, newWorktreePath]);
 
   const availableBranches = useMemo(() => {
-    const usedBranches = new Set(worktrees.map(w => w.branch).filter(Boolean));
-    return branches.filter(b => !usedBranches.has(b));
+    const usedBranches = new Set(worktrees.map((w) => w.branch).filter(Boolean));
+    return branches.filter((b) => !usedBranches.has(b));
   }, [branches, worktrees]);
 
   // Filtered worktrees based on search query
@@ -286,41 +314,44 @@ export function GitWorktreeList({
     });
   }, [worktrees, searchQuery, sessionsByWorktreePath]);
 
-  const loadWorktrees = useCallback(async (showLoading = false) => {
-    if (showLoading) {
-      setIsLoading(true);
-    }
-    setError(null);
+  const loadWorktrees = useCallback(
+    async (showLoading = false) => {
+      if (showLoading) {
+        setIsLoading(true);
+      }
+      setError(null);
 
-    try {
-      const gitRepoCheck = await worktreeAPI.isGitRepo(projectPath);
-      if (!gitRepoCheck) {
-        setIsGitRepo(false);
+      try {
+        const gitRepoCheck = await worktreeAPI.isGitRepo(projectPath);
+        if (!gitRepoCheck) {
+          setIsGitRepo(false);
+          setIsLoading(false);
+          setIsInitialLoad(false);
+          return;
+        }
+        setIsGitRepo(true);
+
+        const result = await worktreeAPI.listWorktrees(projectPath);
+        if (result.success && result.worktrees) {
+          setWorktrees(result.worktrees);
+        } else {
+          setError(result.error || 'Failed to load worktrees');
+        }
+
+        const branchResult = await worktreeAPI.listBranches(projectPath);
+        if (branchResult.success && branchResult.branches) {
+          setBranches(branchResult.branches);
+        }
+      } catch (err) {
+        console.error('Failed to load worktrees:', err);
+        setError('Load failed');
+      } finally {
         setIsLoading(false);
         setIsInitialLoad(false);
-        return;
       }
-      setIsGitRepo(true);
-
-      const result = await worktreeAPI.listWorktrees(projectPath);
-      if (result.success && result.worktrees) {
-        setWorktrees(result.worktrees);
-      } else {
-        setError(result.error || 'Failed to load worktrees');
-      }
-
-      const branchResult = await worktreeAPI.listBranches(projectPath);
-      if (branchResult.success && branchResult.branches) {
-        setBranches(branchResult.branches);
-      }
-    } catch (err) {
-      console.error('Failed to load worktrees:', err);
-      setError('Load failed');
-    } finally {
-      setIsLoading(false);
-      setIsInitialLoad(false);
-    }
-  }, [projectPath]);
+    },
+    [projectPath]
+  );
 
   // Initial load
   useEffect(() => {
@@ -389,27 +420,30 @@ export function GitWorktreeList({
   };
 
   // Check gitignore for .worktrees/ and prompt user if needed
-  const checkAndPromptGitignore = useCallback(async (worktreePath: string) => {
-    // Only check if the worktree path contains .worktrees/
-    if (!worktreePath.includes('.worktrees/') && !worktreePath.includes('.worktrees\\')) {
-      return;
-    }
-
-    // Don't prompt if already checked this session
-    if (gitignoreChecked) {
-      return;
-    }
-
-    try {
-      const result = await worktreeAPI.checkGitignoreHasWorktrees(projectPath);
-      if (result.success && !result.hasWorktreesEntry) {
-        setShowGitignoreDialog(true);
+  const checkAndPromptGitignore = useCallback(
+    async (worktreePath: string) => {
+      // Only check if the worktree path contains .worktrees/
+      if (!worktreePath.includes('.worktrees/') && !worktreePath.includes('.worktrees\\')) {
+        return;
       }
-      setGitignoreChecked(true);
-    } catch (err) {
-      console.error('Failed to check gitignore:', err);
-    }
-  }, [projectPath, gitignoreChecked]);
+
+      // Don't prompt if already checked this session
+      if (gitignoreChecked) {
+        return;
+      }
+
+      try {
+        const result = await worktreeAPI.checkGitignoreHasWorktrees(projectPath);
+        if (result.success && !result.hasWorktreesEntry) {
+          setShowGitignoreDialog(true);
+        }
+        setGitignoreChecked(true);
+      } catch (err) {
+        console.error('Failed to check gitignore:', err);
+      }
+    },
+    [projectPath, gitignoreChecked]
+  );
 
   // Add .worktrees/ to gitignore
   const handleAddToGitignore = async () => {
@@ -430,28 +464,31 @@ export function GitWorktreeList({
   };
 
   // Execute post-create script in worktree
-  const handleRunPostCreateScript = useCallback(async (worktreePath: string, scriptName: string) => {
-    if (packageManager === 'unknown') {
-      console.warn('Cannot run post-create script: unknown package manager');
-      return;
-    }
-
-    try {
-      console.log(`Running post-create script "${scriptName}" in ${worktreePath}`);
-      const result = await scriptAPI.executeScript({
-        projectPath: worktreePath,
-        scriptName,
-        packageManager,
-        cwd: worktreePath,
-      });
-
-      if (!result.success) {
-        console.error(`Failed to run post-create script "${scriptName}":`, result.error);
+  const handleRunPostCreateScript = useCallback(
+    async (worktreePath: string, scriptName: string) => {
+      if (packageManager === 'unknown') {
+        console.warn('Cannot run post-create script: unknown package manager');
+        return;
       }
-    } catch (err) {
-      console.error(`Error running post-create script "${scriptName}":`, err);
-    }
-  }, [packageManager]);
+
+      try {
+        console.log(`Running post-create script "${scriptName}" in ${worktreePath}`);
+        const result = await scriptAPI.executeScript({
+          projectPath: worktreePath,
+          scriptName,
+          packageManager,
+          cwd: worktreePath,
+        });
+
+        if (!result.success) {
+          console.error(`Failed to run post-create script "${scriptName}":`, result.error);
+        }
+      } catch (err) {
+        console.error(`Error running post-create script "${scriptName}":`, err);
+      }
+    },
+    [packageManager]
+  );
 
   const handleRemoveWorktree = async (force = false) => {
     if (!worktreeToRemove) return;
@@ -573,9 +610,7 @@ export function GitWorktreeList({
             >
               <Bookmark className="w-4 h-4 text-muted-foreground" />
               {worktreeSessions.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {worktreeSessions.length}
-                </span>
+                <span className="text-xs text-muted-foreground">{worktreeSessions.length}</span>
               )}
             </Button>
           )}
@@ -632,7 +667,9 @@ export function GitWorktreeList({
             className="h-auto w-auto p-1.5"
             title="Refresh"
           >
-            <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading || isLoadingStatuses ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-muted-foreground ${isLoading || isLoadingStatuses ? 'animate-spin' : ''}`}
+            />
           </Button>
           <Dropdown
             trigger={
@@ -651,10 +688,7 @@ export function GitWorktreeList({
               From Template
             </DropdownItem>
             <DropdownSeparator />
-            <DropdownItem
-              onClick={handleOpenAddDialog}
-              icon={<Plus className="w-4 h-4" />}
-            >
+            <DropdownItem onClick={handleOpenAddDialog} icon={<Plus className="w-4 h-4" />}>
               Manual Setup
             </DropdownItem>
           </Dropdown>
@@ -662,11 +696,7 @@ export function GitWorktreeList({
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">
-          {error}
-        </div>
-      )}
+      {error && <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">{error}</div>}
 
       {/* Health Check Warnings */}
       {worktrees.length > 0 && (
@@ -735,37 +765,41 @@ export function GitWorktreeList({
         <div className="space-y-1">
           {filteredWorktrees.map((worktree) => {
             const session = sessionsByWorktreePath.get(worktree.path);
-            const sessionBadgeClass = session?.status === 'broken'
-              ? 'bg-red-500/20 text-red-400'
-              : session?.status === 'archived'
-                ? 'bg-muted text-muted-foreground'
-                : 'bg-green-500/20 text-green-400';
-            const sessionIconClass = session?.status === 'broken'
-              ? 'text-red-400'
-              : session?.status === 'archived'
-                ? 'text-muted-foreground'
-                : session
-                  ? 'text-green-400'
-                  : 'text-muted-foreground';
+            const sessionBadgeClass =
+              session?.status === 'broken'
+                ? 'bg-red-500/20 text-red-400'
+                : session?.status === 'archived'
+                  ? 'bg-muted text-muted-foreground'
+                  : 'bg-green-500/20 text-green-400';
+            const sessionIconClass =
+              session?.status === 'broken'
+                ? 'text-red-400'
+                : session?.status === 'archived'
+                  ? 'text-muted-foreground'
+                  : session
+                    ? 'text-green-400'
+                    : 'text-muted-foreground';
 
             return (
               <div
                 key={worktree.path}
                 className={`group flex items-center gap-2 py-2 px-2 rounded transition-colors ${
-                  worktree.isMain
-                    ? 'bg-blue-500/10 hover:bg-blue-500/15'
-                    : 'hover:bg-accent'
+                  worktree.isMain ? 'bg-blue-500/10 hover:bg-blue-500/15' : 'hover:bg-accent'
                 }`}
               >
                 {/* Icon */}
-                <GitBranch className={`w-4 h-4 flex-shrink-0 ${
-                  worktree.isMain ? 'text-blue-400' : 'text-muted-foreground'
-                }`} />
+                <GitBranch
+                  className={`w-4 h-4 flex-shrink-0 ${
+                    worktree.isMain ? 'text-blue-400' : 'text-muted-foreground'
+                  }`}
+                />
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm truncate ${worktree.isMain ? 'text-blue-400 font-medium' : 'text-foreground'}`}>
+                    <span
+                      className={`text-sm truncate ${worktree.isMain ? 'text-blue-400 font-medium' : 'text-foreground'}`}
+                    >
                       {worktree.branch || '(detached HEAD)'}
                     </span>
                     {worktree.isMain && (
@@ -820,8 +854,8 @@ export function GitWorktreeList({
                     </Button>
                   )}
                   {/* Open in Editor */}
-                  {availableEditors.length > 0 && (
-                    availableEditors.length === 1 ? (
+                  {availableEditors.length > 0 &&
+                    (availableEditors.length === 1 ? (
                       <Button
                         onClick={() => handleOpenInEditor(worktree.path, availableEditors[0].id)}
                         variant="ghost"
@@ -857,8 +891,7 @@ export function GitWorktreeList({
                           ))}
                         </DropdownSection>
                       </Dropdown>
-                    )
-                  )}
+                    ))}
                   {/* Pull button */}
                   {!worktree.isDetached && (
                     <Button
@@ -1027,7 +1060,10 @@ export function GitWorktreeList({
                 className="w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500 font-mono"
               />
               {fullWorktreePath && (
-                <p className="mt-1.5 text-xs text-muted-foreground truncate" title={fullWorktreePath}>
+                <p
+                  className="mt-1.5 text-xs text-muted-foreground truncate"
+                  title={fullWorktreePath}
+                >
                   Full path: {fullWorktreePath}
                 </p>
               )}
@@ -1052,7 +1088,12 @@ export function GitWorktreeList({
               <Button
                 variant="default"
                 onClick={handleAddWorktree}
-                disabled={isAdding || !newWorktreePath.trim() || !newBranch.trim() || (!createNewBranch && availableBranches.length === 0)}
+                disabled={
+                  isAdding ||
+                  !newWorktreePath.trim() ||
+                  !newBranch.trim() ||
+                  (!createNewBranch && availableBranches.length === 0)
+                }
               >
                 {isAdding ? 'Creating...' : 'Create'}
               </Button>
@@ -1102,7 +1143,10 @@ export function GitWorktreeList({
                     {worktreeToRemove.branch || '(detached HEAD)'}
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 truncate" title={worktreeToRemove.path}>
+                <p
+                  className="text-xs text-muted-foreground mt-1 truncate"
+                  title={worktreeToRemove.path}
+                >
                   {formatPath(worktreeToRemove.path)}
                 </p>
               </div>
@@ -1147,7 +1191,10 @@ export function GitWorktreeList({
       </Dialog>
 
       {/* Gitignore Dialog */}
-      <Dialog open={showGitignoreDialog} onOpenChange={(open) => !open && setShowGitignoreDialog(false)}>
+      <Dialog
+        open={showGitignoreDialog}
+        onOpenChange={(open) => !open && setShowGitignoreDialog(false)}
+      >
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
@@ -1158,11 +1205,15 @@ export function GitWorktreeList({
 
           <div className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              The <code className="px-1.5 py-0.5 bg-background rounded text-blue-400">.worktrees/</code> directory
-              is not in your <code className="px-1.5 py-0.5 bg-background rounded text-blue-400">.gitignore</code> file.
+              The{' '}
+              <code className="px-1.5 py-0.5 bg-background rounded text-blue-400">.worktrees/</code>{' '}
+              directory is not in your{' '}
+              <code className="px-1.5 py-0.5 bg-background rounded text-blue-400">.gitignore</code>{' '}
+              file.
             </p>
             <p className="text-sm text-muted-foreground">
-              It's recommended to ignore this directory to avoid accidentally committing worktree paths.
+              It's recommended to ignore this directory to avoid accidentally committing worktree
+              paths.
             </p>
 
             <div className="flex justify-end gap-2 pt-2">

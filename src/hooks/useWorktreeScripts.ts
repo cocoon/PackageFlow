@@ -155,10 +155,7 @@ export function useWorktreeScripts(): UseWorktreeScriptsReturn {
   const isWorktreeRunning = useCallback(
     (worktreePath: string): boolean => {
       for (const script of runningScripts.values()) {
-        if (
-          script.status === 'running' &&
-          script.projectPath === worktreePath
-        ) {
+        if (script.status === 'running' && script.projectPath === worktreePath) {
           return true;
         }
       }

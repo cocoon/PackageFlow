@@ -4,7 +4,18 @@
  */
 
 import { useState, useMemo } from 'react';
-import { GitBranch, Code2, FolderOpen, Trash2, ChevronDown, ArrowDownToLine, RefreshCw, Archive, Bookmark, MoreHorizontal } from 'lucide-react';
+import {
+  GitBranch,
+  Code2,
+  FolderOpen,
+  Trash2,
+  ChevronDown,
+  ArrowDownToLine,
+  RefreshCw,
+  Archive,
+  Bookmark,
+  MoreHorizontal,
+} from 'lucide-react';
 import type { Worktree, WorktreeStatus, EditorDefinition } from '../../lib/tauri-api';
 import type { WorktreeSessionStatus } from '../../types/worktree-sessions';
 import { Button } from '../ui/Button';
@@ -141,10 +152,7 @@ export function WorktreeCard({
         </div>
 
         {/* Path */}
-        <p
-          className="text-xs text-muted-foreground truncate mb-2"
-          title={worktree.path}
-        >
+        <p className="text-xs text-muted-foreground truncate mb-2" title={worktree.path}>
           {formatPath(worktree.path)}
         </p>
 
@@ -153,11 +161,7 @@ export function WorktreeCard({
           <span className="text-xs text-muted-foreground font-mono">
             {worktree.head?.substring(0, 7)}
           </span>
-          <WorktreeStatusBadge
-            status={status}
-            isLoading={isLoadingStatus}
-            compact
-          />
+          <WorktreeStatusBadge status={status} isLoading={isLoadingStatus} compact />
         </div>
 
         {/* Session Entry - Always Visible */}
@@ -187,10 +191,12 @@ export function WorktreeCard({
                       : 'text-muted-foreground'
               )}
             />
-            <span className={cn(
-              'truncate',
-              sessionStatus ? 'text-foreground' : 'text-muted-foreground'
-            )}>
+            <span
+              className={cn(
+                'truncate',
+                sessionStatus ? 'text-foreground' : 'text-muted-foreground'
+              )}
+            >
               {sessionStatus
                 ? sessionStatus === 'broken'
                   ? 'Session (Broken)'
@@ -208,8 +214,8 @@ export function WorktreeCard({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Primary Action: Open in Editor */}
-          {availableEditors.length > 0 && (
-            availableEditors.length === 1 ? (
+          {availableEditors.length > 0 &&
+            (availableEditors.length === 1 ? (
               <Button
                 variant="ghost"
                 size="icon"
@@ -244,17 +250,11 @@ export function WorktreeCard({
                   ))}
                 </DropdownSection>
               </Dropdown>
-            )
-          )}
+            ))}
 
           {/* Primary Action: Pull (if applicable) */}
           {onPull && !worktree.isDetached && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onPull(worktree)}
-              title="Pull"
-            >
+            <Button variant="ghost" size="icon" onClick={() => onPull(worktree)} title="Pull">
               <ArrowDownToLine className="w-3.5 h-3.5 text-blue-400" />
             </Button>
           )}
@@ -262,11 +262,7 @@ export function WorktreeCard({
           {/* More Menu - Secondary Actions */}
           <Dropdown
             trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                title="More actions"
-              >
+              <Button variant="ghost" size="icon" title="More actions">
                 <MoreHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
               </Button>
             }
@@ -324,11 +320,7 @@ export function WorktreeCard({
 
       {/* Context Menu - Simplified for power users */}
       {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={() => setContextMenu(null)}
-        >
+        <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={() => setContextMenu(null)}>
           {/* Open in Editor */}
           {availableEditors.map((editor) => (
             <ContextMenuItem

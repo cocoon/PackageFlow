@@ -4,14 +4,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import {
-  Folder,
-  FolderOpen,
-  Plus,
-  RefreshCw,
-  Trash2,
-  ChevronRight,
-} from 'lucide-react';
+import { Folder, FolderOpen, Plus, RefreshCw, Trash2, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import {
   DndContext,
@@ -30,11 +23,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  ListSidebarHeader,
-  ListSidebarItem,
-  ListSidebarEmpty,
-} from '../ui/ListSidebar';
+import { ListSidebarHeader, ListSidebarItem, ListSidebarEmpty } from '../ui/ListSidebar';
 import type { SortOption } from '../ui/ListSidebar';
 import type { Project } from '../../types/project';
 import type { ProjectSortMode } from '../../types/tauri';
@@ -80,14 +69,10 @@ function SortableProjectItem({
   onSelect,
   onContextMenu,
 }: SortableProjectItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: project.id, disabled: !isDraggable });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: project.id,
+    disabled: !isDraggable,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -158,9 +143,7 @@ export function ProjectSidebar({
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = projects.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.path.toLowerCase().includes(query)
+        (p) => p.name.toLowerCase().includes(query) || p.path.toLowerCase().includes(query)
       );
     }
 
@@ -170,21 +153,17 @@ export function ProjectSidebar({
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
       case 'lastOpened':
         return sorted.sort(
-          (a, b) =>
-            new Date(b.lastOpenedAt).getTime() -
-            new Date(a.lastOpenedAt).getTime()
+          (a, b) => new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime()
         );
       case 'created':
         return sorted.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       case 'custom':
         return sorted.sort((a, b) => {
           const aIndex = projectOrder.indexOf(a.id);
           const bIndex = projectOrder.indexOf(b.id);
-          if (aIndex === -1 && bIndex === -1)
-            return a.name.localeCompare(b.name);
+          if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
           if (aIndex === -1) return 1;
           if (bIndex === -1) return -1;
           return aIndex - bIndex;
@@ -265,11 +244,7 @@ export function ProjectSidebar({
     };
 
     window.addEventListener('shortcut-focus-search', handleShortcutFocusSearch);
-    return () =>
-      window.removeEventListener(
-        'shortcut-focus-search',
-        handleShortcutFocusSearch
-      );
+    return () => window.removeEventListener('shortcut-focus-search', handleShortcutFocusSearch);
   }, []);
 
   const handleContextMenu = (e: React.MouseEvent, projectId: string) => {

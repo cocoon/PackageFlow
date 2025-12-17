@@ -713,7 +713,8 @@ export const STEP_TEMPLATES: StepTemplate[] = [
   {
     id: 'cloud-aws-ecr-login',
     name: 'AWS ECR Login',
-    command: 'aws ecr get-login-password | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com',
+    command:
+      'aws ecr get-login-password | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com',
     category: 'cloud',
     description: 'Login to AWS ECR',
   },
@@ -893,7 +894,8 @@ export const STEP_TEMPLATES: StepTemplate[] = [
   {
     id: 'ai-codex-analysis',
     name: 'Codex Analysis',
-    command: 'codex analyze --path <file-or-dir> --prompt "Summarize issues and improvements" --format markdown',
+    command:
+      'codex analyze --path <file-or-dir> --prompt "Summarize issues and improvements" --format markdown',
     category: 'ai',
     description: 'Run the Codex CLI to review a file or folder and get annotated feedback',
   },
@@ -1064,10 +1066,16 @@ export function parseImportedTemplates(jsonString: string): {
         return { success: false, error: 'Invalid template: missing or invalid id' };
       }
       if (!template.name || typeof template.name !== 'string') {
-        return { success: false, error: `Invalid template "${template.id}": missing or invalid name` };
+        return {
+          success: false,
+          error: `Invalid template "${template.id}": missing or invalid name`,
+        };
       }
       if (!template.command || typeof template.command !== 'string') {
-        return { success: false, error: `Invalid template "${template.id}": missing or invalid command` };
+        return {
+          success: false,
+          error: `Invalid template "${template.id}": missing or invalid command`,
+        };
       }
       if (!template.category || !validCategories.includes(template.category)) {
         return {

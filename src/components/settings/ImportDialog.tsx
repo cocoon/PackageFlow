@@ -92,11 +92,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
                   isUpcoming && 'bg-muted text-muted-foreground border border-border'
                 )}
               >
-                {isCompleted ? (
-                  <CheckCircle className="h-3.5 w-3.5" />
-                ) : (
-                  index + 1
-                )}
+                {isCompleted ? <CheckCircle className="h-3.5 w-3.5" /> : index + 1}
               </div>
               <span
                 className={cn(
@@ -131,22 +127,15 @@ interface SelectStepProps {
   onSelectFile: () => void;
 }
 
-const SelectStep: React.FC<SelectStepProps> = ({
-  error,
-  isSelecting,
-  onSelectFile,
-}) => (
+const SelectStep: React.FC<SelectStepProps> = ({ error, isSelecting, onSelectFile }) => (
   <div className="space-y-4">
     <div className="flex flex-col items-center py-6">
       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted border-2 border-dashed border-border">
         <FileText className="h-7 w-7 text-muted-foreground" />
       </div>
-      <h4 className="mt-4 text-sm font-medium text-foreground">
-        Select a PackageFlow backup file
-      </h4>
+      <h4 className="mt-4 text-sm font-medium text-foreground">Select a PackageFlow backup file</h4>
       <p className="mt-1 text-xs text-muted-foreground text-center max-w-[280px]">
-        Choose a .packageflow file to restore your projects, workflows, templates,
-        and settings.
+        Choose a .packageflow file to restore your projects, workflows, templates, and settings.
       </p>
     </div>
 
@@ -159,11 +148,7 @@ const SelectStep: React.FC<SelectStepProps> = ({
       </div>
     )}
 
-    <Button
-      onClick={onSelectFile}
-      disabled={isSelecting}
-      className="w-full py-3"
-    >
+    <Button onClick={onSelectFile} disabled={isSelecting} className="w-full py-3">
       {isSelecting ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -331,9 +316,7 @@ const PreviewStepBody: React.FC<PreviewStepBodyProps> = ({
               className="mt-1"
             />
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                Merge (Add New Only)
-              </p>
+              <p className="text-sm font-medium text-foreground">Merge (Add New Only)</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Only adds new items. Existing items with the same ID will be skipped.
               </p>
@@ -358,9 +341,7 @@ const PreviewStepBody: React.FC<PreviewStepBodyProps> = ({
               className="mt-1"
             />
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                Replace (Full Overwrite)
-              </p>
+              <p className="text-sm font-medium text-foreground">Replace (Full Overwrite)</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Completely replaces all existing data with imported data.
               </p>
@@ -379,8 +360,8 @@ const PreviewStepBody: React.FC<PreviewStepBodyProps> = ({
                 Warning: This will delete all existing data
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                All your current projects, workflows, templates, and settings will be
-                permanently replaced. This action cannot be undone.
+                All your current projects, workflows, templates, and settings will be permanently
+                replaced. This action cannot be undone.
               </p>
             </div>
           </div>
@@ -398,8 +379,8 @@ const PreviewStepBody: React.FC<PreviewStepBodyProps> = ({
                 {preview.conflicts.length > 1 ? 's' : ''} detected
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Items with the same ID already exist. These will be skipped to
-                preserve your current data.
+                Items with the same ID already exist. These will be skipped to preserve your current
+                data.
               </p>
             </div>
           </div>
@@ -420,9 +401,7 @@ const PreviewStepBody: React.FC<PreviewStepBodyProps> = ({
       {filePath && (
         <div className="rounded-lg bg-card border border-border p-2.5">
           <p className="text-xs text-muted-foreground mb-0.5">Source file:</p>
-          <p className="text-xs text-muted-foreground font-mono break-all truncate">
-            {filePath}
-          </p>
+          <p className="text-xs text-muted-foreground font-mono break-all truncate">{filePath}</p>
         </div>
       )}
     </div>
@@ -466,8 +445,7 @@ const ResultStepBody: React.FC<ResultStepBodyProps> = ({ result }) => {
               {result.error || 'An unknown error occurred'}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
-              Your existing data has not been modified. Please check the file
-              and try again.
+              Your existing data has not been modified. Please check the file and try again.
             </p>
           </div>
         </div>
@@ -477,7 +455,10 @@ const ResultStepBody: React.FC<ResultStepBodyProps> = ({ result }) => {
 
   const { imported, skipped } = result.summary;
   const hasSkipped =
-    skipped.projects > 0 || skipped.workflows > 0 || skipped.templates > 0 || skipped.stepTemplates > 0;
+    skipped.projects > 0 ||
+    skipped.workflows > 0 ||
+    skipped.templates > 0 ||
+    skipped.stepTemplates > 0;
 
   return (
     <div className="space-y-4">
@@ -485,9 +466,7 @@ const ResultStepBody: React.FC<ResultStepBodyProps> = ({ result }) => {
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/20 border border-green-500/30">
           <CheckCircle className="h-7 w-7 text-green-400" />
         </div>
-        <h4 className="mt-3 text-base font-medium text-foreground">
-          Import Complete
-        </h4>
+        <h4 className="mt-3 text-base font-medium text-foreground">Import Complete</h4>
         <p className="mt-1 text-sm text-muted-foreground">
           Your data has been restored successfully
         </p>
@@ -504,27 +483,19 @@ const ResultStepBody: React.FC<ResultStepBodyProps> = ({ result }) => {
             <div className="grid grid-cols-2 gap-2">
               <div className="flex items-center justify-between rounded bg-muted px-3 py-1.5">
                 <span className="text-xs text-foreground">Projects</span>
-                <span className="text-xs font-medium text-green-400">
-                  {imported.projects}
-                </span>
+                <span className="text-xs font-medium text-green-400">{imported.projects}</span>
               </div>
               <div className="flex items-center justify-between rounded bg-muted px-3 py-1.5">
                 <span className="text-xs text-foreground">Workflows</span>
-                <span className="text-xs font-medium text-green-400">
-                  {imported.workflows}
-                </span>
+                <span className="text-xs font-medium text-green-400">{imported.workflows}</span>
               </div>
               <div className="flex items-center justify-between rounded bg-muted px-3 py-1.5">
                 <span className="text-xs text-foreground">Templates</span>
-                <span className="text-xs font-medium text-green-400">
-                  {imported.templates}
-                </span>
+                <span className="text-xs font-medium text-green-400">{imported.templates}</span>
               </div>
               <div className="flex items-center justify-between rounded bg-muted px-3 py-1.5">
                 <span className="text-xs text-foreground">Step Templates</span>
-                <span className="text-xs font-medium text-green-400">
-                  {imported.stepTemplates}
-                </span>
+                <span className="text-xs font-medium text-green-400">{imported.stepTemplates}</span>
               </div>
               <div className="flex items-center justify-between rounded bg-muted px-3 py-1.5 col-span-2">
                 <span className="text-xs text-foreground">Settings</span>
@@ -538,9 +509,7 @@ const ResultStepBody: React.FC<ResultStepBodyProps> = ({ result }) => {
           {/* Skipped items */}
           {hasSkipped && (
             <div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Skipped (already exist):
-              </p>
+              <p className="text-xs text-muted-foreground mb-2">Skipped (already exist):</p>
               <div className="grid grid-cols-2 gap-2">
                 {skipped.projects > 0 && (
                   <div className="flex items-center justify-between rounded bg-yellow-100 dark:bg-yellow-900/20 px-3 py-1.5">
@@ -800,10 +769,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
           >
             {/* Select step footer */}
             {step === 'select' && (
-              <Button
-                variant="secondary"
-                onClick={handleClose}
-              >
+              <Button variant="secondary" onClick={handleClose}>
                 Cancel
               </Button>
             )}
@@ -811,10 +777,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({
             {/* Preview step footer */}
             {step === 'preview' && importState.preview && (
               <>
-                <Button
-                  variant="ghost"
-                  onClick={handleBack}
-                >
+                <Button variant="ghost" onClick={handleBack}>
                   <ArrowLeft className="h-4 w-4" />
                   Back
                 </Button>

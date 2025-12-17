@@ -278,7 +278,12 @@ export function shouldShowUIFrameworkBadge(
   if (!uiFramework) return false;
 
   // These frameworks already imply React
-  if (framework === 'next' || framework === 'remix' || framework === 'cra' || framework === 'tanstack-start') {
+  if (
+    framework === 'next' ||
+    framework === 'remix' ||
+    framework === 'cra' ||
+    framework === 'tanstack-start'
+  ) {
     return false;
   }
   // These frameworks already imply Vue

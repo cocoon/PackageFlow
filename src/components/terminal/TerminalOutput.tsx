@@ -15,20 +15,19 @@ interface TerminalOutputProps {
   className?: string;
 }
 
-function getSystemMessageType(content: string): 'trigger-start' | 'script-start' | 'node-complete' | 'node-fail' | 'default' {
+function getSystemMessageType(
+  content: string
+): 'trigger-start' | 'script-start' | 'node-complete' | 'node-fail' | 'default' {
   const trimmed = content.trim();
   if (trimmed.startsWith('>> Triggering workflow:')) return 'trigger-start';
   if (trimmed.startsWith('> Starting:')) return 'script-start';
-  if (trimmed.includes('Node completed') || trimmed.includes('completed (exit code: 0)')) return 'node-complete';
+  if (trimmed.includes('Node completed') || trimmed.includes('completed (exit code: 0)'))
+    return 'node-complete';
   if (trimmed.includes('Node failed') || trimmed.includes('failed (exit code:')) return 'node-fail';
   return 'default';
 }
 
-export function TerminalOutput({
-  lines,
-  maxLines = 10000,
-  className = '',
-}: TerminalOutputProps) {
+export function TerminalOutput({ lines, maxLines = 10000, className = '' }: TerminalOutputProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
 
@@ -66,9 +65,7 @@ export function TerminalOutput({
       {displayLines.length === 0 ? (
         <div className="text-muted-foreground italic">Waiting for output...</div>
       ) : (
-        displayLines.map((line, index) => (
-          <OutputLineItem key={index} line={line} />
-        ))
+        displayLines.map((line, index) => <OutputLineItem key={index} line={line} />)
       )}
     </div>
   );
@@ -105,41 +102,21 @@ function OutputLineItem({ line }: { line: OutputLine }) {
     }
 
     if (msgType === 'node-complete') {
-      return (
-        <div className="text-green-500 text-xs mt-1 mb-2">
-          {content}
-        </div>
-      );
+      return <div className="text-green-500 text-xs mt-1 mb-2">{content}</div>;
     }
 
     if (msgType === 'node-fail') {
-      return (
-        <div className="text-red-400 text-xs mt-1 mb-2">
-          {content}
-        </div>
-      );
+      return <div className="text-red-400 text-xs mt-1 mb-2">{content}</div>;
     }
 
-    return (
-      <div className="text-blue-400 whitespace-pre-wrap break-all">
-        {content}
-      </div>
-    );
+    return <div className="text-blue-400 whitespace-pre-wrap break-all">{content}</div>;
   }
 
   if (line.type === 'stderr') {
-    return (
-      <div className="text-red-400 whitespace-pre-wrap break-all pl-4">
-        {content}
-      </div>
-    );
+    return <div className="text-red-400 whitespace-pre-wrap break-all pl-4">{content}</div>;
   }
 
-  return (
-    <div className="text-foreground/90 whitespace-pre-wrap break-all pl-4">
-      {content}
-    </div>
-  );
+  return <div className="text-foreground/90 whitespace-pre-wrap break-all pl-4">{content}</div>;
 }
 
 export type { OutputLine };

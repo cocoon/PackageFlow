@@ -37,8 +37,21 @@ import { Select, type SelectOption } from '../ui/Select';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useWorktreeSessions } from '../../hooks/useWorktreeSessions';
 import type { Project } from '../../types/project';
-import { worktreeAPI, workflowAPI, save, writeTextFile, type EditorDefinition, type Worktree } from '../../lib/tauri-api';
-import type { ResumeAction, ResumeActionResult, ResumeSessionResult, SessionChecklistItem, WorktreeSession } from '../../types/worktree-sessions';
+import {
+  worktreeAPI,
+  workflowAPI,
+  save,
+  writeTextFile,
+  type EditorDefinition,
+  type Worktree,
+} from '../../lib/tauri-api';
+import type {
+  ResumeAction,
+  ResumeActionResult,
+  ResumeSessionResult,
+  SessionChecklistItem,
+  WorktreeSession,
+} from '../../types/worktree-sessions';
 import type { Workflow } from '../../types/workflow';
 import { cn } from '../../lib/utils';
 import { listen } from '@tauri-apps/api/event';
@@ -71,7 +84,10 @@ function sessionStatusLabel(status: WorktreeSession['status']): string {
   return 'Active';
 }
 
-function sessionStatusConfig(status: WorktreeSession['status']): { className: string; icon: typeof CheckCircle2 } {
+function sessionStatusConfig(status: WorktreeSession['status']): {
+  className: string;
+  icon: typeof CheckCircle2;
+} {
   if (status === 'archived') {
     return {
       className: 'bg-muted/80 text-muted-foreground border-muted-foreground/20',
@@ -247,15 +263,21 @@ export function WorktreeSessionDialog({
     if (!draft) return false;
     if (!session) {
       // New session - has changes if any field is filled
-      return draft.title.trim() !== (worktree?.branch || 'Worktree Session') ||
+      return (
+        draft.title.trim() !== (worktree?.branch || 'Worktree Session') ||
         draft.goal?.trim() ||
         draft.notes.trim() ||
         tagsInput.trim() ||
         draft.checklist.length > 0 ||
-        draft.resumeActions.length > 0;
+        draft.resumeActions.length > 0
+      );
     }
     // Existing session - compare with original
-    const currentTags = tagsInput.split(',').map((t) => t.trim()).filter(Boolean).join(',');
+    const currentTags = tagsInput
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .join(',');
     const originalTags = session.tags.join(',');
     return (
       draft.title !== session.title ||
@@ -565,27 +587,42 @@ export function WorktreeSessionDialog({
 
               if (action.waitForCompletion) {
                 // Wait for workflow completion
-                const waitResult = await new Promise<{ success: boolean; message: string }>((resolve) => {
-                  const unlistenPromise = listen<{ executionId: string; status: string; workflowId: string }>(
-                    'execution_completed',
-                    (event) => {
+                const waitResult = await new Promise<{ success: boolean; message: string }>(
+                  (resolve) => {
+                    const unlistenPromise = listen<{
+                      executionId: string;
+                      status: string;
+                      workflowId: string;
+                    }>('execution_completed', (event) => {
                       if (event.payload.executionId === executionId) {
                         unlistenPromise.then((unlisten) => unlisten());
                         if (event.payload.status === 'completed') {
-                          resolve({ success: true, message: `Workflow "${action.workflowName}" completed` });
+                          resolve({
+                            success: true,
+                            message: `Workflow "${action.workflowName}" completed`,
+                          });
                         } else {
-                          resolve({ success: false, message: `Workflow "${action.workflowName}" ${event.payload.status}` });
+                          resolve({
+                            success: false,
+                            message: `Workflow "${action.workflowName}" ${event.payload.status}`,
+                          });
                         }
                       }
-                    }
-                  );
+                    });
 
-                  // Timeout after 5 minutes
-                  setTimeout(() => {
-                    unlistenPromise.then((unlisten) => unlisten());
-                    resolve({ success: false, message: `Workflow "${action.workflowName}" timed out` });
-                  }, 5 * 60 * 1000);
-                });
+                    // Timeout after 5 minutes
+                    setTimeout(
+                      () => {
+                        unlistenPromise.then((unlisten) => unlisten());
+                        resolve({
+                          success: false,
+                          message: `Workflow "${action.workflowName}" timed out`,
+                        });
+                      },
+                      5 * 60 * 1000
+                    );
+                  }
+                );
 
                 setRunningWorkflowId(null);
                 results.push({
@@ -690,7 +727,10 @@ export function WorktreeSessionDialog({
     setShowWorkflowPicker(false);
   };
 
-  const handleUpdateResumeAction = (actionId: string, updater: (a: ResumeAction) => ResumeAction) => {
+  const handleUpdateResumeAction = (
+    actionId: string,
+    updater: (a: ResumeAction) => ResumeAction
+  ) => {
     if (!draft) return;
     const now = new Date().toISOString();
     setDraft({
@@ -841,7 +881,9 @@ export function WorktreeSessionDialog({
                     )}
                   </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {session ? 'Edit session details and quick actions' : 'Create a new session for this worktree'}
+                    {session
+                      ? 'Edit session details and quick actions'
+                      : 'Create a new session for this worktree'}
                   </p>
                 </div>
               </div>
@@ -926,8 +968,13 @@ export function WorktreeSessionDialog({
                         <div className="text-sm font-medium text-foreground">
                           {worktree?.branch || session?.branchSnapshot || '(detached HEAD)'}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate" title={resolvedWorktreePath || ''}>
-                          {resolvedWorktreePath ? formatPath(resolvedWorktreePath) : 'No worktree selected'}
+                        <div
+                          className="text-xs text-muted-foreground truncate"
+                          title={resolvedWorktreePath || ''}
+                        >
+                          {resolvedWorktreePath
+                            ? formatPath(resolvedWorktreePath)
+                            : 'No worktree selected'}
                         </div>
                       </div>
                     </div>
@@ -968,7 +1015,8 @@ export function WorktreeSessionDialog({
                           'bg-muted/80 text-muted-foreground'
                         )}
                       >
-                        {(draft?.checklist ?? []).filter((i) => i.completed).length}/{draft?.checklist?.length}
+                        {(draft?.checklist ?? []).filter((i) => i.completed).length}/
+                        {draft?.checklist?.length}
                       </span>
                     )}
                   </Button>
@@ -1021,7 +1069,9 @@ export function WorktreeSessionDialog({
                           </label>
                           <Input
                             value={draft?.goal ?? ''}
-                            onChange={(e) => draft && setDraft({ ...draft, goal: e.target.value || null })}
+                            onChange={(e) =>
+                              draft && setDraft({ ...draft, goal: e.target.value || null })
+                            }
                             placeholder="Optional"
                             className="bg-background/50 border-border focus:border-teal-500/50"
                           />
@@ -1089,8 +1139,12 @@ export function WorktreeSessionDialog({
                         {(draft?.checklist ?? []).length === 0 ? (
                           <div className="text-center py-8">
                             <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                            <div className="text-sm font-medium text-muted-foreground mb-1">No tasks yet</div>
-                            <div className="text-xs text-muted-foreground/70">Add tasks above to track your progress</div>
+                            <div className="text-sm font-medium text-muted-foreground mb-1">
+                              No tasks yet
+                            </div>
+                            <div className="text-xs text-muted-foreground/70">
+                              Add tasks above to track your progress
+                            </div>
                           </div>
                         ) : (
                           (draft?.checklist ?? []).map((item) => (
@@ -1107,9 +1161,15 @@ export function WorktreeSessionDialog({
                             >
                               <Checkbox
                                 checked={item.completed}
-                                onCheckedChange={(checked) => handleToggleChecklistItem(item.id, checked)}
+                                onCheckedChange={(checked) =>
+                                  handleToggleChecklistItem(item.id, checked)
+                                }
                                 label={
-                                  <span className={cn(item.completed && 'line-through text-muted-foreground')}>
+                                  <span
+                                    className={cn(
+                                      item.completed && 'line-through text-muted-foreground'
+                                    )}
+                                  >
                                     {item.text}
                                   </span>
                                 }
@@ -1164,7 +1224,11 @@ export function WorktreeSessionDialog({
                             onClick={() => setShowWorkflowPicker(!showWorkflowPicker)}
                             className="text-teal-500 dark:text-teal-400 text-xs hover:bg-accent/50"
                             disabled={workflowOptions.length === 0}
-                            title={workflowOptions.length === 0 ? 'No workflows available' : 'Add workflow action'}
+                            title={
+                              workflowOptions.length === 0
+                                ? 'No workflows available'
+                                : 'Add workflow action'
+                            }
                           >
                             <Play className="w-3 h-3 mr-1" />
                             Workflow
@@ -1179,7 +1243,9 @@ export function WorktreeSessionDialog({
                                 'p-1'
                               )}
                             >
-                              <div className="text-xs text-muted-foreground px-2 py-1.5">Select Workflow</div>
+                              <div className="text-xs text-muted-foreground px-2 py-1.5">
+                                Select Workflow
+                              </div>
                               {workflowOptions.map((opt) => (
                                 <Button
                                   key={opt.value}
@@ -1198,7 +1264,9 @@ export function WorktreeSessionDialog({
                       {(draft?.resumeActions ?? []).length === 0 ? (
                         <div className="text-center py-8">
                           <Play className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
-                          <div className="text-sm font-medium text-muted-foreground mb-1">No Quick Actions configured</div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">
+                            No Quick Actions configured
+                          </div>
                           <div className="text-xs text-muted-foreground/70">
                             Add actions above to quickly resume your work context
                           </div>
@@ -1221,29 +1289,32 @@ export function WorktreeSessionDialog({
                                 <Checkbox
                                   checked={action.enabled}
                                   onCheckedChange={(checked) =>
-                                    handleUpdateResumeAction(action.id, (a) => ({ ...a, enabled: checked }))
+                                    handleUpdateResumeAction(action.id, (a) => ({
+                                      ...a,
+                                      enabled: checked,
+                                    }))
                                   }
                                   label={
                                     <span className="text-sm text-foreground flex items-center gap-2">
-                                      {action.type === 'openEditor'
-                                        ? 'Open Editor'
-                                        : action.type === 'switchWorkingDirectory'
-                                        ? 'Switch Working Directory'
-                                        : action.type === 'runScript'
-                                        ? 'Run Script'
-                                        : action.type === 'runWorkflow'
-                                        ? (
-                                          <>
-                                            <Play className="w-3 h-3 text-teal-500 dark:text-teal-400" />
-                                            Run Workflow
-                                            {action.workflowName && (
-                                              <span className="text-muted-foreground text-xs">
-                                                ({action.workflowName})
-                                              </span>
-                                            )}
-                                          </>
-                                        )
-                                        : action.type}
+                                      {action.type === 'openEditor' ? (
+                                        'Open Editor'
+                                      ) : action.type === 'switchWorkingDirectory' ? (
+                                        'Switch Working Directory'
+                                      ) : action.type === 'runScript' ? (
+                                        'Run Script'
+                                      ) : action.type === 'runWorkflow' ? (
+                                        <>
+                                          <Play className="w-3 h-3 text-teal-500 dark:text-teal-400" />
+                                          Run Workflow
+                                          {action.workflowName && (
+                                            <span className="text-muted-foreground text-xs">
+                                              ({action.workflowName})
+                                            </span>
+                                          )}
+                                        </>
+                                      ) : (
+                                        action.type
+                                      )}
                                     </span>
                                   }
                                 />
@@ -1287,7 +1358,10 @@ export function WorktreeSessionDialog({
                                   <Select
                                     value={action.editorId ?? ''}
                                     onValueChange={(value) =>
-                                      handleUpdateResumeAction(action.id, (a) => ({ ...a, editorId: value }))
+                                      handleUpdateResumeAction(action.id, (a) => ({
+                                        ...a,
+                                        editorId: value,
+                                      }))
                                     }
                                     options={editorOptions}
                                     placeholder="Select editor..."
@@ -1305,7 +1379,10 @@ export function WorktreeSessionDialog({
                                     <Select
                                       value={action.scriptName ?? ''}
                                       onValueChange={(value) =>
-                                        handleUpdateResumeAction(action.id, (a) => ({ ...a, scriptName: value }))
+                                        handleUpdateResumeAction(action.id, (a) => ({
+                                          ...a,
+                                          scriptName: value,
+                                        }))
                                       }
                                       options={scriptOptions}
                                       placeholder="Select script..."
@@ -1315,7 +1392,10 @@ export function WorktreeSessionDialog({
                                     <Input
                                       value={action.scriptName ?? ''}
                                       onChange={(e) =>
-                                        handleUpdateResumeAction(action.id, (a) => ({ ...a, scriptName: e.target.value }))
+                                        handleUpdateResumeAction(action.id, (a) => ({
+                                          ...a,
+                                          scriptName: e.target.value,
+                                        }))
                                       }
                                       placeholder="Script name (e.g., dev)"
                                       className="bg-background/50 border-border"
@@ -1349,7 +1429,10 @@ export function WorktreeSessionDialog({
                                     <Checkbox
                                       checked={action.waitForCompletion ?? true}
                                       onCheckedChange={(checked) =>
-                                        handleUpdateResumeAction(action.id, (a) => ({ ...a, waitForCompletion: checked }))
+                                        handleUpdateResumeAction(action.id, (a) => ({
+                                          ...a,
+                                          waitForCompletion: checked,
+                                        }))
                                       }
                                       label={
                                         <span className="text-xs text-muted-foreground">
@@ -1411,9 +1494,7 @@ export function WorktreeSessionDialog({
                                   <MinusCircle className="w-4 h-4 text-muted-foreground mt-0.5" />
                                 )}
                                 <div className="min-w-0">
-                                  <div className="text-xs text-muted-foreground">
-                                    {r.type}
-                                  </div>
+                                  <div className="text-xs text-muted-foreground">{r.type}</div>
                                   <div className="text-sm text-foreground break-words">
                                     {r.message}
                                   </div>
@@ -1444,12 +1525,7 @@ export function WorktreeSessionDialog({
 
             {/* Footer with actions */}
             <div
-              className={cn(
-                'px-6 py-4',
-                'border-t border-border',
-                'bg-card/50',
-                'flex-shrink-0'
-              )}
+              className={cn('px-6 py-4', 'border-t border-border', 'bg-card/50', 'flex-shrink-0')}
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Left side - secondary actions */}
@@ -1554,11 +1630,7 @@ export function WorktreeSessionDialog({
                   <Info className="w-4 h-4 text-teal-500 dark:text-teal-400" />
                   <h2 className="text-sm font-medium text-foreground">Worktree Session Help</h2>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsHelpOpen(false)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => setIsHelpOpen(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -1567,38 +1639,66 @@ export function WorktreeSessionDialog({
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2">What is a Session?</div>
                   <p className="text-sm text-muted-foreground">
-                    A session saves your work context for a worktree: notes, checklist, and quick actions to resume where you left off.
+                    A session saves your work context for a worktree: notes, checklist, and quick
+                    actions to resume where you left off.
                   </p>
                 </div>
 
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2">Tabs</div>
                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                    <li><strong>Notes</strong> — Title, goal, free-form notes, and tags for organizing.</li>
-                    <li><strong>Checklist</strong> — Track progress with checkable tasks.</li>
-                    <li><strong>Quick Actions</strong> — Configure actions to run when resuming work.</li>
+                    <li>
+                      <strong>Notes</strong> — Title, goal, free-form notes, and tags for
+                      organizing.
+                    </li>
+                    <li>
+                      <strong>Checklist</strong> — Track progress with checkable tasks.
+                    </li>
+                    <li>
+                      <strong>Quick Actions</strong> — Configure actions to run when resuming work.
+                    </li>
                   </ul>
                 </div>
 
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2">Quick Actions</div>
                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                    <li><strong>Open Editor</strong> — Launch the worktree in your preferred editor.</li>
-                    <li><strong>Switch Directory</strong> — Change PackageFlow&apos;s working directory to this worktree.</li>
-                    <li><strong>Run Script</strong> — Execute a project script (e.g., dev, build, test).</li>
-                    <li><strong>Run Workflow</strong> — Trigger a workflow; optionally wait for completion before continuing.</li>
+                    <li>
+                      <strong>Open Editor</strong> — Launch the worktree in your preferred editor.
+                    </li>
+                    <li>
+                      <strong>Switch Directory</strong> — Change PackageFlow&apos;s working
+                      directory to this worktree.
+                    </li>
+                    <li>
+                      <strong>Run Script</strong> — Execute a project script (e.g., dev, build,
+                      test).
+                    </li>
+                    <li>
+                      <strong>Run Workflow</strong> — Trigger a workflow; optionally wait for
+                      completion before continuing.
+                    </li>
                   </ul>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Enable/disable actions with checkboxes. Drag to reorder. Click &quot;Resume&quot; to run all enabled actions.
+                    Enable/disable actions with checkboxes. Drag to reorder. Click
+                    &quot;Resume&quot; to run all enabled actions.
                   </p>
                 </div>
 
                 <div>
                   <div className="text-sm font-medium text-foreground mb-2">Common Scenarios</div>
                   <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                    <li>Working on multiple features: each worktree has its own session with separate notes and TODOs.</li>
-                    <li>Quick start after restart: open editor + switch directory + run dev server in one click.</li>
-                    <li>Automate setup: use Run Workflow to install dependencies, generate files, etc.</li>
+                    <li>
+                      Working on multiple features: each worktree has its own session with separate
+                      notes and TODOs.
+                    </li>
+                    <li>
+                      Quick start after restart: open editor + switch directory + run dev server in
+                      one click.
+                    </li>
+                    <li>
+                      Automate setup: use Run Workflow to install dependencies, generate files, etc.
+                    </li>
                   </ul>
                 </div>
 

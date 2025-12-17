@@ -69,58 +69,64 @@ export function useInputAutocomplete({
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch suggestions from backend (T118)
-  const fetchSuggestions = useCallback(async (input: string) => {
-    if (!conversationId || input.length < minLength) {
-      setSuggestions([]);
-      return;
-    }
-
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
-    setIsLoading(true);
-
-    try {
-      const result = await invoke<AutocompleteSuggestion[]>('ai_assistant_get_autocomplete', {
-        conversationId,
-        input,
-        limit: maxSuggestions,
-      });
-
-      setSuggestions(result);
-      setSelectedIndex(-1);
-    } catch (error) {
-      // Only log non-abort errors
-      if (!(error instanceof Error && error.name === 'AbortError')) {
-        console.error('Autocomplete error:', error);
+  const fetchSuggestions = useCallback(
+    async (input: string) => {
+      if (!conversationId || input.length < minLength) {
+        setSuggestions([]);
+        return;
       }
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [conversationId, maxSuggestions, minLength]);
+
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
+      setIsLoading(true);
+
+      try {
+        const result = await invoke<AutocompleteSuggestion[]>('ai_assistant_get_autocomplete', {
+          conversationId,
+          input,
+          limit: maxSuggestions,
+        });
+
+        setSuggestions(result);
+        setSelectedIndex(-1);
+      } catch (error) {
+        // Only log non-abort errors
+        if (!(error instanceof Error && error.name === 'AbortError')) {
+          console.error('Autocomplete error:', error);
+        }
+        setSuggestions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [conversationId, maxSuggestions, minLength]
+  );
 
   // Debounced update (T118)
-  const updateInput = useCallback((value: string) => {
-    // Clear previous timeout
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+  const updateInput = useCallback(
+    (value: string) => {
+      // Clear previous timeout
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
 
-    // Skip if too short
-    if (value.length < minLength) {
-      setSuggestions([]);
-      return;
-    }
+      // Skip if too short
+      if (value.length < minLength) {
+        setSuggestions([]);
+        return;
+      }
 
-    // Debounce the fetch
-    debounceRef.current = setTimeout(() => {
-      fetchSuggestions(value);
-    }, debounceMs);
-  }, [debounceMs, minLength, fetchSuggestions]);
+      // Debounce the fetch
+      debounceRef.current = setTimeout(() => {
+        fetchSuggestions(value);
+      }, debounceMs);
+    },
+    [debounceMs, minLength, fetchSuggestions]
+  );
 
   // Keyboard navigation (T120)
   const selectNext = useCallback(() => {

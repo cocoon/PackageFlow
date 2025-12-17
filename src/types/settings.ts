@@ -58,15 +58,11 @@ export const SETTINGS_SECTIONS: SettingsSidebarSection[] = [
   {
     id: 'mcp',
     label: 'MCP',
-    items: [
-      { id: 'mcp', label: 'MCP Integration', icon: 'Server' },
-    ],
+    items: [{ id: 'mcp', label: 'MCP Integration', icon: 'Server' }],
   },
   {
     id: 'data',
     label: 'Data',
-    items: [
-      { id: 'data', label: 'Import / Export', icon: 'ArrowLeftRight' },
-    ],
+    items: [{ id: 'data', label: 'Import / Export', icon: 'ArrowLeftRight' }],
   },
 ];

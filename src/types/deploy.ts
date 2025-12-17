@@ -191,17 +191,27 @@ export interface BackupImportResult {
 export const FRAMEWORK_PRESETS = [
   { key: 'nextjs', name: 'Next.js', buildCommand: 'next build', outputDirectory: '.next' },
   { key: 'vite', name: 'Vite', buildCommand: 'vite build', outputDirectory: 'dist' },
-  { key: 'create-react-app', name: 'Create React App', buildCommand: 'react-scripts build', outputDirectory: 'build' },
+  {
+    key: 'create-react-app',
+    name: 'Create React App',
+    buildCommand: 'react-scripts build',
+    outputDirectory: 'build',
+  },
   { key: 'vue', name: 'Vue.js', buildCommand: 'vue-cli-service build', outputDirectory: 'dist' },
   { key: 'nuxtjs', name: 'Nuxt.js', buildCommand: 'nuxt build', outputDirectory: '.nuxt' },
   { key: 'gatsby', name: 'Gatsby', buildCommand: 'gatsby build', outputDirectory: 'public' },
   { key: 'astro', name: 'Astro', buildCommand: 'astro build', outputDirectory: 'dist' },
-  { key: 'sveltekit', name: 'SvelteKit', buildCommand: 'svelte-kit build', outputDirectory: 'build' },
+  {
+    key: 'sveltekit',
+    name: 'SvelteKit',
+    buildCommand: 'svelte-kit build',
+    outputDirectory: 'build',
+  },
   { key: 'remix', name: 'Remix', buildCommand: 'remix build', outputDirectory: 'build' },
   { key: 'static', name: 'Static', buildCommand: '', outputDirectory: '.' },
 ] as const;
 
-export type FrameworkPresetKey = typeof FRAMEWORK_PRESETS[number]['key'];
+export type FrameworkPresetKey = (typeof FRAMEWORK_PRESETS)[number]['key'];
 
 // ============================================================================
 // Deploy UI Enhancement Types (018-deploy-ui-enhancement)

@@ -30,7 +30,9 @@ const McpSettingsFullPanel = lazy(() =>
   import('./panels/McpSettingsFullPanel').then((m) => ({ default: m.McpSettingsFullPanel }))
 );
 const ToolchainPreferencesPanel = lazy(() =>
-  import('./panels/ToolchainPreferencesPanel').then((m) => ({ default: m.ToolchainPreferencesPanel }))
+  import('./panels/ToolchainPreferencesPanel').then((m) => ({
+    default: m.ToolchainPreferencesPanel,
+  }))
 );
 const DataSettingsPanel = lazy(() =>
   import('./panels/DataSettingsPanel').then((m) => ({ default: m.DataSettingsPanel }))

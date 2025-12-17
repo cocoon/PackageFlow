@@ -107,7 +107,12 @@ function workflowNodesToFlowNodes(
     const position = node.position ?? defaultPosition;
 
     if (node.type === 'trigger-workflow') {
-      const config = node.config as { targetWorkflowId: string; waitForCompletion: boolean; onChildFailure: 'fail' | 'continue'; targetWorkflowName?: string };
+      const config = node.config as {
+        targetWorkflowId: string;
+        waitForCompletion: boolean;
+        onChildFailure: 'fail' | 'continue';
+        targetWorkflowName?: string;
+      };
       const childProgress = childProgressMap?.get(node.id);
       flowNodes.push({
         id: node.id,
@@ -288,7 +293,16 @@ export function VisualCanvas({
       onSaveAsTemplate,
       disabled,
     };
-  }, [onEditNode, onDeleteNode, onInsertNodeBefore, onInsertNodeAfter, onDuplicateNode, onExportNode, onSaveAsTemplate, disabled]);
+  }, [
+    onEditNode,
+    onDeleteNode,
+    onInsertNodeBefore,
+    onInsertNodeAfter,
+    onDuplicateNode,
+    onExportNode,
+    onSaveAsTemplate,
+    disabled,
+  ]);
 
   useEffect(() => {
     setNodes((currentNodes) => {
@@ -300,9 +314,7 @@ export function VisualCanvas({
       );
 
       if (isDraggingRef.current && currentNodes.length > 0) {
-        const currentPositions = new Map(
-          currentNodes.map((n) => [n.id, n.position])
-        );
+        const currentPositions = new Map(currentNodes.map((n) => [n.id, n.position]));
         return flowNodes.map((node) => {
           const currentPos = currentPositions.get(node.id);
           if (currentPos && node.id !== 'start') {
@@ -381,58 +393,54 @@ export function VisualCanvas({
     [disabled, selectedNodeId, onDeleteNode, onSelectNode]
   );
 
-  const minimapNodeColor = useCallback((node: Node) => {
-    if (node.id === 'start') return isDarkMode ? '#10b981' : '#059669';
+  const minimapNodeColor = useCallback(
+    (node: Node) => {
+      if (node.id === 'start') return isDarkMode ? '#10b981' : '#059669';
 
-    const isTriggerNode = node.type === 'trigger-workflow';
-    const data = node.data as ScriptNodeData | TriggerWorkflowNodeData;
+      const isTriggerNode = node.type === 'trigger-workflow';
+      const data = node.data as ScriptNodeData | TriggerWorkflowNodeData;
 
-    // Light mode uses lighter/softer colors for better visibility
-    if (!isDarkMode) {
+      // Light mode uses lighter/softer colors for better visibility
+      if (!isDarkMode) {
+        switch (data.status) {
+          case 'running':
+            return isTriggerNode ? '#c4b5fd' : '#93c5fd';
+          case 'completed':
+            return '#86efac';
+          case 'failed':
+            return '#fca5a5';
+          case 'skipped':
+            return '#d1d5db';
+          default:
+            return isTriggerNode ? '#c4b5fd' : '#d1d5db';
+        }
+      }
+
+      // Dark mode colors (original)
       switch (data.status) {
         case 'running':
-          return isTriggerNode ? '#c4b5fd' : '#93c5fd';
+          return isTriggerNode ? '#a855f7' : '#3b82f6';
         case 'completed':
-          return '#86efac';
+          return '#22c55e';
         case 'failed':
-          return '#fca5a5';
+          return '#ef4444';
         case 'skipped':
-          return '#d1d5db';
+          return '#6b7280';
         default:
-          return isTriggerNode ? '#c4b5fd' : '#d1d5db';
+          return isTriggerNode ? '#7c3aed' : '#374151';
       }
-    }
-
-    // Dark mode colors (original)
-    switch (data.status) {
-      case 'running':
-        return isTriggerNode ? '#a855f7' : '#3b82f6';
-      case 'completed':
-        return '#22c55e';
-      case 'failed':
-        return '#ef4444';
-      case 'skipped':
-        return '#6b7280';
-      default:
-        return isTriggerNode ? '#7c3aed' : '#374151';
-    }
-  }, [isDarkMode]);
+    },
+    [isDarkMode]
+  );
 
   if (workflowNodes.length === 0) {
     return (
-      <WorkflowEmptyState
-        onAddStep={onAddStep || (() => {})}
-        onFromTemplate={onFromTemplate}
-      />
+      <WorkflowEmptyState onAddStep={onAddStep || (() => {})} onFromTemplate={onFromTemplate} />
     );
   }
 
   return (
-    <div
-      className="w-full h-full"
-      onKeyDown={onKeyDown}
-      tabIndex={0}
-    >
+    <div className="w-full h-full" onKeyDown={onKeyDown} tabIndex={0}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -508,7 +516,6 @@ export function VisualCanvas({
           </div>
         </Panel>
       </ReactFlow>
-
     </div>
   );
 }

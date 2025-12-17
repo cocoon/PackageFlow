@@ -31,11 +31,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DeleteConfirmDialog } from '../ui/ConfirmDialog';
-import {
-  ListSidebarHeader,
-  ListSidebarItem,
-  ListSidebarEmpty,
-} from '../ui/ListSidebar';
+import { ListSidebarHeader, ListSidebarItem, ListSidebarEmpty } from '../ui/ListSidebar';
 import type { SortOption, ItemStatus } from '../ui/ListSidebar';
 import type { Workflow } from '../../types/workflow';
 import type { WorkflowSortMode } from '../../types/tauri';
@@ -100,14 +96,10 @@ function SortableWorkflowItem({
   onSelect,
   onContextMenu,
 }: SortableWorkflowItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: workflow.id, disabled: !isDraggable });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: workflow.id,
+    disabled: !isDraggable,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -195,11 +187,7 @@ export function WorkflowSidebar({
     };
 
     window.addEventListener('shortcut-focus-search', handleShortcutFocusSearch);
-    return () =>
-      window.removeEventListener(
-        'shortcut-focus-search',
-        handleShortcutFocusSearch
-      );
+    return () => window.removeEventListener('shortcut-focus-search', handleShortcutFocusSearch);
   }, []);
 
   const sortedWorkflows = useMemo(() => {
@@ -218,33 +206,27 @@ export function WorkflowSidebar({
     // Sort
     switch (sortMode) {
       case 'name':
-        return filtered.sort((a, b) =>
-          (a.name || '').localeCompare(b.name || '')
-        );
+        return filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
       case 'updated':
         return filtered.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
       case 'created':
         return filtered.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       case 'custom':
         return filtered.sort((a, b) => {
           const aIndex = workflowOrder.indexOf(a.id);
           const bIndex = workflowOrder.indexOf(b.id);
-          if (aIndex === -1 && bIndex === -1)
-            return (a.name || '').localeCompare(b.name || '');
+          if (aIndex === -1 && bIndex === -1) return (a.name || '').localeCompare(b.name || '');
           if (aIndex === -1) return 1;
           if (bIndex === -1) return -1;
           return aIndex - bIndex;
         });
       default:
         return filtered.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
     }
   }, [workflows, sortMode, workflowOrder, searchQuery]);
@@ -297,10 +279,7 @@ export function WorkflowSidebar({
   };
 
   return (
-    <div
-      className="flex flex-col h-full bg-background"
-      onClick={closeContextMenu}
-    >
+    <div className="flex flex-col h-full bg-background" onClick={closeContextMenu}>
       {/* Search and actions */}
       <ListSidebarHeader
         searchQuery={searchQuery}

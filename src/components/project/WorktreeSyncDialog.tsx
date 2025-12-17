@@ -66,37 +66,40 @@ export function WorktreeSyncDialog({
     loadBehindCommits();
   }, [isOpen, worktree]);
 
-  const handleSync = useCallback(async (method: 'rebase' | 'merge') => {
-    if (!worktree) return;
+  const handleSync = useCallback(
+    async (method: 'rebase' | 'merge') => {
+      if (!worktree) return;
 
-    setState('syncing');
-    setSyncMethod(method);
-    setError(null);
+      setState('syncing');
+      setSyncMethod(method);
+      setError(null);
 
-    try {
-      const result = await worktreeAPI.syncWorktree(worktree.path, baseBranch, method);
-      if (result.success) {
-        setState('success');
-        // Auto-close after success
-        setTimeout(() => {
-          onComplete();
-          onClose();
-        }, 1500);
-      } else {
-        const errorMessages: Record<string, string> = {
-          CONFLICT: 'Conflicts detected. Please resolve manually.',
-          HAS_UNCOMMITTED_CHANGES: 'Please commit or stash your changes first.',
-          PATH_NOT_FOUND: 'Worktree path not found.',
-          NOT_A_WORKTREE: 'Not a valid Git worktree.',
-        };
-        setError(errorMessages[result.error || ''] || result.error || 'Sync failed');
+      try {
+        const result = await worktreeAPI.syncWorktree(worktree.path, baseBranch, method);
+        if (result.success) {
+          setState('success');
+          // Auto-close after success
+          setTimeout(() => {
+            onComplete();
+            onClose();
+          }, 1500);
+        } else {
+          const errorMessages: Record<string, string> = {
+            CONFLICT: 'Conflicts detected. Please resolve manually.',
+            HAS_UNCOMMITTED_CHANGES: 'Please commit or stash your changes first.',
+            PATH_NOT_FOUND: 'Worktree path not found.',
+            NOT_A_WORKTREE: 'Not a valid Git worktree.',
+          };
+          setError(errorMessages[result.error || ''] || result.error || 'Sync failed');
+          setState('error');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
         setState('error');
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setState('error');
-    }
-  }, [worktree, baseBranch, onComplete, onClose]);
+    },
+    [worktree, baseBranch, onComplete, onClose]
+  );
 
   const handleClose = () => {
     if (state !== 'syncing') {
@@ -180,18 +183,11 @@ export function WorktreeSyncDialog({
 
               {/* Sync options */}
               <div className="flex items-center gap-2 pt-2 border-t border-border">
-                <Button
-                  onClick={() => handleSync('rebase')}
-                  className="flex-1"
-                >
+                <Button onClick={() => handleSync('rebase')} className="flex-1">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Rebase
                 </Button>
-                <Button
-                  onClick={() => handleSync('merge')}
-                  variant="outline"
-                  className="flex-1"
-                >
+                <Button onClick={() => handleSync('merge')} variant="outline" className="flex-1">
                   <GitMerge className="w-4 h-4 mr-2" />
                   Merge
                 </Button>

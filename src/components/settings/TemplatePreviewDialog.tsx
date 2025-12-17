@@ -36,14 +36,17 @@ const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
 };
 
 // Category color configurations for dialog variants
-const CATEGORY_DIALOG_CONFIG: Record<TemplateCategory, {
-  gradient: string;
-  gradientLight: string;
-  iconColor: string;
-  iconBg: string;
-  accentBorder: string;
-  badge: string;
-}> = {
+const CATEGORY_DIALOG_CONFIG: Record<
+  TemplateCategory,
+  {
+    gradient: string;
+    gradientLight: string;
+    iconColor: string;
+    iconBg: string;
+    accentBorder: string;
+    badge: string;
+  }
+> = {
   git_commit: {
     gradient: 'from-orange-500/20 via-orange-600/10 to-transparent',
     gradientLight: 'from-orange-500/10 via-orange-600/5 to-transparent',
@@ -211,8 +214,8 @@ export function TemplatePreviewDialog({
   });
 
   // Extract used variables
-  const usedVariables = (categoryInfo?.variables || []).filter(
-    (v) => template.template.includes(`{${v}}`)
+  const usedVariables = (categoryInfo?.variables || []).filter((v) =>
+    template.template.includes(`{${v}}`)
   );
 
   return (
@@ -323,10 +326,7 @@ export function TemplatePreviewDialog({
                   {usedVariables.map((v) => (
                     <span
                       key={v}
-                      className={cn(
-                        'px-2 py-1 rounded text-xs font-mono',
-                        config.badge
-                      )}
+                      className={cn('px-2 py-1 rounded text-xs font-mono', config.badge)}
                     >
                       {`{${v}}`}
                     </span>
@@ -428,21 +428,14 @@ export function TemplatePreviewDialog({
           >
             {/* Left side - metadata */}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className={cn('px-2 py-1 rounded', config.badge)}>
-                {categoryInfo?.name}
-              </span>
+              <span className={cn('px-2 py-1 rounded', config.badge)}>{categoryInfo?.name}</span>
               {template.outputFormat && (
-                <span className="px-2 py-1 rounded bg-muted">
-                  Format: {template.outputFormat}
-                </span>
+                <span className="px-2 py-1 rounded bg-muted">Format: {template.outputFormat}</span>
               )}
             </div>
 
             {/* Right side - close button */}
-            <Button
-              variant="secondary"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
               Close
             </Button>
           </div>

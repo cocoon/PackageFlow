@@ -57,14 +57,8 @@ interface UseConversationsReturn {
 /**
  * Hook for managing AI conversations
  */
-export function useConversations(
-  options: UseConversationsOptions = {}
-): UseConversationsReturn {
-  const {
-    projectPath,
-    initialLimit = 20,
-    autoFetch = true,
-  } = options;
+export function useConversations(options: UseConversationsOptions = {}): UseConversationsReturn {
+  const { projectPath, initialLimit = 20, autoFetch = true } = options;
 
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -77,37 +71,37 @@ export function useConversations(
   const [offset, setOffset] = useState(0);
 
   // Fetch conversations
-  const fetchConversations = useCallback(async (reset = false) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchConversations = useCallback(
+    async (reset = false) => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const currentOffset = reset ? 0 : offset;
-      const response = await invoke<ConversationListResponse>(
-        'ai_assistant_list_conversations',
-        {
+      try {
+        const currentOffset = reset ? 0 : offset;
+        const response = await invoke<ConversationListResponse>('ai_assistant_list_conversations', {
           projectPath,
           limit: initialLimit,
           offset: currentOffset,
-        }
-      );
+        });
 
-      if (reset) {
-        setConversations(response.conversations);
-        setOffset(initialLimit);
-      } else {
-        setConversations((prev) => [...prev, ...response.conversations]);
-        setOffset(currentOffset + initialLimit);
+        if (reset) {
+          setConversations(response.conversations);
+          setOffset(initialLimit);
+        } else {
+          setConversations((prev) => [...prev, ...response.conversations]);
+          setOffset(currentOffset + initialLimit);
+        }
+        setTotal(response.total);
+        setHasMore(response.hasMore);
+      } catch (err) {
+        console.error('Failed to fetch conversations:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
+      } finally {
+        setIsLoading(false);
       }
-      setTotal(response.total);
-      setHasMore(response.hasMore);
-    } catch (err) {
-      console.error('Failed to fetch conversations:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch conversations');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectPath, initialLimit, offset]);
+    },
+    [projectPath, initialLimit, offset]
+  );
 
   // Auto-fetch on mount
   useEffect(() => {
@@ -117,40 +111,37 @@ export function useConversations(
   }, [autoFetch]); // Only run on mount
 
   // Create a new conversation
-  const createConversation = useCallback(async (
-    newProjectPath?: string,
-    providerId?: string
-  ): Promise<Conversation> => {
-    try {
-      const conversation = await invoke<Conversation>(
-        'ai_assistant_create_conversation',
-        {
+  const createConversation = useCallback(
+    async (newProjectPath?: string, providerId?: string): Promise<Conversation> => {
+      try {
+        const conversation = await invoke<Conversation>('ai_assistant_create_conversation', {
           projectPath: newProjectPath ?? projectPath,
           providerId,
-        }
-      );
+        });
 
-      // Add to list at the beginning
-      setConversations((prev) => {
-        const summary: ConversationSummary = {
-          id: conversation.id,
-          title: conversation.title,
-          projectPath: conversation.projectPath,
-          messageCount: 0,
-          lastMessagePreview: null,
-          createdAt: conversation.createdAt,
-          updatedAt: conversation.updatedAt,
-        };
-        return [summary, ...prev];
-      });
-      setTotal((prev) => prev + 1);
+        // Add to list at the beginning
+        setConversations((prev) => {
+          const summary: ConversationSummary = {
+            id: conversation.id,
+            title: conversation.title,
+            projectPath: conversation.projectPath,
+            messageCount: 0,
+            lastMessagePreview: null,
+            createdAt: conversation.createdAt,
+            updatedAt: conversation.updatedAt,
+          };
+          return [summary, ...prev];
+        });
+        setTotal((prev) => prev + 1);
 
-      return conversation;
-    } catch (err) {
-      console.error('Failed to create conversation:', err);
-      throw err;
-    }
-  }, [projectPath]);
+        return conversation;
+      } catch (err) {
+        console.error('Failed to create conversation:', err);
+        throw err;
+      }
+    },
+    [projectPath]
+  );
 
   // Select a conversation and load its messages
   const selectConversation = useCallback(async (conversationId: string) => {
@@ -159,20 +150,18 @@ export function useConversations(
 
     try {
       // Fetch conversation details
-      const conversation = await invoke<Conversation | null>(
-        'ai_assistant_get_conversation',
-        { conversationId }
-      );
+      const conversation = await invoke<Conversation | null>('ai_assistant_get_conversation', {
+        conversationId,
+      });
 
       if (!conversation) {
         throw new Error('Conversation not found');
       }
 
       // Fetch messages
-      const conversationMessages = await invoke<Message[]>(
-        'ai_assistant_get_messages',
-        { conversationId }
-      );
+      const conversationMessages = await invoke<Message[]>('ai_assistant_get_messages', {
+        conversationId,
+      });
 
       setSelectedConversation(conversation);
       setMessages(conversationMessages);
@@ -191,56 +180,53 @@ export function useConversations(
   }, []);
 
   // Rename a conversation
-  const renameConversation = useCallback(async (
-    conversationId: string,
-    title: string
-  ) => {
-    try {
-      await invoke('ai_assistant_update_conversation', {
-        conversationId,
-        title,
-      });
+  const renameConversation = useCallback(
+    async (conversationId: string, title: string) => {
+      try {
+        await invoke('ai_assistant_update_conversation', {
+          conversationId,
+          title,
+        });
 
-      // Update local state
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversationId ? { ...conv, title } : conv
-        )
-      );
-
-      // Update selected conversation if it's the one being renamed
-      if (selectedConversation?.id === conversationId) {
-        setSelectedConversation((prev) =>
-          prev ? { ...prev, title } : null
+        // Update local state
+        setConversations((prev) =>
+          prev.map((conv) => (conv.id === conversationId ? { ...conv, title } : conv))
         );
+
+        // Update selected conversation if it's the one being renamed
+        if (selectedConversation?.id === conversationId) {
+          setSelectedConversation((prev) => (prev ? { ...prev, title } : null));
+        }
+      } catch (err) {
+        console.error('Failed to rename conversation:', err);
+        throw err;
       }
-    } catch (err) {
-      console.error('Failed to rename conversation:', err);
-      throw err;
-    }
-  }, [selectedConversation?.id]);
+    },
+    [selectedConversation?.id]
+  );
 
   // Delete a conversation
-  const deleteConversation = useCallback(async (conversationId: string) => {
-    try {
-      await invoke('ai_assistant_delete_conversation', { conversationId });
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      try {
+        await invoke('ai_assistant_delete_conversation', { conversationId });
 
-      // Remove from local state
-      setConversations((prev) =>
-        prev.filter((conv) => conv.id !== conversationId)
-      );
-      setTotal((prev) => prev - 1);
+        // Remove from local state
+        setConversations((prev) => prev.filter((conv) => conv.id !== conversationId));
+        setTotal((prev) => prev - 1);
 
-      // Clear selection if deleted conversation was selected
-      if (selectedConversation?.id === conversationId) {
-        setSelectedConversation(null);
-        setMessages([]);
+        // Clear selection if deleted conversation was selected
+        if (selectedConversation?.id === conversationId) {
+          setSelectedConversation(null);
+          setMessages([]);
+        }
+      } catch (err) {
+        console.error('Failed to delete conversation:', err);
+        throw err;
       }
-    } catch (err) {
-      console.error('Failed to delete conversation:', err);
-      throw err;
-    }
-  }, [selectedConversation?.id]);
+    },
+    [selectedConversation?.id]
+  );
 
   // Load more conversations
   const loadMore = useCallback(async () => {

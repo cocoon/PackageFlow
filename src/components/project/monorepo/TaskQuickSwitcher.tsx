@@ -43,8 +43,8 @@ export function TaskQuickSwitcher({
         subtitle: pipeline.dependsOn?.length
           ? `depends on: ${pipeline.dependsOn.join(', ')}`
           : pipeline.cache && !forceRun
-          ? 'cached'
-          : undefined,
+            ? 'cached'
+            : undefined,
         icon: <Zap className="w-4 h-4 text-purple-400" />,
         category: 'Turbo',
         keywords: [pipeline.name, 'turbo', ...(pipeline.dependsOn || [])],
@@ -60,8 +60,8 @@ export function TaskQuickSwitcher({
         subtitle: target.dependsOn?.length
           ? `depends on: ${target.dependsOn.join(', ')}`
           : target.cache && !forceRun
-          ? 'cached'
-          : undefined,
+            ? 'cached'
+            : undefined,
         icon: <Box className="w-4 h-4 text-blue-400" />,
         category: 'Nx',
         keywords: [target.name, 'nx', ...(target.dependsOn || [])],

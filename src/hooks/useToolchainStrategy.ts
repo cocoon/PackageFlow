@@ -17,7 +17,8 @@ import type {
   UseToolchainStrategyActions,
 } from '../types/toolchain';
 
-export interface UseToolchainStrategyReturn extends UseToolchainStrategyState, UseToolchainStrategyActions {}
+export interface UseToolchainStrategyReturn
+  extends UseToolchainStrategyState, UseToolchainStrategyActions {}
 
 export function useToolchainStrategy(): UseToolchainStrategyReturn {
   const [conflict, setConflict] = useState<ToolchainConflictResult | null>(null);
@@ -55,34 +56,33 @@ export function useToolchainStrategy(): UseToolchainStrategyReturn {
   /**
    * Set toolchain strategy preference for a project
    */
-  const setPreference = useCallback(async (
-    projectPath: string,
-    strategy: ToolchainStrategy,
-    remember: boolean
-  ): Promise<void> => {
-    setIsSaving(true);
-    setError(null);
+  const setPreference = useCallback(
+    async (projectPath: string, strategy: ToolchainStrategy, remember: boolean): Promise<void> => {
+      setIsSaving(true);
+      setError(null);
 
-    try {
-      await toolchainAPI.setPreference(projectPath, strategy, remember);
+      try {
+        await toolchainAPI.setPreference(projectPath, strategy, remember);
 
-      // Update local state
-      if (remember) {
-        setPreferenceState({
-          project_path: projectPath,
-          strategy,
-          remember,
-          updated_at: new Date().toISOString(),
-        });
+        // Update local state
+        if (remember) {
+          setPreferenceState({
+            project_path: projectPath,
+            strategy,
+            remember,
+            updated_at: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        throw err;
+      } finally {
+        setIsSaving(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
-      throw err;
-    } finally {
-      setIsSaving(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Clear toolchain strategy preference for a project
@@ -124,22 +124,25 @@ export function useToolchainStrategy(): UseToolchainStrategyReturn {
   /**
    * Build wrapped command with toolchain strategy
    */
-  const buildCommand = useCallback(async (
-    projectPath: string,
-    command: string,
-    args: string[]
-  ): Promise<BuildCommandResult | undefined> => {
-    setError(null);
+  const buildCommand = useCallback(
+    async (
+      projectPath: string,
+      command: string,
+      args: string[]
+    ): Promise<BuildCommandResult | undefined> => {
+      setError(null);
 
-    try {
-      const result = await toolchainAPI.buildCommand(projectPath, command, args);
-      return result;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
-      return undefined;
-    }
-  }, []);
+      try {
+        const result = await toolchainAPI.buildCommand(projectPath, command, args);
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        return undefined;
+      }
+    },
+    []
+  );
 
   return {
     // State

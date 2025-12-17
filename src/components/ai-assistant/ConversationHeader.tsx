@@ -10,14 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import {
-  Settings,
-  Sparkles,
-  Folder,
-  ChevronDown,
-  Check,
-  Loader2,
-} from 'lucide-react';
+import { Settings, Sparkles, Folder, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import { Dropdown, DropdownItem, DropdownSection } from '../ui/Dropdown';
@@ -94,11 +87,7 @@ function TokenUsageIndicator({
         <div
           className={cn(
             'h-full rounded-full transition-all duration-300',
-            isCritical
-              ? 'bg-red-500/80'
-              : isWarning
-                ? 'bg-amber-500/80'
-                : 'bg-purple-500/60'
+            isCritical ? 'bg-red-500/80' : isWarning ? 'bg-amber-500/80' : 'bg-purple-500/60'
           )}
           style={{ width: `${percentage}%` }}
         />
@@ -201,7 +190,9 @@ export function ConversationHeader({
   // Load AI services function
   const loadServices = async (autoSelectDefault = false) => {
     try {
-      const result = await invoke<{ success: boolean; data?: AIProviderConfig[] }>('ai_list_providers');
+      const result = await invoke<{ success: boolean; data?: AIProviderConfig[] }>(
+        'ai_list_providers'
+      );
       if (result.success && result.data) {
         setAiServices(result.data);
         // Auto-select default provider if nothing is selected and no conversation
@@ -267,9 +258,7 @@ export function ConversationHeader({
   const currentServiceId = conversation?.providerId ?? selectedProviderId ?? null;
 
   // Get project name from path
-  const projectName = conversation?.projectPath
-    ? conversation.projectPath.split('/').pop()
-    : null;
+  const projectName = conversation?.projectPath ? conversation.projectPath.split('/').pop() : null;
 
   return (
     <header
@@ -312,15 +301,12 @@ export function ConversationHeader({
             <span className="truncate max-w-[120px]">{projectName}</span>
           </div>
         )}
-
       </div>
 
       {/* Right side - Token usage and settings */}
       <div className="flex items-center gap-3">
         {/* Token usage */}
-        {tokensUsed > 0 && (
-          <TokenUsageIndicator used={tokensUsed} />
-        )}
+        {tokensUsed > 0 && <TokenUsageIndicator used={tokensUsed} />}
 
         {/* Settings button */}
         <Button

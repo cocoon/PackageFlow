@@ -28,10 +28,7 @@ import {
   Terminal,
   Globe,
 } from 'lucide-react';
-import {
-  formatShortcutKey,
-  type KeyboardShortcut,
-} from '../../hooks/useKeyboardShortcuts';
+import { formatShortcutKey, type KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
 import { useShortcutsContext } from '../../contexts/ShortcutsContext';
 import { cn } from '../../lib/utils';
 import { isTopModal, registerModal, unregisterModal } from './modalStack';
@@ -69,9 +66,7 @@ export function KeyboardShortcutsDialog({
 }: KeyboardShortcutsDialogProps) {
   const modalId = React.useId();
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(
-    null
-  );
+  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = React.useState(-1);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
@@ -106,21 +101,15 @@ export function KeyboardShortcutsDialog({
       if (shortcut.enabled === false) return false;
 
       // Category filter
-      if (selectedCategory && shortcut.category !== selectedCategory)
-        return false;
+      if (selectedCategory && shortcut.category !== selectedCategory) return false;
 
       // Search filter
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesDescription = shortcut.description
-          .toLowerCase()
-          .includes(query);
+        const matchesDescription = shortcut.description.toLowerCase().includes(query);
         const matchesKey = shortcut.key.toLowerCase().includes(query);
-        const matchesCategory = shortcut.category
-          ?.toLowerCase()
-          .includes(query);
-        if (!matchesDescription && !matchesKey && !matchesCategory)
-          return false;
+        const matchesCategory = shortcut.category?.toLowerCase().includes(query);
+        if (!matchesDescription && !matchesKey && !matchesCategory) return false;
       }
 
       return true;
@@ -147,9 +136,7 @@ export function KeyboardShortcutsDialog({
   }, [filteredShortcuts]);
 
   // Enabled shortcut count
-  const enabledCount = effectiveShortcuts.filter(
-    (s) => s.enabled !== false
-  ).length;
+  const enabledCount = effectiveShortcuts.filter((s) => s.enabled !== false).length;
 
   // Register/unregister modal
   React.useEffect(() => {
@@ -227,17 +214,11 @@ export function KeyboardShortcutsDialog({
   // Highlight matching text
   const highlightText = (text: string, query: string) => {
     if (!query.trim()) return text;
-    const regex = new RegExp(
-      `(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
-      'gi'
-    );
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, i) =>
       regex.test(part) ? (
-        <mark
-          key={i}
-          className="bg-cyan-500/30 text-cyan-300 dark:text-cyan-200 rounded px-0.5"
-        >
+        <mark key={i} className="bg-cyan-500/30 text-cyan-300 dark:text-cyan-200 rounded px-0.5">
           {part}
         </mark>
       ) : (
@@ -445,9 +426,7 @@ export function KeyboardShortcutsDialog({
               <div className="flex flex-col items-center justify-center h-full py-12 text-center text-muted-foreground">
                 <Search className="w-12 h-12 mb-4 opacity-30" />
                 <p className="text-sm font-medium">No shortcuts found</p>
-                <p className="text-xs mt-1">
-                  Try adjusting your search or filter
-                </p>
+                <p className="text-xs mt-1">Try adjusting your search or filter</p>
               </div>
             ) : (
               <div className="p-3 space-y-3">
@@ -467,60 +446,53 @@ export function KeyboardShortcutsDialog({
                 )}
 
                 {/* Categorized shortcuts */}
-                {Object.entries(groupedShortcuts.groups).map(
-                  ([category, categoryShortcuts]) => {
-                    const IconComponent = CATEGORY_ICONS[category] || Keyboard;
-                    return (
-                      <div key={category}>
-                        {/* Sticky category header */}
-                        <div
-                          className={cn(
-                            'sticky top-0 z-10',
-                            'px-3 py-2',
-                            'bg-muted/80 dark:bg-muted/50',
-                            'border-b border-border',
-                            'backdrop-blur-sm',
-                            'rounded-t-lg'
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <IconComponent className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
-                            <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
-                              {category}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              ({categoryShortcuts.length})
-                            </span>
-                          </div>
-                        </div>
-                        <div className="space-y-0.5 mt-0.5">
-                          {categoryShortcuts.map((shortcut, index) => {
-                            const globalIndex =
-                              groupedShortcuts.uncategorized.length +
-                              Object.entries(groupedShortcuts.groups)
-                                .slice(
-                                  0,
-                                  Object.keys(groupedShortcuts.groups).indexOf(
-                                    category
-                                  )
-                                )
-                                .reduce((acc, [, arr]) => acc + arr.length, 0) +
-                              index;
-                            return (
-                              <ShortcutRow
-                                key={shortcut.id}
-                                shortcut={shortcut}
-                                searchQuery={searchQuery}
-                                highlightText={highlightText}
-                                isFocused={focusedIndex === globalIndex}
-                              />
-                            );
-                          })}
+                {Object.entries(groupedShortcuts.groups).map(([category, categoryShortcuts]) => {
+                  const IconComponent = CATEGORY_ICONS[category] || Keyboard;
+                  return (
+                    <div key={category}>
+                      {/* Sticky category header */}
+                      <div
+                        className={cn(
+                          'sticky top-0 z-10',
+                          'px-3 py-2',
+                          'bg-muted/80 dark:bg-muted/50',
+                          'border-b border-border',
+                          'backdrop-blur-sm',
+                          'rounded-t-lg'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
+                          <span className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">
+                            {category}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({categoryShortcuts.length})
+                          </span>
                         </div>
                       </div>
-                    );
-                  }
-                )}
+                      <div className="space-y-0.5 mt-0.5">
+                        {categoryShortcuts.map((shortcut, index) => {
+                          const globalIndex =
+                            groupedShortcuts.uncategorized.length +
+                            Object.entries(groupedShortcuts.groups)
+                              .slice(0, Object.keys(groupedShortcuts.groups).indexOf(category))
+                              .reduce((acc, [, arr]) => acc + arr.length, 0) +
+                            index;
+                          return (
+                            <ShortcutRow
+                              key={shortcut.id}
+                              shortcut={shortcut}
+                              searchQuery={searchQuery}
+                              highlightText={highlightText}
+                              isFocused={focusedIndex === globalIndex}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -567,28 +539,19 @@ interface ShortcutRowProps {
   isFocused?: boolean;
 }
 
-function ShortcutRow({
-  shortcut,
-  searchQuery,
-  highlightText,
-  isFocused,
-}: ShortcutRowProps) {
+function ShortcutRow({ shortcut, searchQuery, highlightText, isFocused }: ShortcutRowProps) {
   return (
     <div
       className={cn(
         'flex items-center justify-between py-2 px-3 rounded-lg',
         'transition-colors duration-100',
-        isFocused
-          ? 'bg-cyan-500/10 ring-2 ring-cyan-500/30'
-          : 'hover:bg-accent'
+        isFocused ? 'bg-cyan-500/10 ring-2 ring-cyan-500/30' : 'hover:bg-accent'
       )}
       role="option"
       aria-selected={isFocused}
     >
       <span className="text-sm text-foreground">
-        {searchQuery
-          ? highlightText(shortcut.description, searchQuery)
-          : shortcut.description}
+        {searchQuery ? highlightText(shortcut.description, searchQuery) : shortcut.description}
       </span>
       <kbd
         className={cn(

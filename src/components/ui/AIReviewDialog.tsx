@@ -4,7 +4,16 @@
  */
 
 import * as React from 'react';
-import { Sparkles, Copy, Check, RefreshCw, X, FileSearch, AlertTriangle, ShieldAlert } from 'lucide-react';
+import {
+  Sparkles,
+  Copy,
+  Check,
+  RefreshCw,
+  X,
+  FileSearch,
+  AlertTriangle,
+  ShieldAlert,
+} from 'lucide-react';
 import { marked } from 'marked';
 import { cn } from '../../lib/utils';
 import { isTopModal, registerModal, unregisterModal } from './modalStack';
@@ -225,10 +234,7 @@ export function AIReviewDialog({
                   {title}
                 </h2>
                 {subtitle && (
-                  <p
-                    className="mt-1 text-sm text-muted-foreground truncate"
-                    title={subtitle}
-                  >
+                  <p className="mt-1 text-sm text-muted-foreground truncate" title={subtitle}>
                     {subtitle}
                   </p>
                 )}
@@ -248,8 +254,8 @@ export function AIReviewDialog({
             >
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>
-                This review may be incomplete due to response length limits.
-                Consider reviewing individual files for more detailed feedback.
+                This review may be incomplete due to response length limits. Consider reviewing
+                individual files for more detailed feedback.
               </span>
             </div>
           )}
@@ -324,9 +330,7 @@ export function AIReviewDialog({
                     'bg-muted/50 border border-border'
                   )}
                 >
-                  <span className="font-medium text-foreground">
-                    {tokensUsed.toLocaleString()}
-                  </span>
+                  <span className="font-medium text-foreground">{tokensUsed.toLocaleString()}</span>
                   <span>tokens</span>
                 </span>
               )}
@@ -350,9 +354,7 @@ export function AIReviewDialog({
                     'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
-                  <RefreshCw
-                    className={cn('w-4 h-4', isRegenerating && 'animate-spin')}
-                  />
+                  <RefreshCw className={cn('w-4 h-4', isRegenerating && 'animate-spin')} />
                   <span className="hidden sm:inline">Regenerate</span>
                 </button>
               )}

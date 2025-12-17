@@ -7,7 +7,15 @@
 // Note: Deploy Accounts management moved to app Settings
 
 import { useState, useEffect, useMemo } from 'react';
-import { Rocket, LayoutDashboard, History, Settings, AlertCircle, FolderCode, Variable } from 'lucide-react';
+import {
+  Rocket,
+  LayoutDashboard,
+  History,
+  Settings,
+  AlertCircle,
+  FolderCode,
+  Variable,
+} from 'lucide-react';
 import { useDeploy } from '../../../hooks/useDeploy';
 import { useDeployAccounts } from '../../../hooks/useDeployAccounts';
 import { deployAPI } from '../../../lib/tauri-api';
@@ -265,7 +273,11 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
     await deleteConfig(projectId);
   };
 
-  const handleDeploy = async (_projectId: string, _projectPath: string, config: DeploymentConfig) => {
+  const handleDeploy = async (
+    _projectId: string,
+    _projectPath: string,
+    config: DeploymentConfig
+  ) => {
     await deploy(_projectId, _projectPath, config);
   };
 
@@ -290,9 +302,21 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
   const hasConnectedPlatform = accounts.length > 0 || true; // GitHub Pages is always available
 
   // Tab configuration - sidebar navigation items
-  const tabs: { id: DeployTab; label: string; description: string; icon: typeof LayoutDashboard; badge?: number }[] = [
+  const tabs: {
+    id: DeployTab;
+    label: string;
+    description: string;
+    icon: typeof LayoutDashboard;
+    badge?: number;
+  }[] = [
     { id: 'overview', label: 'Overview', description: 'Stats & status', icon: LayoutDashboard },
-    { id: 'history', label: 'History', description: 'Past deployments', icon: History, badge: deploymentHistory.length || undefined },
+    {
+      id: 'history',
+      label: 'History',
+      description: 'Past deployments',
+      icon: History,
+      badge: deploymentHistory.length || undefined,
+    },
     { id: 'settings', label: 'Settings', description: 'Configuration', icon: Settings },
   ];
 
@@ -344,11 +368,7 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
           <div className="mb-4 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span className="flex-1">{error}</span>
-            <Button
-              variant="link"
-              onClick={clearError}
-              className="h-auto p-0 text-xs"
-            >
+            <Button variant="link" onClick={clearError} className="h-auto p-0 text-xs">
               Dismiss
             </Button>
           </div>
@@ -382,7 +402,8 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
                   Connect a deployment platform to get started.
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Go to <span className="font-medium">Settings → Deploy Accounts</span> to add an account.
+                  Go to <span className="font-medium">Settings → Deploy Accounts</span> to add an
+                  account.
                 </p>
               </div>
             ) : (
@@ -401,7 +422,10 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
                 ) : null}
 
                 {/* Deployment Statistics Overview */}
-                <DeploymentStatsCard projectId={projectId} refreshTrigger={deploymentHistory.length} />
+                <DeploymentStatsCard
+                  projectId={projectId}
+                  refreshTrigger={deploymentHistory.length}
+                />
               </>
             )}
           </div>
@@ -460,7 +484,11 @@ export function DeployPanel({ projectId, projectName, projectPath }: DeployPanel
         onOpenChange={setShowDeployConfirm}
         variant="info"
         title="Quick Deploy"
-        description={deploymentConfig ? `Deploy to ${formatPlatformName(deploymentConfig.platform)}?` : 'Deploy this project?'}
+        description={
+          deploymentConfig
+            ? `Deploy to ${formatPlatformName(deploymentConfig.platform)}?`
+            : 'Deploy this project?'
+        }
         confirmText="Deploy"
         cancelText="Cancel"
         onConfirm={handleConfirmDeploy}

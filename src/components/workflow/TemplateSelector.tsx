@@ -53,7 +53,12 @@ import {
   STEP_TEMPLATES,
 } from '../../data/step-templates';
 import { useTemplatePreferences, type TemplateViewMode } from '../../hooks/useTemplatePreferences';
-import type { StepTemplate, TemplateCategoryInfo, CustomTemplate, TemplateCategory } from '../../types/step-template';
+import type {
+  StepTemplate,
+  TemplateCategoryInfo,
+  CustomTemplate,
+  TemplateCategory,
+} from '../../types/step-template';
 
 /** Map category icon names to components */
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -236,11 +241,7 @@ function CategoryGroup({
         className="w-full justify-start h-auto sticky top-0 z-10 gap-2 px-3 py-2 bg-muted/80 dark:bg-muted/50 border border-border rounded-lg mb-1 -mx-0.5 hover:bg-muted group backdrop-blur-sm"
       >
         <span className="text-muted-foreground transition-transform duration-200">
-          {isCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronDown className="w-4 h-4" />
-          )}
+          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
         <IconComponent className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">{category.name}</span>
@@ -309,13 +310,16 @@ function TemplateItem({
       onClick={onClick}
       className={cn(
         'w-full justify-start items-start h-auto flex-col gap-0.5 px-3 py-2.5 rounded-md group relative',
-        isSelected
-          ? 'bg-blue-600/20 ring-1 ring-blue-500'
-          : 'hover:bg-accent'
+        isSelected ? 'bg-blue-600/20 ring-1 ring-blue-500' : 'hover:bg-accent'
       )}
     >
       <div className="w-full flex items-center justify-between gap-2">
-        <span className={cn('text-sm font-medium flex items-center gap-1.5', isSelected ? 'text-blue-300' : 'text-foreground')}>
+        <span
+          className={cn(
+            'text-sm font-medium flex items-center gap-1.5',
+            isSelected ? 'text-blue-300' : 'text-foreground'
+          )}
+        >
           {isCustom && <Star className="w-3 h-3 text-yellow-500" />}
           {highlightMatch(template.name, searchQuery)}
         </span>
@@ -418,7 +422,13 @@ function RecentlyUsedSection({
  * Empty State Component
  * Shown when no templates match the search
  */
-function EmptyState({ searchQuery, viewMode }: { searchQuery: string; viewMode: TemplateViewMode }) {
+function EmptyState({
+  searchQuery,
+  viewMode,
+}: {
+  searchQuery: string;
+  viewMode: TemplateViewMode;
+}) {
   if (viewMode === 'favorites') {
     return (
       <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -452,7 +462,10 @@ export function TemplateSelector({
   className,
 }: TemplateSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [importStatus, setImportStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [importStatus, setImportStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
   const [customTemplates, setCustomTemplates] = useState<CustomTemplate[]>([]);
   const [isLoadingCustom, setIsLoadingCustom] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -556,7 +569,10 @@ export function TemplateSelector({
     }
 
     // Build result with custom templates first
-    const result: { category: TemplateCategoryInfo; templates: (StepTemplate | CustomTemplate)[] }[] = [];
+    const result: {
+      category: TemplateCategoryInfo;
+      templates: (StepTemplate | CustomTemplate)[];
+    }[] = [];
 
     if (groups.has('custom')) {
       result.push({
@@ -641,7 +657,10 @@ export function TemplateSelector({
       if (filePath) {
         const jsonContent = exportTemplatesToJson(customTemplates);
         await writeTextFile(filePath, jsonContent);
-        setImportStatus({ type: 'success', message: `Exported ${customTemplates.length} custom template${customTemplates.length !== 1 ? 's' : ''}` });
+        setImportStatus({
+          type: 'success',
+          message: `Exported ${customTemplates.length} custom template${customTemplates.length !== 1 ? 's' : ''}`,
+        });
         setTimeout(() => setImportStatus(null), 3000);
       }
     } catch (error) {
@@ -708,8 +727,10 @@ export function TemplateSelector({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [searchQuery, handleClearSearch]);
 
-  const hasResults = preferredView === 'favorites' ? favoriteTemplates.length > 0 : groupedTemplates.length > 0;
-  const showRecentSection = preferredView === 'categories' && !searchQuery && recentTemplates.length > 0;
+  const hasResults =
+    preferredView === 'favorites' ? favoriteTemplates.length > 0 : groupedTemplates.length > 0;
+  const showRecentSection =
+    preferredView === 'categories' && !searchQuery && recentTemplates.length > 0;
 
   return (
     <div className={cn('flex flex-col gap-3', className)}>

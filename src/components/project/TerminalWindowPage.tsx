@@ -5,7 +5,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal, Square } from 'lucide-react';
-import { scriptAPI, tauriEvents, type ScriptOutputPayload, type ScriptCompletedPayload } from '../../lib/tauri-api';
+import {
+  scriptAPI,
+  tauriEvents,
+  type ScriptOutputPayload,
+  type ScriptCompletedPayload,
+} from '../../lib/tauri-api';
 import { Button } from '../ui/Button';
 
 interface TerminalWindowPageProps {
@@ -18,27 +23,33 @@ export function TerminalWindowPage({ executionId }: TerminalWindowPageProps) {
   const [exitCode, setExitCode] = useState<number | null>(null);
   const outputRef = useRef<HTMLDivElement>(null);
 
-  const handleOutput = useCallback((data: ScriptOutputPayload) => {
-    if (data.executionId === executionId) {
-      setOutput(prev => [...prev, data.output]);
-    }
-  }, [executionId]);
+  const handleOutput = useCallback(
+    (data: ScriptOutputPayload) => {
+      if (data.executionId === executionId) {
+        setOutput((prev) => [...prev, data.output]);
+      }
+    },
+    [executionId]
+  );
 
-  const handleCompleted = useCallback((data: ScriptCompletedPayload) => {
-    if (data.executionId === executionId) {
-      setIsRunning(false);
-      setExitCode(data.exitCode);
-    }
-  }, [executionId]);
+  const handleCompleted = useCallback(
+    (data: ScriptCompletedPayload) => {
+      if (data.executionId === executionId) {
+        setIsRunning(false);
+        setExitCode(data.exitCode);
+      }
+    },
+    [executionId]
+  );
 
   useEffect(() => {
     let unsubOutput: (() => void) | undefined;
     let unsubCompleted: (() => void) | undefined;
 
-    tauriEvents.onScriptOutput(handleOutput).then(unsub => {
+    tauriEvents.onScriptOutput(handleOutput).then((unsub) => {
       unsubOutput = unsub;
     });
-    tauriEvents.onScriptCompleted(handleCompleted).then(unsub => {
+    tauriEvents.onScriptCompleted(handleCompleted).then((unsub) => {
       unsubCompleted = unsub;
     });
 
@@ -67,20 +78,18 @@ export function TerminalWindowPage({ executionId }: TerminalWindowPageProps) {
       <div className="px-4 py-2 border-b border-border flex items-center justify-between bg-background">
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">
-            Terminal Output
-          </span>
+          <span className="text-sm font-medium text-foreground">Terminal Output</span>
           {isRunning && (
             <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded animate-pulse">
               Running
             </span>
           )}
           {!isRunning && exitCode !== null && (
-            <span className={`px-2 py-0.5 text-xs rounded ${
-              exitCode === 0
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-red-500/20 text-red-400'
-            }`}>
+            <span
+              className={`px-2 py-0.5 text-xs rounded ${
+                exitCode === 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}
+            >
               Exit code: {exitCode}
             </span>
           )}
@@ -98,18 +107,12 @@ export function TerminalWindowPage({ executionId }: TerminalWindowPageProps) {
         )}
       </div>
 
-      <div
-        ref={outputRef}
-        className="flex-1 overflow-auto p-4 font-mono text-sm"
-      >
+      <div ref={outputRef} className="flex-1 overflow-auto p-4 font-mono text-sm">
         {output.length === 0 ? (
           <div className="text-muted-foreground">Waiting for output...</div>
         ) : (
           output.map((line, index) => (
-            <div
-              key={index}
-              className="whitespace-pre-wrap text-foreground/90 leading-relaxed"
-            >
+            <div key={index} className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
               {line}
             </div>
           ))

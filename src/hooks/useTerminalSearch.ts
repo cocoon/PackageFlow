@@ -43,7 +43,7 @@ export function useTerminalSearch(content: string) {
   }, [content, state.query]);
 
   const search = useCallback((query: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       query,
       currentIndex: 0,
@@ -52,7 +52,7 @@ export function useTerminalSearch(content: string) {
 
   const goToNext = useCallback(() => {
     if (matches.length === 0) return;
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       currentIndex: (prev.currentIndex + 1) % matches.length,
     }));
@@ -60,24 +60,22 @@ export function useTerminalSearch(content: string) {
 
   const goToPrev = useCallback(() => {
     if (matches.length === 0) return;
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      currentIndex: prev.currentIndex > 0
-        ? prev.currentIndex - 1
-        : matches.length - 1,
+      currentIndex: prev.currentIndex > 0 ? prev.currentIndex - 1 : matches.length - 1,
     }));
   }, [matches.length]);
 
   const open = useCallback(() => {
-    setState(prev => ({ ...prev, isOpen: true }));
+    setState((prev) => ({ ...prev, isOpen: true }));
   }, []);
 
   const close = useCallback(() => {
-    setState(prev => ({ ...prev, isOpen: false, query: '', currentIndex: 0 }));
+    setState((prev) => ({ ...prev, isOpen: false, query: '', currentIndex: 0 }));
   }, []);
 
   const toggle = useCallback(() => {
-    setState(prev => {
+    setState((prev) => {
       if (prev.isOpen) {
         return { ...prev, isOpen: false, query: '', currentIndex: 0 };
       }
@@ -104,11 +102,7 @@ export function useTerminalSearch(content: string) {
  * Apply search highlighting to HTML content
  * Must be called after ANSI conversion
  */
-export function highlightSearchMatches(
-  html: string,
-  query: string,
-  currentIndex: number
-): string {
+export function highlightSearchMatches(html: string, query: string, currentIndex: number): string {
   if (!query.trim()) return html;
 
   try {

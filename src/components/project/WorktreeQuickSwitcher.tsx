@@ -66,9 +66,9 @@ export function WorktreeQuickSwitcher({
 
   // Handle item usage tracking
   const handleItemUsed = useCallback((itemId: string) => {
-    setRecentItemIds(prev => {
+    setRecentItemIds((prev) => {
       // Remove if already exists, then add to front
-      const filtered = prev.filter(id => id !== itemId);
+      const filtered = prev.filter((id) => id !== itemId);
       return [itemId, ...filtered].slice(0, MAX_RECENT_ITEMS);
     });
   }, []);
@@ -80,22 +80,32 @@ export function WorktreeQuickSwitcher({
     // Add Sessions category first (for quick access)
     if (onOpenSession && sessions.length > 0) {
       for (const session of sessions) {
-        const worktree = worktrees.find(w => w.path === session.worktreePath);
-        const statusLabel = session.status === 'broken' ? ' (Broken)' : session.status === 'archived' ? ' (Archived)' : '';
+        const worktree = worktrees.find((w) => w.path === session.worktreePath);
+        const statusLabel =
+          session.status === 'broken'
+            ? ' (Broken)'
+            : session.status === 'archived'
+              ? ' (Archived)'
+              : '';
         const displayTitle = (session.title || session.branchSnapshot || 'Session') + statusLabel;
 
         result.push({
           id: `session-${session.id}`,
           title: displayTitle,
           subtitle: worktree ? formatPath(worktree.path) : session.worktreePath,
-          icon: <Bookmark className={`w-4 h-4 ${session.status === 'broken' ? 'text-red-400' : session.status === 'archived' ? 'text-muted-foreground' : 'text-blue-400'}`} />,
+          icon: (
+            <Bookmark
+              className={`w-4 h-4 ${session.status === 'broken' ? 'text-red-400' : session.status === 'archived' ? 'text-muted-foreground' : 'text-blue-400'}`}
+            />
+          ),
           category: 'Sessions',
           keywords: [
             session.title,
             session.branchSnapshot || '',
             session.goal || '',
             ...session.tags,
-            'session', 'notes',
+            'session',
+            'notes',
           ].filter(Boolean),
           onSelect: () => onOpenSession(session.worktreePath),
         });
@@ -120,7 +130,7 @@ export function WorktreeQuickSwitcher({
       }
 
       // Run Script actions (only show common scripts)
-      const commonScripts = scripts.filter(s =>
+      const commonScripts = scripts.filter((s) =>
         ['dev', 'start', 'build', 'test', 'lint'].includes(s.name.toLowerCase())
       );
 
@@ -131,7 +141,14 @@ export function WorktreeQuickSwitcher({
           subtitle: script.command,
           icon: <Play className="w-4 h-4" />,
           category: 'Run Script',
-          keywords: [worktreeName, script.name, worktree.branch || '', 'run', 'script', script.category],
+          keywords: [
+            worktreeName,
+            script.name,
+            worktree.branch || '',
+            'run',
+            'script',
+            script.category,
+          ],
           onSelect: () => onRunScript(worktree.path, script.name),
         });
       }
@@ -169,7 +186,17 @@ export function WorktreeQuickSwitcher({
     }
 
     return result;
-  }, [worktrees, availableEditors, scripts, sessions, onOpenInEditor, onRunScript, onSwitchDirectory, onOpenSession, formatPath]);
+  }, [
+    worktrees,
+    availableEditors,
+    scripts,
+    sessions,
+    onOpenInEditor,
+    onRunScript,
+    onSwitchDirectory,
+    onOpenSession,
+    formatPath,
+  ]);
 
   return (
     <QuickSwitcher

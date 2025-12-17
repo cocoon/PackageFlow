@@ -114,9 +114,13 @@ export function validateExportData(data: unknown): ValidationResult {
     } else if (!isValidVersion(metadata.version)) {
       errors.push('metadata.version format invalid, must be x.y.z format');
     } else if (compareVersions(metadata.version, MIN_SUPPORTED_VERSION) < 0) {
-      errors.push(`Version ${metadata.version} is not supported, minimum supported version is ${MIN_SUPPORTED_VERSION}`);
+      errors.push(
+        `Version ${metadata.version} is not supported, minimum supported version is ${MIN_SUPPORTED_VERSION}`
+      );
     } else if (compareVersions(metadata.version, EXPORT_FORMAT_VERSION) > 0) {
-      warnings.push(`File version ${metadata.version} is newer, some features may not be compatible`);
+      warnings.push(
+        `File version ${metadata.version} is newer, some features may not be compatible`
+      );
     }
 
     // Check export time
@@ -262,7 +266,10 @@ export async function exportAllData(): Promise<ExportResult> {
     for (const project of projects) {
       try {
         const settingsRes = await aiAPI.getProjectSettings(project.path);
-        if (settingsRes.data && (settingsRes.data.preferredProviderId || settingsRes.data.preferredTemplateId)) {
+        if (
+          settingsRes.data &&
+          (settingsRes.data.preferredProviderId || settingsRes.data.preferredTemplateId)
+        ) {
           projectAiSettings.push({
             projectPath: settingsRes.data.projectPath,
             preferredProviderId: settingsRes.data.preferredProviderId,
@@ -350,7 +357,9 @@ export async function exportAllData(): Promise<ExportResult> {
       await writeTextFile(filePath, JSON.stringify(exportData, null, 2));
     } catch (writeError) {
       console.error('writeTextFile error:', writeError);
-      throw new Error(`Failed to write file: ${writeError instanceof Error ? writeError.message : String(writeError)}`);
+      throw new Error(
+        `Failed to write file: ${writeError instanceof Error ? writeError.message : String(writeError)}`
+      );
     }
 
     const counts: ExportCounts = {
@@ -424,12 +433,13 @@ export async function selectImportFile(): Promise<ImportFileResult> {
 
     const data = importData as ExportData;
 
-    const [existingProjects, existingWorkflows, existingTemplatesRes, existingStepTemplatesRes] = await Promise.all([
-      settingsAPI.loadProjects(),
-      settingsAPI.loadWorkflows(),
-      worktreeTemplateAPI.listTemplates(),
-      stepTemplateAPI.loadCustomTemplates(),
-    ]);
+    const [existingProjects, existingWorkflows, existingTemplatesRes, existingStepTemplatesRes] =
+      await Promise.all([
+        settingsAPI.loadProjects(),
+        settingsAPI.loadWorkflows(),
+        worktreeTemplateAPI.listTemplates(),
+        stepTemplateAPI.loadCustomTemplates(),
+      ]);
 
     const conflicts = detectConflicts(data, {
       projects: existingProjects,
@@ -615,7 +625,9 @@ export async function executeImport(
             });
           }
         }
-        summary.imported.aiTemplates = importData.data.aiTemplates.filter((t) => !t.isBuiltin).length;
+        summary.imported.aiTemplates = importData.data.aiTemplates.filter(
+          (t) => !t.isBuiltin
+        ).length;
       }
 
       // Import Project AI Settings (replace mode)
@@ -718,23 +730,19 @@ export async function executeImport(
     }
 
     // Merge mode: existing behavior
-    const [existingProjects, existingWorkflows, existingTemplatesRes, existingStepTemplatesRes] = await Promise.all([
-      settingsAPI.loadProjects(),
-      settingsAPI.loadWorkflows(),
-      worktreeTemplateAPI.listTemplates(),
-      stepTemplateAPI.loadCustomTemplates(),
-    ]);
+    const [existingProjects, existingWorkflows, existingTemplatesRes, existingStepTemplatesRes] =
+      await Promise.all([
+        settingsAPI.loadProjects(),
+        settingsAPI.loadWorkflows(),
+        worktreeTemplateAPI.listTemplates(),
+        stepTemplateAPI.loadCustomTemplates(),
+      ]);
 
     const existingTemplates = existingTemplatesRes.templates ?? [];
     const existingStepTemplates = existingStepTemplatesRes.templates ?? [];
 
     if (importData.data.projects) {
-      const result = mergeItems(
-        importData.data.projects,
-        existingProjects,
-        'projects',
-        strategy
-      );
+      const result = mergeItems(importData.data.projects, existingProjects, 'projects', strategy);
       summary.imported.projects = result.imported;
       summary.skipped.projects = result.skipped;
       summary.overwritten.projects = result.overwritten;
@@ -1059,9 +1067,7 @@ function mergeItems<T extends { id: string }>(
 
   for (const item of importItems) {
     const existing = existingMap.get(item.id);
-    const itemOverride = strategy.itemOverrides?.find(
-      (o) => o.id === item.id && o.type === type
-    );
+    const itemOverride = strategy.itemOverrides?.find((o) => o.id === item.id && o.type === type);
     const action = itemOverride?.action ?? strategy.defaultAction;
 
     if (!existing) {

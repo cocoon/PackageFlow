@@ -93,13 +93,8 @@ function saveHistory(key: string, history: string[]): void {
  * };
  * ```
  */
-export function useInputHistory(
-  options: UseInputHistoryOptions = {}
-): UseInputHistoryReturn {
-  const {
-    maxSize = MAX_HISTORY_SIZE,
-    storageKey = STORAGE_KEY,
-  } = options;
+export function useInputHistory(options: UseInputHistoryOptions = {}): UseInputHistoryReturn {
+  const { maxSize = MAX_HISTORY_SIZE, storageKey = STORAGE_KEY } = options;
 
   // History array: index 0 is most recent
   const [history, setHistory] = useState<string[]>(() => loadHistory(storageKey));
@@ -121,24 +116,27 @@ export function useInputHistory(
    * - Trims and validates non-empty
    * - Maintains max size limit
    */
-  const addToHistory = useCallback((message: string) => {
-    const trimmed = message.trim();
-    if (!trimmed) return;
+  const addToHistory = useCallback(
+    (message: string) => {
+      const trimmed = message.trim();
+      if (!trimmed) return;
 
-    setHistory((prev) => {
-      // Skip if same as most recent entry
-      if (prev.length > 0 && prev[0] === trimmed) {
-        return prev;
-      }
+      setHistory((prev) => {
+        // Skip if same as most recent entry
+        if (prev.length > 0 && prev[0] === trimmed) {
+          return prev;
+        }
 
-      // Add to beginning, remove duplicates, limit size
-      const newHistory = [trimmed, ...prev.filter((item) => item !== trimmed)];
-      return newHistory.slice(0, maxSize);
-    });
+        // Add to beginning, remove duplicates, limit size
+        const newHistory = [trimmed, ...prev.filter((item) => item !== trimmed)];
+        return newHistory.slice(0, maxSize);
+      });
 
-    // Reset navigation after adding
-    setCurrentIndex(-1);
-  }, [maxSize]);
+      // Reset navigation after adding
+      setCurrentIndex(-1);
+    },
+    [maxSize]
+  );
 
   /**
    * Navigate to previous (older) entry
@@ -189,29 +187,35 @@ export function useInputHistory(
   /**
    * Start navigation with the current input as the original
    */
-  const startNavigation = useCallback((currentValue: string): string | null => {
-    if (history.length === 0) return null;
+  const startNavigation = useCallback(
+    (currentValue: string): string | null => {
+      if (history.length === 0) return null;
 
-    // Save current input as original
-    originalInputRef.current = currentValue;
+      // Save current input as original
+      originalInputRef.current = currentValue;
 
-    // Navigate to first history entry
-    setCurrentIndex(0);
-    return history[0];
-  }, [history]);
+      // Navigate to first history entry
+      setCurrentIndex(0);
+      return history[0];
+    },
+    [history]
+  );
 
   /**
    * Navigate up, handling the first navigation specially
    */
-  const navigateUpWithOriginal = useCallback((currentValue: string): string | null => {
-    // First navigation - save original and go to history[0]
-    if (currentIndex < 0) {
-      return startNavigation(currentValue);
-    }
+  const navigateUpWithOriginal = useCallback(
+    (currentValue: string): string | null => {
+      // First navigation - save original and go to history[0]
+      if (currentIndex < 0) {
+        return startNavigation(currentValue);
+      }
 
-    // Continue navigating
-    return navigateUp();
-  }, [currentIndex, startNavigation, navigateUp]);
+      // Continue navigating
+      return navigateUp();
+    },
+    [currentIndex, startNavigation, navigateUp]
+  );
 
   /**
    * Get all history entries

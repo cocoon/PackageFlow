@@ -69,11 +69,7 @@ export function DiffSyntaxHighlighter({ content, language }: DiffSyntaxHighlight
   const prismLanguage = getPrismLanguage(language);
 
   return (
-    <Highlight
-      theme={themes.vsDark}
-      code={content}
-      language={prismLanguage}
-    >
+    <Highlight theme={themes.vsDark} code={content} language={prismLanguage}>
       {({ tokens, getTokenProps }) => (
         <>
           {tokens.map((line, lineIndex) => (

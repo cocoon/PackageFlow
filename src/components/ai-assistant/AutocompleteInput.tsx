@@ -9,7 +9,11 @@
 import { useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Clock, Wrench, MessageCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useInputAutocomplete, type AutocompleteSuggestion, type AutocompleteSource } from '../../hooks/useInputAutocomplete';
+import {
+  useInputAutocomplete,
+  type AutocompleteSuggestion,
+  type AutocompleteSource,
+} from '../../hooks/useInputAutocomplete';
 
 interface AutocompleteInputProps {
   /** Current input value */
@@ -113,12 +117,15 @@ export const AutocompleteInput = forwardRef<AutocompleteInputRef, AutocompleteIn
     }, [suggestions, isLoading]);
 
     // Handle suggestion selection
-    const handleSelectSuggestion = useCallback((suggestion: AutocompleteSuggestion) => {
-      onChange(suggestion.text);
-      clear();
-      setIsOpen(false);
-      inputRef.current?.focus();
-    }, [onChange, clear]);
+    const handleSelectSuggestion = useCallback(
+      (suggestion: AutocompleteSuggestion) => {
+        onChange(suggestion.text);
+        clear();
+        setIsOpen(false);
+        inputRef.current?.focus();
+      },
+      [onChange, clear]
+    );
 
     // Handle IME composition start (CJK input method)
     const handleCompositionStart = useCallback(() => {
@@ -131,63 +138,85 @@ export const AutocompleteInput = forwardRef<AutocompleteInputRef, AutocompleteIn
     }, []);
 
     // Handle keyboard events (T120)
-    const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Skip keyboard handling during IME composition (CJK input)
-      // This prevents premature message submission when user presses Enter to select a character
-      if (isComposingRef.current) {
-        return;
-      }
-
-      if (!isOpen || suggestions.length === 0) {
-        // Normal Enter behavior when no dropdown
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          onSubmit(value);
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        // Skip keyboard handling during IME composition (CJK input)
+        // This prevents premature message submission when user presses Enter to select a character
+        if (isComposingRef.current) {
           return;
         }
-        return;
-      }
 
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          selectNext();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          selectPrevious();
-          break;
-        case 'Enter':
-          e.preventDefault();
-          const selected = getSelectedText();
-          if (selected) {
-            handleSelectSuggestion({ text: selected, source: 'recent_prompt', label: selected });
-          } else {
-            // Submit current value
+        if (!isOpen || suggestions.length === 0) {
+          // Normal Enter behavior when no dropdown
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
             onSubmit(value);
+            return;
           }
-          break;
-        case 'Escape':
-          e.preventDefault();
-          setIsOpen(false);
-          clear();
-          break;
-        case 'Tab':
-          if (selectedIndex >= 0) {
+          return;
+        }
+
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            selectNext();
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            selectPrevious();
+            break;
+          case 'Enter': {
             e.preventDefault();
             const selected = getSelectedText();
             if (selected) {
               handleSelectSuggestion({ text: selected, source: 'recent_prompt', label: selected });
+            } else {
+              // Submit current value
+              onSubmit(value);
             }
+            break;
           }
-          break;
-      }
-    }, [isOpen, suggestions.length, selectedIndex, value, selectNext, selectPrevious, getSelectedText, handleSelectSuggestion, onSubmit, clear]);
+          case 'Escape':
+            e.preventDefault();
+            setIsOpen(false);
+            clear();
+            break;
+          case 'Tab':
+            if (selectedIndex >= 0) {
+              e.preventDefault();
+              const selected = getSelectedText();
+              if (selected) {
+                handleSelectSuggestion({
+                  text: selected,
+                  source: 'recent_prompt',
+                  label: selected,
+                });
+              }
+            }
+            break;
+        }
+      },
+      [
+        isOpen,
+        suggestions.length,
+        selectedIndex,
+        value,
+        selectNext,
+        selectPrevious,
+        getSelectedText,
+        handleSelectSuggestion,
+        onSubmit,
+        clear,
+      ]
+    );
 
     // Handle input change
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChange(e.target.value);
-    }, [onChange]);
+    const handleChange = useCallback(
+      (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        onChange(e.target.value);
+      },
+      [onChange]
+    );
 
     // Click outside to close
     useEffect(() => {

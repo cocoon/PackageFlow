@@ -298,9 +298,10 @@ Be specific and actionable in your recommendations.`;
         // Use CLI tool if enabled and available
         if (shouldUseCli && cliTool) {
           // Build a summary of vulnerabilities for the prompt
-          const vulnList = vulnerabilities.slice(0, 10).map((v) =>
-            `- ${v.packageName}@${v.installedVersion}: ${v.severity} - ${v.title}`
-          ).join('\n');
+          const vulnList = vulnerabilities
+            .slice(0, 10)
+            .map((v) => `- ${v.packageName}@${v.installedVersion}: ${v.severity} - ${v.title}`)
+            .join('\n');
 
           const prompt = `Analyze the security vulnerabilities in the project "${projectName}" (${packageManager}):
 
@@ -362,7 +363,10 @@ Be specific and actionable in your recommendations.`;
         if (response.success && response.data) {
           setTokensUsed(response.data.tokensUsed ?? null);
           setIsTruncated(response.data.isTruncated);
-          console.log('[useAISecurityAnalysis] Success, analysis length:', response.data.analysis?.length);
+          console.log(
+            '[useAISecurityAnalysis] Success, analysis length:',
+            response.data.analysis?.length
+          );
           return response.data.analysis;
         } else {
           const errorMsg = response.error || 'Failed to generate security summary';

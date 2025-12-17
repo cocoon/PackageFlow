@@ -23,10 +23,9 @@ export function useGraphLayoutWorker(): UseGraphLayoutWorkerReturn {
 
   // Initialize worker
   useEffect(() => {
-    workerRef.current = new Worker(
-      new URL('../workers/graphLayout.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
+    workerRef.current = new Worker(new URL('../workers/graphLayout.worker.ts', import.meta.url), {
+      type: 'module',
+    });
 
     workerRef.current.onmessage = (event: MessageEvent<LayoutWorkerOutput>) => {
       if (pendingResolveRef.current) {

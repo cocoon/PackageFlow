@@ -2,7 +2,11 @@
 // One-Click Deploy feature (015-one-click-deploy)
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { isPermissionGranted, requestPermission, sendNotification } from '@tauri-apps/plugin-notification';
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from '@tauri-apps/plugin-notification';
 import { deployAPI, deployEvents, type UnlistenFn } from '../lib/tauri-api';
 import { useDeployAccounts } from './useDeployAccounts';
 import type {
@@ -46,7 +50,11 @@ export interface UseDeployActions {
   refreshPlatforms: () => Promise<void>;
 
   // Deployment
-  deploy: (projectId: string, projectPath: string, config: DeploymentConfig) => Promise<Deployment | null>;
+  deploy: (
+    projectId: string,
+    projectPath: string,
+    config: DeploymentConfig
+  ) => Promise<Deployment | null>;
   redeploy: (projectId: string, projectPath: string) => Promise<Deployment | null>;
   loadHistory: (projectId: string) => Promise<void>;
 
@@ -96,59 +104,61 @@ export function useDeploy(): UseDeployReturn {
 
   useEffect(() => {
     // Subscribe to deployment status events
-    deployEvents.onDeploymentStatus((event: DeploymentStatusEvent) => {
-      setCurrentDeployment((prev) => {
-        if (!prev || prev.id !== event.deploymentId) return prev;
-        return {
-          ...prev,
-          status: event.status,
-          url: event.url ?? prev.url,
-          errorMessage: event.errorMessage,
-        };
-      });
+    deployEvents
+      .onDeploymentStatus((event: DeploymentStatusEvent) => {
+        setCurrentDeployment((prev) => {
+          if (!prev || prev.id !== event.deploymentId) return prev;
+          return {
+            ...prev,
+            status: event.status,
+            url: event.url ?? prev.url,
+            errorMessage: event.errorMessage,
+          };
+        });
 
-      // Update history when deployment completes
-      if (event.status === 'ready' || event.status === 'failed') {
-        setIsDeploying(false);
-        setDeploymentHistory((prev) =>
-          prev.map((d) =>
-            d.id === event.deploymentId
-              ? {
-                  ...d,
-                  status: event.status,
-                  url: event.url ?? d.url,
-                  errorMessage: event.errorMessage,
-                  completedAt: new Date().toISOString(),
-                }
-              : d
-          )
-        );
+        // Update history when deployment completes
+        if (event.status === 'ready' || event.status === 'failed') {
+          setIsDeploying(false);
+          setDeploymentHistory((prev) =>
+            prev.map((d) =>
+              d.id === event.deploymentId
+                ? {
+                    ...d,
+                    status: event.status,
+                    url: event.url ?? d.url,
+                    errorMessage: event.errorMessage,
+                    completedAt: new Date().toISOString(),
+                  }
+                : d
+            )
+          );
 
-        // Send desktop notification
-        (async () => {
-          let permissionGranted = await isPermissionGranted();
-          if (!permissionGranted) {
-            const permission = await requestPermission();
-            permissionGranted = permission === 'granted';
-          }
-          if (permissionGranted) {
-            if (event.status === 'ready') {
-              sendNotification({
-                title: 'Deploy 完成',
-                body: event.url ? `部署成功！${event.url}` : '部署成功！',
-              });
-            } else {
-              sendNotification({
-                title: 'Deploy 失敗',
-                body: event.errorMessage || '部署過程中發生錯誤',
-              });
+          // Send desktop notification
+          (async () => {
+            let permissionGranted = await isPermissionGranted();
+            if (!permissionGranted) {
+              const permission = await requestPermission();
+              permissionGranted = permission === 'granted';
             }
-          }
-        })();
-      }
-    }).then((unlisten) => {
-      unlistenRef.current = unlisten;
-    });
+            if (permissionGranted) {
+              if (event.status === 'ready') {
+                sendNotification({
+                  title: 'Deploy 完成',
+                  body: event.url ? `部署成功！${event.url}` : '部署成功！',
+                });
+              } else {
+                sendNotification({
+                  title: 'Deploy 失敗',
+                  body: event.errorMessage || '部署過程中發生錯誤',
+                });
+              }
+            }
+          })();
+        }
+      })
+      .then((unlisten) => {
+        unlistenRef.current = unlisten;
+      });
 
     return () => {
       if (unlistenRef.current) {
@@ -226,41 +236,47 @@ export function useDeploy(): UseDeployReturn {
   // Deployment Actions
   // ========================================================================
 
-  const deploy = useCallback(async (
-    projectId: string,
-    projectPath: string,
-    config: DeploymentConfig
-  ): Promise<Deployment | null> => {
-    setIsDeploying(true);
-    setError(null);
-    try {
-      const deployment = await deployAPI.startDeployment(projectId, projectPath, config);
-      setCurrentDeployment(deployment);
-      setDeploymentHistory((prev) => [deployment, ...prev]);
-      return deployment;
-    } catch (err) {
-      const errorMsg = `Deployment failed: ${err}`;
-      setError(errorMsg);
-      setIsDeploying(false);
-      return null;
-    }
-  }, []);
+  const deploy = useCallback(
+    async (
+      projectId: string,
+      projectPath: string,
+      config: DeploymentConfig
+    ): Promise<Deployment | null> => {
+      setIsDeploying(true);
+      setError(null);
+      try {
+        const deployment = await deployAPI.startDeployment(projectId, projectPath, config);
+        setCurrentDeployment(deployment);
+        setDeploymentHistory((prev) => [deployment, ...prev]);
+        return deployment;
+      } catch (err) {
+        const errorMsg = `Deployment failed: ${err}`;
+        setError(errorMsg);
+        setIsDeploying(false);
+        return null;
+      }
+    },
+    []
+  );
 
-  const redeploy = useCallback(async (projectId: string, projectPath: string): Promise<Deployment | null> => {
-    setIsDeploying(true);
-    setError(null);
-    try {
-      const deployment = await deployAPI.redeploy(projectId, projectPath);
-      setCurrentDeployment(deployment);
-      setDeploymentHistory((prev) => [deployment, ...prev]);
-      return deployment;
-    } catch (err) {
-      const errorMsg = `Redeploy failed: ${err}`;
-      setError(errorMsg);
-      setIsDeploying(false);
-      return null;
-    }
-  }, []);
+  const redeploy = useCallback(
+    async (projectId: string, projectPath: string): Promise<Deployment | null> => {
+      setIsDeploying(true);
+      setError(null);
+      try {
+        const deployment = await deployAPI.redeploy(projectId, projectPath);
+        setCurrentDeployment(deployment);
+        setDeploymentHistory((prev) => [deployment, ...prev]);
+        return deployment;
+      } catch (err) {
+        const errorMsg = `Redeploy failed: ${err}`;
+        setError(errorMsg);
+        setIsDeploying(false);
+        return null;
+      }
+    },
+    []
+  );
 
   const loadHistory = useCallback(async (projectId: string) => {
     setIsLoadingHistory(true);
@@ -283,7 +299,10 @@ export function useDeploy(): UseDeployReturn {
     setIsLoadingConfig(true);
     try {
       const config = await deployAPI.getDeploymentConfig(projectId);
-      console.log('[useDeploy] loadConfig result:', config ? JSON.stringify(config, null, 2) : 'null');
+      console.log(
+        '[useDeploy] loadConfig result:',
+        config ? JSON.stringify(config, null, 2) : 'null'
+      );
       setDeploymentConfig(config);
     } catch (err) {
       console.error('[useDeploy] loadConfig error:', err);

@@ -82,10 +82,7 @@ interface GradientAccentProps {
   className?: string;
 }
 
-export const GradientAccent: React.FC<GradientAccentProps> = ({
-  width = 'full',
-  className,
-}) => {
+export const GradientAccent: React.FC<GradientAccentProps> = ({ width = 'full', className }) => {
   return (
     <div
       className={cn(

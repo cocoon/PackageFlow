@@ -5,10 +5,22 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ChevronDown, Search, Workflow, Clock, Layers, FolderGit2, AlertTriangle } from 'lucide-react';
+import {
+  ChevronDown,
+  Search,
+  Workflow,
+  Clock,
+  Layers,
+  FolderGit2,
+  AlertTriangle,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
-import { workflowAPI, type AvailableWorkflowInfo, type CycleDetectionResult } from '../../lib/tauri-api';
+import {
+  workflowAPI,
+  type AvailableWorkflowInfo,
+  type CycleDetectionResult,
+} from '../../lib/tauri-api';
 
 interface WorkflowSelectorProps {
   /** Currently selected workflow ID */
@@ -56,21 +68,24 @@ export function WorkflowSelector({
   const [cycleWarnings, setCycleWarnings] = useState<Map<string, CycleDetectionResult>>(new Map());
 
   // Feature 013 T040: Check for cycles when selecting a workflow
-  const checkCycle = useCallback(async (targetWorkflowId: string): Promise<CycleDetectionResult | null> => {
-    // Skip if already cached
-    if (cycleWarnings.has(targetWorkflowId)) {
-      return cycleWarnings.get(targetWorkflowId) || null;
-    }
+  const checkCycle = useCallback(
+    async (targetWorkflowId: string): Promise<CycleDetectionResult | null> => {
+      // Skip if already cached
+      if (cycleWarnings.has(targetWorkflowId)) {
+        return cycleWarnings.get(targetWorkflowId) || null;
+      }
 
-    try {
-      const result = await workflowAPI.detectWorkflowCycle(currentWorkflowId, targetWorkflowId);
-      setCycleWarnings(prev => new Map(prev).set(targetWorkflowId, result));
-      return result;
-    } catch (error) {
-      console.error('Failed to check cycle:', error);
-      return null;
-    }
-  }, [currentWorkflowId, cycleWarnings]);
+      try {
+        const result = await workflowAPI.detectWorkflowCycle(currentWorkflowId, targetWorkflowId);
+        setCycleWarnings((prev) => new Map(prev).set(targetWorkflowId, result));
+        return result;
+      } catch (error) {
+        console.error('Failed to check cycle:', error);
+        return null;
+      }
+    },
+    [currentWorkflowId, cycleWarnings]
+  );
 
   // Load available workflows
   useEffect(() => {
@@ -126,9 +141,12 @@ export function WorkflowSelector({
   };
 
   // Feature 013 T042: Check if workflow would create a cycle
-  const wouldCreateCycle = useCallback((workflowId: string): CycleDetectionResult | null => {
-    return cycleWarnings.get(workflowId) || null;
-  }, [cycleWarnings]);
+  const wouldCreateCycle = useCallback(
+    (workflowId: string): CycleDetectionResult | null => {
+      return cycleWarnings.get(workflowId) || null;
+    },
+    [cycleWarnings]
+  );
 
   return (
     <div className="relative">
@@ -170,10 +188,7 @@ export function WorkflowSelector({
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown Menu */}
           <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
@@ -199,14 +214,10 @@ export function WorkflowSelector({
             {/* Workflow List */}
             <div className="max-h-64 overflow-y-auto">
               {isLoading ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  Loading workflows...
-                </div>
+                <div className="p-4 text-center text-muted-foreground">Loading workflows...</div>
               ) : filteredWorkflows.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  {searchQuery
-                    ? 'No workflows match your search'
-                    : 'No other workflows available'}
+                  {searchQuery ? 'No workflows match your search' : 'No other workflows available'}
                 </div>
               ) : (
                 <div className="py-1">
@@ -223,9 +234,7 @@ export function WorkflowSelector({
                         disabled={hasCycle}
                         className={cn(
                           'w-full flex-col gap-1 px-3 py-2.5 justify-start h-auto rounded-none',
-                          hasCycle
-                            ? 'bg-red-500/10 cursor-not-allowed'
-                            : 'hover:bg-accent/50',
+                          hasCycle ? 'bg-red-500/10 cursor-not-allowed' : 'hover:bg-accent/50',
                           workflow.id === value && !hasCycle && 'bg-purple-500/10'
                         )}
                       >
@@ -236,10 +245,12 @@ export function WorkflowSelector({
                           ) : (
                             <Workflow className="w-4 h-4 text-purple-400 shrink-0" />
                           )}
-                          <span className={cn(
-                            'font-medium truncate',
-                            hasCycle ? 'text-red-300' : 'text-foreground'
-                          )}>
+                          <span
+                            className={cn(
+                              'font-medium truncate',
+                              hasCycle ? 'text-red-300' : 'text-foreground'
+                            )}
+                          >
                             {workflow.name}
                           </span>
                           {hasCycle && (
@@ -248,9 +259,7 @@ export function WorkflowSelector({
                             </span>
                           )}
                           {workflow.id === value && !hasCycle && (
-                            <span className="text-xs text-purple-400 ml-auto">
-                              Selected
-                            </span>
+                            <span className="text-xs text-purple-400 ml-auto">Selected</span>
                           )}
                         </div>
 

@@ -228,7 +228,7 @@ function ChipButton({
       return {
         opacity: 0,
         transform: horizontal ? 'translateX(-12px) scale(0.9)' : 'translateX(-8px) scale(0.95)',
-        visibility: 'hidden' as const
+        visibility: 'hidden' as const,
       };
     }
     // For entering/exiting, CSS handles the animation
@@ -256,7 +256,8 @@ function ChipButton({
         !horizontal && animationState === 'exiting' && 'animate-chip-exit',
         animationState === 'hidden' && 'invisible',
         // Base transition for non-animated interactions
-        (animationState === 'visible' || animationState === 'hidden') && 'transition-all duration-200'
+        (animationState === 'visible' || animationState === 'hidden') &&
+          'transition-all duration-200'
       )}
       style={animationStyles}
       aria-label={`${suggestion.label}: ${suggestion.prompt}`}
@@ -282,11 +283,14 @@ function useChipAnimation(
   const animationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Calculate total animation duration based on mode
-  const getTotalAnimationDuration = useCallback((count: number) => {
-    const config = horizontal ? HORIZONTAL_ANIMATION_CONFIG : ANIMATION_CONFIG;
-    const maxDelay = Math.min((count - 1) * config.staggerDelay, config.maxDelay);
-    return maxDelay + config.duration + 50; // Extra buffer
-  }, [horizontal]);
+  const getTotalAnimationDuration = useCallback(
+    (count: number) => {
+      const config = horizontal ? HORIZONTAL_ANIMATION_CONFIG : ANIMATION_CONFIG;
+      const maxDelay = Math.min((count - 1) * config.staggerDelay, config.maxDelay);
+      return maxDelay + config.duration + 50; // Extra buffer
+    },
+    [horizontal]
+  );
 
   useEffect(() => {
     // Skip if isVisible is not controlled
@@ -334,7 +338,10 @@ function useChipAnimation(
  */
 function getHorizontalAnimationDelay(index: number, total: number, isEntering: boolean): number {
   const effectiveIndex = isEntering ? index : total - 1 - index;
-  return Math.min(effectiveIndex * HORIZONTAL_ANIMATION_CONFIG.staggerDelay, HORIZONTAL_ANIMATION_CONFIG.maxDelay);
+  return Math.min(
+    effectiveIndex * HORIZONTAL_ANIMATION_CONFIG.staggerDelay,
+    HORIZONTAL_ANIMATION_CONFIG.maxDelay
+  );
 }
 
 /**
@@ -377,12 +384,7 @@ export function QuickActionChips({
   // Horizontal inline display for collapsible quick actions
   if (horizontal) {
     return (
-      <div
-        className={cn(
-          'flex items-center gap-2 overflow-hidden',
-          className
-        )}
-      >
+      <div className={cn('flex items-center gap-2 overflow-hidden', className)}>
         {suggestions.map((suggestion, index) => {
           const delay = isAnimating
             ? getHorizontalAnimationDelay(index, suggestions.length, isEntering)
@@ -453,9 +455,7 @@ export function QuickActionChips({
   return (
     <div className={cn('flex flex-wrap gap-2', className)}>
       {suggestions.map((suggestion, index) => {
-        const delay = isAnimating
-          ? getAnimationDelay(index, suggestions.length, isEntering)
-          : 0;
+        const delay = isAnimating ? getAnimationDelay(index, suggestions.length, isEntering) : 0;
 
         return (
           <ChipButton

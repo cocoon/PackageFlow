@@ -53,48 +53,47 @@ export function useDiff({
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const isInitialLoadRef = useRef(true);
 
-  const fetchDiff = useCallback(async (silent = false) => {
-    if (!projectPath || !filePath) {
-      setDiff(null);
-      setError(null);
-      setIsLoading(false);
-      setIsRefreshing(false);
-      return;
-    }
-
-    // For subsequent loads, show refreshing indicator instead of full loading
-    if (silent || !isInitialLoadRef.current) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await gitAPI.getFileDiff(
-        projectPath,
-        filePath,
-        diffType === 'staged'
-      );
-
-      if (response.success) {
-        setDiff(response.diff || null);
-        setError(null);
-        setLastRefreshed(new Date());
-      } else {
+  const fetchDiff = useCallback(
+    async (silent = false) => {
+      if (!projectPath || !filePath) {
         setDiff(null);
-        setError(response.error || 'Failed to load diff');
+        setError(null);
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
       }
-    } catch (err) {
-      setDiff(null);
-      setError(err instanceof Error ? err.message : 'Failed to load diff');
-      console.error('Diff loading error:', err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-      isInitialLoadRef.current = false;
-    }
-  }, [projectPath, filePath, diffType]);
+
+      // For subsequent loads, show refreshing indicator instead of full loading
+      if (silent || !isInitialLoadRef.current) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const response = await gitAPI.getFileDiff(projectPath, filePath, diffType === 'staged');
+
+        if (response.success) {
+          setDiff(response.diff || null);
+          setError(null);
+          setLastRefreshed(new Date());
+        } else {
+          setDiff(null);
+          setError(response.error || 'Failed to load diff');
+        }
+      } catch (err) {
+        setDiff(null);
+        setError(err instanceof Error ? err.message : 'Failed to load diff');
+        console.error('Diff loading error:', err);
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        isInitialLoadRef.current = false;
+      }
+    },
+    [projectPath, filePath, diffType]
+  );
 
   // Fetch diff on mount and when dependencies change
   useEffect(() => {

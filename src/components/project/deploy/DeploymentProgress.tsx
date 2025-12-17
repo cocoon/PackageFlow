@@ -33,23 +33,34 @@ const DEPLOYMENT_STEPS = [
 // Map status to step index
 const getStepFromStatus = (status: DeploymentStatus): number => {
   switch (status) {
-    case 'queued': return 0;
-    case 'building': return 1;
-    case 'deploying': return 2;
-    case 'ready': return 3;
-    case 'failed': return -1;
-    case 'cancelled': return -1;
-    default: return 0;
+    case 'queued':
+      return 0;
+    case 'building':
+      return 1;
+    case 'deploying':
+      return 2;
+    case 'ready':
+      return 3;
+    case 'failed':
+      return -1;
+    case 'cancelled':
+      return -1;
+    default:
+      return 0;
   }
 };
 
 // Get status color
 const getStatusColor = (status: DeploymentStatus): string => {
   switch (status) {
-    case 'ready': return 'text-green-500';
-    case 'failed': return 'text-red-500';
-    case 'cancelled': return 'text-gray-500';
-    default: return 'text-blue-500';
+    case 'ready':
+      return 'text-green-500';
+    case 'failed':
+      return 'text-red-500';
+    case 'cancelled':
+      return 'text-gray-500';
+    default:
+      return 'text-blue-500';
   }
 };
 
@@ -83,13 +94,17 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
     });
 
     return () => {
-      unsubscribe.then(fn => fn());
+      unsubscribe.then((fn) => fn());
     };
   }, [deployment.id]);
 
   // Update elapsed time
   useEffect(() => {
-    if (deployment.status !== 'ready' && deployment.status !== 'failed' && deployment.status !== 'cancelled') {
+    if (
+      deployment.status !== 'ready' &&
+      deployment.status !== 'failed' &&
+      deployment.status !== 'cancelled'
+    ) {
       intervalRef.current = setInterval(() => {
         const now = new Date();
         const elapsed = Math.floor((now.getTime() - startTimeRef.current.getTime()) / 1000);
@@ -125,15 +140,9 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {!isCompleted && !isFailed && (
-            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-          )}
-          {isCompleted && (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          )}
-          {isFailed && (
-            <XCircle className="h-4 w-4 text-red-500" />
-          )}
+          {!isCompleted && !isFailed && <Loader2 className="h-4 w-4 animate-spin text-blue-500" />}
+          {isCompleted && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+          {isFailed && <XCircle className="h-4 w-4 text-red-500" />}
           <span className={`font-medium ${getStatusColor(deployment.status)}`}>
             {deployment.status === 'queued' && 'Queued...'}
             {deployment.status === 'building' && 'Building...'}
@@ -166,10 +175,10 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
                     isComplete
                       ? 'border-green-500 bg-green-500 text-white'
                       : isError
-                      ? 'border-red-500 bg-red-500 text-white'
-                      : isActive
-                      ? 'border-blue-500 bg-blue-500 text-white'
-                      : 'border-muted bg-background text-muted-foreground'
+                        ? 'border-red-500 bg-red-500 text-white'
+                        : isActive
+                          ? 'border-blue-500 bg-blue-500 text-white'
+                          : 'border-muted bg-background text-muted-foreground'
                   }`}
                 >
                   {isComplete ? (
@@ -195,9 +204,7 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
               {index < DEPLOYMENT_STEPS.length - 1 && (
                 <div
                   className={`mx-2 h-0.5 flex-1 transition-colors ${
-                    currentStep > index + 1 || isCompleted
-                      ? 'bg-green-500'
-                      : 'bg-muted'
+                    currentStep > index + 1 || isCompleted ? 'bg-green-500' : 'bg-muted'
                   }`}
                 />
               )}
@@ -240,7 +247,11 @@ export function DeploymentProgress({ deployment, onComplete }: DeploymentProgres
           </button>
           <button
             onClick={() => openUrl(deployment.url!)}
-            className={buttonVariants({ variant: 'success', size: 'sm', className: 'ml-2 gap-1.5' })}
+            className={buttonVariants({
+              variant: 'success',
+              size: 'sm',
+              className: 'ml-2 gap-1.5',
+            })}
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Open Site

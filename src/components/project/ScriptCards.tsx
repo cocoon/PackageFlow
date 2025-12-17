@@ -69,7 +69,10 @@ function categorizeScript(name: string): ScriptCategory {
 }
 
 // Category configuration - Subtle unified style with colored titles and gradient
-const categoryConfig: Record<ScriptCategory, { label: string; color: string; dotColor: string; gradient: string }> = {
+const categoryConfig: Record<
+  ScriptCategory,
+  { label: string; color: string; dotColor: string; gradient: string }
+> = {
   development: {
     label: 'Development',
     color: 'text-green-500 dark:text-green-400',
@@ -129,7 +132,9 @@ export function ScriptCards({
   const { checkCompatibility } = useVersionCheck();
   const [showVersionWarning, setShowVersionWarning] = useState(false);
   const [pendingScript, setPendingScript] = useState<string | null>(null);
-  const [currentCompatibility, setCurrentCompatibility] = useState<VersionCompatibility | null>(null);
+  const [currentCompatibility, setCurrentCompatibility] = useState<VersionCompatibility | null>(
+    null
+  );
   // Track preference cleared for current worktree to force re-check
   const [preferenceCleared, setPreferenceCleared] = useState(false);
 
@@ -167,38 +172,41 @@ export function ScriptCards({
   };
 
   // Handle script execution with version check
-  const handleExecuteWithVersionCheck = useCallback(async (scriptName: string) => {
-    // Check for saved preference first (unless recently cleared)
-    if (!preferenceCleared) {
-      try {
-        const savedPreference = await toolchainAPIImport.getPreference(currentWorktreePath);
-        if (savedPreference) {
-          // Has saved preference - execute directly using the saved strategy
-          // The backend will use the appropriate version management
-          onExecute(scriptName, currentWorktreePath);
-          return;
+  const handleExecuteWithVersionCheck = useCallback(
+    async (scriptName: string) => {
+      // Check for saved preference first (unless recently cleared)
+      if (!preferenceCleared) {
+        try {
+          const savedPreference = await toolchainAPIImport.getPreference(currentWorktreePath);
+          if (savedPreference) {
+            // Has saved preference - execute directly using the saved strategy
+            // The backend will use the appropriate version management
+            onExecute(scriptName, currentWorktreePath);
+            return;
+          }
+        } catch (err) {
+          // Preference check failed - continue with compatibility check
+          console.error('Failed to check preference:', err);
         }
-      } catch (err) {
-        // Preference check failed - continue with compatibility check
-        console.error('Failed to check preference:', err);
       }
-    }
 
-    // Check version compatibility before execution
-    const compatibility = await checkCompatibility(currentWorktreePath);
+      // Check version compatibility before execution
+      const compatibility = await checkCompatibility(currentWorktreePath);
 
-    if (compatibility && !compatibility.isCompatible) {
-      // Show warning dialog
-      setCurrentCompatibility(compatibility);
-      setPendingScript(scriptName);
-      setShowVersionWarning(true);
-      // Reset preference cleared flag after showing dialog
-      setPreferenceCleared(false);
-    } else {
-      // Version compatible or no requirements - execute directly
-      onExecute(scriptName, currentWorktreePath);
-    }
-  }, [checkCompatibility, currentWorktreePath, onExecute, preferenceCleared]);
+      if (compatibility && !compatibility.isCompatible) {
+        // Show warning dialog
+        setCurrentCompatibility(compatibility);
+        setPendingScript(scriptName);
+        setShowVersionWarning(true);
+        // Reset preference cleared flag after showing dialog
+        setPreferenceCleared(false);
+      } else {
+        // Version compatible or no requirements - execute directly
+        onExecute(scriptName, currentWorktreePath);
+      }
+    },
+    [checkCompatibility, currentWorktreePath, onExecute, preferenceCleared]
+  );
 
   // Handle continue despite version mismatch
   const handleContinueAnyway = useCallback(() => {
@@ -245,15 +253,18 @@ export function ScriptCards({
   }));
 
   // Group by category and sort by name
-  const groupedScripts = categoryOrder.reduce((acc, category) => {
-    const scripts = categorizedScripts
-      .filter(s => s.category === category)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    if (scripts.length > 0) {
-      acc[category] = scripts;
-    }
-    return acc;
-  }, {} as Record<ScriptCategory, CategorizedScript[]>);
+  const groupedScripts = categoryOrder.reduce(
+    (acc, category) => {
+      const scripts = categorizedScripts
+        .filter((s) => s.category === category)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      if (scripts.length > 0) {
+        acc[category] = scripts;
+      }
+      return acc;
+    },
+    {} as Record<ScriptCategory, CategorizedScript[]>
+  );
 
   const hasScripts = Object.keys(groupedScripts).length > 0;
 
@@ -288,7 +299,7 @@ export function ScriptCards({
         )}
 
         {/* Script category cards */}
-        {categoryOrder.map(category => {
+        {categoryOrder.map((category) => {
           const categoryScripts = groupedScripts[category];
           if (!categoryScripts) return null;
 
@@ -304,7 +315,7 @@ export function ScriptCards({
                 {config.label}
               </h3>
               <ul className="space-y-2">
-                {categoryScripts.map(script => {
+                {categoryScripts.map((script) => {
                   const isRunning = isScriptRunningInWorktree(script.name);
 
                   return (
@@ -314,16 +325,20 @@ export function ScriptCards({
                           <div className="text-sm font-medium text-foreground truncate">
                             {script.name}
                           </div>
-                          <div className="text-xs text-muted-foreground truncate" title={script.command}>
+                          <div
+                            className="text-xs text-muted-foreground truncate"
+                            title={script.command}
+                          >
                             {script.command}
                           </div>
                         </div>
                         <Button
                           variant={isRunning ? 'outline-destructive' : 'ghost'}
                           size="icon"
-                          onClick={() => isRunning
-                            ? onCancel(script.name, currentWorktreePath)
-                            : handleExecuteWithVersionCheck(script.name)
+                          onClick={() =>
+                            isRunning
+                              ? onCancel(script.name, currentWorktreePath)
+                              : handleExecuteWithVersionCheck(script.name)
                           }
                           title={isRunning ? 'Stop' : 'Run'}
                         >

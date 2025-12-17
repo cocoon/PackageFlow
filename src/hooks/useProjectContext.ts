@@ -34,14 +34,10 @@ interface UseProjectContextReturn {
 /**
  * Hook for managing project context for AI assistant
  */
-export function useProjectContext(
-  options: UseProjectContextOptions = {}
-): UseProjectContextReturn {
+export function useProjectContext(options: UseProjectContextOptions = {}): UseProjectContextReturn {
   const { initialProjectPath, autoFetch = true } = options;
 
-  const [projectPath, setProjectPathState] = useState<string | null>(
-    initialProjectPath ?? null
-  );
+  const [projectPath, setProjectPathState] = useState<string | null>(initialProjectPath ?? null);
   const [projectContext, setProjectContext] = useState<ProjectContext | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,10 +48,9 @@ export function useProjectContext(
     setError(null);
 
     try {
-      const context = await invoke<ProjectContext>(
-        'ai_assistant_get_project_context',
-        { projectPath: path }
-      );
+      const context = await invoke<ProjectContext>('ai_assistant_get_project_context', {
+        projectPath: path,
+      });
       setProjectContext(context);
     } catch (err) {
       console.error('Failed to fetch project context:', err);
@@ -67,14 +62,17 @@ export function useProjectContext(
   }, []);
 
   // Set project path and fetch context
-  const setProjectPath = useCallback((path: string | null) => {
-    setProjectPathState(path);
-    if (path && autoFetch) {
-      fetchContext(path);
-    } else if (!path) {
-      setProjectContext(null);
-    }
-  }, [autoFetch, fetchContext]);
+  const setProjectPath = useCallback(
+    (path: string | null) => {
+      setProjectPathState(path);
+      if (path && autoFetch) {
+        fetchContext(path);
+      } else if (!path) {
+        setProjectContext(null);
+      }
+    },
+    [autoFetch, fetchContext]
+  );
 
   // Refresh context
   const refresh = useCallback(async () => {

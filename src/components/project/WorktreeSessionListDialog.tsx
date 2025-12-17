@@ -7,7 +7,17 @@
 
 import * as React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Bookmark, Download, Search, Upload, X, FolderGit2, Archive, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  Bookmark,
+  Download,
+  Search,
+  Upload,
+  X,
+  FolderGit2,
+  Archive,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { useSettings } from '../../contexts/SettingsContext';

@@ -13,7 +13,11 @@ import { useRef, useCallback, useEffect } from 'react';
 import { Send, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
-import { useInputHistory, isCursorAtFirstLine, isCursorAtLastLine } from '../../hooks/useInputHistory';
+import {
+  useInputHistory,
+  isCursorAtFirstLine,
+  isCursorAtLastLine,
+} from '../../hooks/useInputHistory';
 
 interface ChatInputAreaProps {
   /** Current input value */
@@ -52,13 +56,8 @@ export function ChatInputArea({
   const isComposingRef = useRef(false);
 
   // Input history for arrow key navigation
-  const {
-    navigateUp,
-    navigateDown,
-    addToHistory,
-    resetNavigation,
-    isNavigating,
-  } = useInputHistory();
+  const { navigateUp, navigateDown, addToHistory, resetNavigation, isNavigating } =
+    useInputHistory();
 
   // Auto-resize textarea based on content
   const adjustHeight = useCallback(() => {
@@ -171,7 +170,19 @@ export function ChatInputArea({
         }
       }
     },
-    [disabled, value, isGenerating, onSend, onStop, onChange, navigateUp, navigateDown, isNavigating, addToHistory, resetNavigation]
+    [
+      disabled,
+      value,
+      isGenerating,
+      onSend,
+      onStop,
+      onChange,
+      navigateUp,
+      navigateDown,
+      isNavigating,
+      addToHistory,
+      resetNavigation,
+    ]
   );
 
   // Handle input change
@@ -252,10 +263,7 @@ export function ChatInputArea({
               variant="destructive"
               size="sm"
               onClick={handleStop}
-              className={cn(
-                'flex items-center justify-center',
-                'w-10 h-10 rounded-lg p-0'
-              )}
+              className={cn('flex items-center justify-center', 'w-10 h-10 rounded-lg p-0')}
               aria-label="Stop generating"
             >
               <Square className="w-4 h-4" />
@@ -266,10 +274,7 @@ export function ChatInputArea({
               size="sm"
               onClick={handleSend}
               disabled={!canSend}
-              className={cn(
-                'flex items-center justify-center',
-                'w-10 h-10 rounded-lg p-0'
-              )}
+              className={cn('flex items-center justify-center', 'w-10 h-10 rounded-lg p-0')}
               aria-label="Send message"
             >
               <Send className="w-4 h-4" />

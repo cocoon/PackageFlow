@@ -5,10 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { workflowAPI } from '../lib/tauri-api';
-import type {
-  ExecutionHistoryItem,
-  ExecutionHistorySettings,
-} from '../lib/tauri-api';
+import type { ExecutionHistoryItem, ExecutionHistorySettings } from '../lib/tauri-api';
 
 interface UseExecutionHistoryReturn {
   /** All history items for a specific workflow */
@@ -97,25 +94,22 @@ export function useExecutionHistory(): UseExecutionHistoryReturn {
   }, []);
 
   /** Delete a specific history item */
-  const deleteHistory = useCallback(
-    async (workflowId: string, historyId: string) => {
-      try {
-        await workflowAPI.deleteExecutionHistory(workflowId, historyId);
-        setHistories((prev) => {
-          const items = prev[workflowId]?.filter((item) => item.id !== historyId) || [];
-          if (items.length === 0) {
-            const { [workflowId]: _, ...rest } = prev;
-            return rest;
-          }
-          return { ...prev, [workflowId]: items };
-        });
-      } catch (error) {
-        console.error('[useExecutionHistory] Failed to delete history:', error);
-        throw error;
-      }
-    },
-    []
-  );
+  const deleteHistory = useCallback(async (workflowId: string, historyId: string) => {
+    try {
+      await workflowAPI.deleteExecutionHistory(workflowId, historyId);
+      setHistories((prev) => {
+        const items = prev[workflowId]?.filter((item) => item.id !== historyId) || [];
+        if (items.length === 0) {
+          const { [workflowId]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [workflowId]: items };
+      });
+    } catch (error) {
+      console.error('[useExecutionHistory] Failed to delete history:', error);
+      throw error;
+    }
+  }, []);
 
   /** Clear all history for a workflow */
   const clearWorkflowHistory = useCallback(async (workflowId: string) => {
@@ -132,16 +126,19 @@ export function useExecutionHistory(): UseExecutionHistoryReturn {
   }, []);
 
   /** Update settings */
-  const updateSettings = useCallback(async (updates: Partial<ExecutionHistorySettings>) => {
-    try {
-      const newSettings = { ...settings, ...updates };
-      await workflowAPI.updateExecutionHistorySettings(newSettings);
-      setSettings(newSettings);
-    } catch (error) {
-      console.error('[useExecutionHistory] Failed to update settings:', error);
-      throw error;
-    }
-  }, [settings]);
+  const updateSettings = useCallback(
+    async (updates: Partial<ExecutionHistorySettings>) => {
+      try {
+        const newSettings = { ...settings, ...updates };
+        await workflowAPI.updateExecutionHistorySettings(newSettings);
+        setSettings(newSettings);
+      } catch (error) {
+        console.error('[useExecutionHistory] Failed to update settings:', error);
+        throw error;
+      }
+    },
+    [settings]
+  );
 
   return {
     getHistory,

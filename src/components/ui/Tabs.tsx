@@ -88,11 +88,7 @@ export function TabsList({ children, className }: TabsListProps) {
   return (
     <div
       role="tablist"
-      className={cn(
-        'flex items-center gap-1 p-1',
-        'bg-muted/50 rounded-lg',
-        className
-      )}
+      className={cn('flex items-center gap-1 p-1', 'bg-muted/50 rounded-lg', className)}
     >
       {children}
     </div>
@@ -114,12 +110,7 @@ interface TabsTriggerProps {
   disabled?: boolean;
 }
 
-export function TabsTrigger({
-  value,
-  children,
-  className,
-  disabled = false,
-}: TabsTriggerProps) {
+export function TabsTrigger({ value, children, className, disabled = false }: TabsTriggerProps) {
   const { activeTab, setActiveTab, baseId } = useTabsContext();
   const isActive = activeTab === value;
   const tabId = `${baseId}-tab-${value}`;
@@ -184,12 +175,7 @@ interface TabsContentProps {
   forceMount?: boolean;
 }
 
-export function TabsContent({
-  value,
-  children,
-  className,
-  forceMount = false,
-}: TabsContentProps) {
+export function TabsContent({ value, children, className, forceMount = false }: TabsContentProps) {
   const { activeTab, baseId } = useTabsContext();
   const isActive = activeTab === value;
   const tabId = `${baseId}-tab-${value}`;

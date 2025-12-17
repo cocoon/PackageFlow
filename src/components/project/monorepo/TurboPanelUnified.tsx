@@ -43,7 +43,10 @@ import {
   type TaskItem,
 } from './TaskComponents';
 import { TaskQuickSwitcher, useTaskQuickSwitcher } from './TaskQuickSwitcher';
-import type { DependencyNode, TurboCacheStatus as TurboCacheStatusType } from '../../../types/monorepo';
+import type {
+  DependencyNode,
+  TurboCacheStatus as TurboCacheStatusType,
+} from '../../../types/monorepo';
 import { ExecutionOutputPanel, type ExecutionStatus } from './ExecutionOutputPanel';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
@@ -151,8 +154,8 @@ function ExecutionItem({
             {execution.status === 'running'
               ? 'Running...'
               : execution.exitCode !== undefined
-              ? `Exit: ${execution.exitCode}`
-              : execution.status}
+                ? `Exit: ${execution.exitCode}`
+                : execution.status}
           </span>
           {/* View output button */}
           <Button
@@ -219,12 +222,8 @@ function BatchResultItem({ execution }: { execution: BatchExecution }) {
             </span>
           ) : (
             <>
-              {successCount > 0 && (
-                <span className="text-green-400">{successCount} passed</span>
-              )}
-              {failureCount > 0 && (
-                <span className="text-red-400">{failureCount} failed</span>
-              )}
+              {successCount > 0 && <span className="text-green-400">{successCount} passed</span>}
+              {failureCount > 0 && <span className="text-red-400">{failureCount} failed</span>}
             </>
           )}
         </div>
@@ -359,7 +358,9 @@ function CacheStatusInline({ projectPath }: { projectPath: string }) {
         {status.hitRate !== undefined && status.hitRate > 0 && (
           <div>
             <span className="text-muted-foreground">Hit Rate: </span>
-            <span className="text-foreground font-medium">{(status.hitRate * 100).toFixed(1)}%</span>
+            <span className="text-foreground font-medium">
+              {(status.hitRate * 100).toFixed(1)}%
+            </span>
           </div>
         )}
       </div>
@@ -441,11 +442,11 @@ export function TurboPanelUnified({
   const [cacheExpanded, setCacheExpanded] = useState(false);
   const [selectedPackages, setSelectedPackages] = useState<Set<string>>(new Set());
   const [selectedScript, setSelectedScript] = useState<string>(availableScripts[0] || '');
-  const [outputPanelExecution, setOutputPanelExecution] = useState<TurboCommandExecution | null>(null);
+  const [outputPanelExecution, setOutputPanelExecution] = useState<TurboCommandExecution | null>(
+    null
+  );
 
-  const runningCount = Array.from(executions.values()).filter(
-    (e) => e.status === 'running'
-  ).length;
+  const runningCount = Array.from(executions.values()).filter((e) => e.status === 'running').length;
 
   // Running tasks set for TaskCategoryGroup
   const runningTasks = useMemo(() => {
@@ -525,16 +526,13 @@ export function TurboPanelUnified({
             onClick={() => setForceRun(!forceRun)}
             className={cn(
               'flex items-center gap-1.5',
-              forceRun && 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
+              forceRun &&
+                'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
             )}
             title={forceRun ? 'Cache will be ignored' : 'Enable to ignore cache'}
             aria-pressed={forceRun}
           >
-            {forceRun ? (
-              <ToggleRight className="w-4 h-4" />
-            ) : (
-              <ToggleLeft className="w-4 h-4" />
-            )}
+            {forceRun ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
             <span>Ignore Cache</span>
           </Button>
 
@@ -706,9 +704,7 @@ export function TurboPanelUnified({
                     variant={selectedScript === script ? 'outline-success' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedScript(script)}
-                    className={cn(
-                      selectedScript === script && 'bg-green-500/20 text-green-400'
-                    )}
+                    className={cn(selectedScript === script && 'bg-green-500/20 text-green-400')}
                   >
                     {script}
                   </Button>

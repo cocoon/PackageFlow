@@ -49,33 +49,36 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
   const [rebaseConflict, setRebaseConflict] = useState(false);
 
   // Load branches (silent refresh when data exists)
-  const loadBranches = useCallback(async (silent = false) => {
-    if (!projectPath) return;
+  const loadBranches = useCallback(
+    async (silent = false) => {
+      if (!projectPath) return;
 
-    // Only show loading spinner on initial load (no existing data)
-    if (!silent && branches.length === 0) {
-      setIsLoading(true);
-    }
-    setOperationError(null);
-
-    try {
-      const response = await gitAPI.getBranches(projectPath);
-      if (response.success && response.branches) {
-        setBranches(response.branches);
-        const current = response.branches.find((b) => b.isCurrent);
-        if (current) {
-          setCurrentBranch(current.name);
-        }
-      } else {
-        setOperationError(response.error || 'Failed to load branches');
+      // Only show loading spinner on initial load (no existing data)
+      if (!silent && branches.length === 0) {
+        setIsLoading(true);
       }
-    } catch (err) {
-      setOperationError('Failed to connect to Git');
-      console.error('Git branches error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectPath, branches.length]);
+      setOperationError(null);
+
+      try {
+        const response = await gitAPI.getBranches(projectPath);
+        if (response.success && response.branches) {
+          setBranches(response.branches);
+          const current = response.branches.find((b) => b.isCurrent);
+          if (current) {
+            setCurrentBranch(current.name);
+          }
+        } else {
+          setOperationError(response.error || 'Failed to load branches');
+        }
+      } catch (err) {
+        setOperationError('Failed to connect to Git');
+        console.error('Git branches error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [projectPath, branches.length]
+  );
 
   // Initial load
   useEffect(() => {
@@ -180,7 +183,9 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
           setRebaseConflict(true);
           setOperationError('Rebase conflict! Resolve conflicts manually, then continue or abort.');
         } else if (response.error === 'HAS_UNCOMMITTED_CHANGES') {
-          setOperationError('Cannot rebase: you have uncommitted changes. Commit or stash them first.');
+          setOperationError(
+            'Cannot rebase: you have uncommitted changes. Commit or stash them first.'
+          );
           setRebaseTarget(null);
         } else {
           setOperationError(response.error || 'Failed to rebase');
@@ -293,7 +298,9 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
             className="h-8 w-8"
             title="Refresh branches"
           >
-            <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`}
+            />
           </Button>
           <Button
             variant="default"
@@ -315,8 +322,8 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
             <span className="text-sm font-medium">Rebase in progress</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Rebasing onto <span className="font-mono text-yellow-400">{rebaseTarget}</span>.
-            Resolve conflicts in your editor, then continue or abort.
+            Rebasing onto <span className="font-mono text-yellow-400">{rebaseTarget}</span>. Resolve
+            conflicts in your editor, then continue or abort.
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -325,7 +332,11 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
               disabled={isRebasing}
               variant="success"
             >
-              {isRebasing ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Check className="w-4 h-4 mr-1.5" />}
+              {isRebasing ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4 mr-1.5" />
+              )}
               Continue
             </Button>
             <Button
@@ -334,7 +345,11 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
               disabled={isRebasing}
               variant="destructive"
             >
-              {isRebasing ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <X className="w-4 h-4 mr-1.5" />}
+              {isRebasing ? (
+                <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+              ) : (
+                <X className="w-4 h-4 mr-1.5" />
+              )}
               Abort
             </Button>
           </div>
@@ -343,9 +358,7 @@ export function GitBranchList({ projectPath, onBranchChange }: GitBranchListProp
 
       {/* Error Message */}
       {operationError && !rebaseConflict && (
-        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">
-          {operationError}
-        </div>
+        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">{operationError}</div>
       )}
 
       {/* New Branch Input */}
@@ -504,7 +517,9 @@ function BranchItem({
 
       {/* Commit SHA */}
       {branch.lastCommitHash && (
-        <span className="text-xs text-muted-foreground font-mono">{branch.lastCommitHash.slice(0, 7)}</span>
+        <span className="text-xs text-muted-foreground font-mono">
+          {branch.lastCommitHash.slice(0, 7)}
+        </span>
       )}
 
       {/* Rebase button (rebase current branch onto this branch) */}

@@ -46,7 +46,13 @@ const ContextMenuContent: React.FC<{
   );
 };
 
-export const ContextMenu: React.FC<ContextMenuProps> = ({ x, y, onClose, children, usePortal = false }) => {
+export const ContextMenu: React.FC<ContextMenuProps> = ({
+  x,
+  y,
+  onClose,
+  children,
+  usePortal = false,
+}) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -111,10 +117,10 @@ export const ContextMenuItem: React.FC<ContextMenuItemProps> = ({
         disabled
           ? 'text-muted-foreground cursor-not-allowed'
           : destructive
-          ? 'text-destructive hover:bg-destructive/10'
-          : warning
-          ? 'text-yellow-400 hover:bg-yellow-500/10'
-          : 'hover:bg-muted',
+            ? 'text-destructive hover:bg-destructive/10'
+            : warning
+              ? 'text-yellow-400 hover:bg-yellow-500/10'
+              : 'hover:bg-muted',
         className
       )}
       onClick={disabled ? undefined : onClick}

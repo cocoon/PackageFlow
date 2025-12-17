@@ -101,7 +101,9 @@ const getStatusConfig = (
       iconBg: 'bg-blue-500/10',
       borderColor: 'border-blue-500/20',
       title: 'Update Available',
-      description: newVersion ? `Version ${newVersion} is ready to download` : 'A new version is available',
+      description: newVersion
+        ? `Version ${newVersion} is ready to download`
+        : 'A new version is available',
     },
     downloading: {
       icon: Download,
@@ -195,9 +197,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
 
   // Determine which state we're showing for UI purposes
   const showUpToDate = hasChecked && state === 'idle' && !newVersion && !error;
-  const displayConfig = showUpToDate
-    ? getStatusConfig('up_to_date', null, null)
-    : statusConfig;
+  const displayConfig = showUpToDate ? getStatusConfig('up_to_date', null, null) : statusConfig;
   const DisplayIcon = showUpToDate ? CheckCircle : StatusIcon;
 
   const handleCheckForUpdates = () => {
@@ -221,9 +221,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
           <Info className="w-5 h-5 pr-1" />
           About
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Version information and updates
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Version information and updates</p>
       </div>
 
       {/* Scrollable Content */}
@@ -251,18 +249,12 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
                   'flex items-center justify-center overflow-hidden'
                 )}
               >
-                <img
-                  src="/image.png"
-                  alt="PackageFlow"
-                  className="w-12 h-12 object-contain"
-                />
+                <img src="/image.png" alt="PackageFlow" className="w-12 h-12 object-contain" />
               </div>
 
               {/* Version Info */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-foreground">
-                  PackageFlow
-                </h3>
+                <h3 className="text-lg font-semibold text-foreground">PackageFlow</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
                   Version {currentVersion || '...'}
                 </p>
@@ -301,26 +293,18 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
                   displayConfig.iconColor
                 )}
               >
-                <DisplayIcon
-                  className={cn('w-5 h-5', displayConfig.iconAnimation)}
-                />
+                <DisplayIcon className={cn('w-5 h-5', displayConfig.iconAnimation)} />
               </div>
 
               {/* Status Info */}
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-foreground">
-                  {displayConfig.title}
-                </span>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {displayConfig.description}
-                </p>
+                <span className="text-sm font-medium text-foreground">{displayConfig.title}</span>
+                <p className="text-xs text-muted-foreground mt-1">{displayConfig.description}</p>
 
                 {/* Release Notes (when update available) */}
                 {state === 'available' && releaseNotes && (
                   <div className="mt-3">
-                    <h4 className="text-xs font-medium text-foreground mb-1">
-                      What&apos;s New
-                    </h4>
+                    <h4 className="text-xs font-medium text-foreground mb-1">What&apos;s New</h4>
                     <div
                       className={cn(
                         'p-2 rounded-md',
@@ -338,11 +322,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
                 {/* Download Progress */}
                 {state === 'downloading' && (
                   <div className="mt-3 space-y-2">
-                    <Progress
-                      value={downloadProgress}
-                      max={100}
-                      className="h-2"
-                    />
+                    <Progress value={downloadProgress} max={100} className="h-2" />
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>
                         {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
@@ -371,11 +351,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
             <div className="mt-4 flex flex-wrap gap-2">
               {/* Idle / Up to date state */}
               {(state === 'idle' || showUpToDate) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCheckForUpdates}
-                >
+                <Button variant="outline" size="sm" onClick={handleCheckForUpdates}>
                   <RefreshCw className="w-4 h-4 mr-1" />
                   Check for Updates
                 </Button>
@@ -392,19 +368,11 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
               {/* Update available state */}
               {state === 'available' && (
                 <>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={startUpdate}
-                  >
+                  <Button variant="default" size="sm" onClick={startUpdate}>
                     <Download className="w-4 h-4 mr-1" />
                     Download & Install
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCheckForUpdates}
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleCheckForUpdates}>
                     Check Again
                   </Button>
                 </>
@@ -428,11 +396,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
 
               {/* Complete state */}
               {state === 'complete' && (
-                <Button
-                  variant="success"
-                  size="sm"
-                  onClick={restartApp}
-                >
+                <Button variant="success" size="sm" onClick={restartApp}>
                   <RefreshCw className="w-4 h-4 mr-1" />
                   Restart Now
                 </Button>
@@ -440,11 +404,7 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
 
               {/* Error state */}
               {state === 'error' && (
-                <Button
-                  variant="outline-destructive"
-                  size="sm"
-                  onClick={retryUpdate}
-                >
+                <Button variant="outline-destructive" size="sm" onClick={retryUpdate}>
                   <RefreshCw className="w-4 h-4 mr-1" />
                   Retry
                 </Button>
@@ -480,8 +440,8 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
         {/* Info Box */}
         <SettingInfoBox title="Automatic Updates" variant="info">
           <p className="text-xs">
-            PackageFlow automatically checks for updates when you start the app.
-            You can also manually check for updates at any time using the button above.
+            PackageFlow automatically checks for updates when you start the app. You can also
+            manually check for updates at any time using the button above.
           </p>
         </SettingInfoBox>
       </div>
@@ -536,9 +496,7 @@ const LinkCard: React.FC<LinkCardProps> = ({
         'hover:bg-accent/50'
       )}
     >
-      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>
-        {icon}
-      </div>
+      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>{icon}</div>
       <div className="flex-1 min-w-0">
         <h4 className="text-sm font-medium text-foreground flex items-center gap-1">
           {title}

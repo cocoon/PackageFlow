@@ -39,12 +39,11 @@ export function VoltaInstallPrompt({ onDismiss }: VoltaInstallPromptProps) {
             <Zap className="w-4 h-4 text-orange-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-orange-300">
-              Volta recommended
-            </h4>
+            <h4 className="text-sm font-medium text-orange-300">Volta recommended</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              This project uses Volta for version management, but Volta is not installed on your system.
-              Install Volta to automatically use the correct Node.js and package manager versions.
+              This project uses Volta for version management, but Volta is not installed on your
+              system. Install Volta to automatically use the correct Node.js and package manager
+              versions.
             </p>
 
             {/* Install command */}

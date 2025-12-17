@@ -34,30 +34,33 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
   const [hasMore, setHasMore] = useState(true);
 
   // Load commit history (silent refresh when data exists)
-  const loadHistory = useCallback(async (silent = false) => {
-    if (!projectPath) return;
+  const loadHistory = useCallback(
+    async (silent = false) => {
+      if (!projectPath) return;
 
-    // Only show loading spinner on initial load (no existing data)
-    if (!silent && commits.length === 0) {
-      setIsLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await gitAPI.getCommitHistory(projectPath, 0, pageSize);
-      if (response.success && response.commits) {
-        setCommits(response.commits);
-        setHasMore(response.commits.length >= pageSize);
-      } else {
-        setError(response.error || 'Failed to load commit history');
+      // Only show loading spinner on initial load (no existing data)
+      if (!silent && commits.length === 0) {
+        setIsLoading(true);
       }
-    } catch (err) {
-      setError('Failed to connect to Git');
-      console.error('Git history error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectPath, pageSize, commits.length]);
+      setError(null);
+
+      try {
+        const response = await gitAPI.getCommitHistory(projectPath, 0, pageSize);
+        if (response.success && response.commits) {
+          setCommits(response.commits);
+          setHasMore(response.commits.length >= pageSize);
+        } else {
+          setError(response.error || 'Failed to load commit history');
+        }
+      } catch (err) {
+        setError('Failed to connect to Git');
+        console.error('Git history error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [projectPath, pageSize, commits.length]
+  );
 
   // Load more commits
   const loadMore = useCallback(async () => {
@@ -146,9 +149,7 @@ export function GitHistoryList({ projectPath, pageSize = 50 }: GitHistoryListPro
   if (error) {
     return (
       <div className="p-4">
-        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">
-          {error}
-        </div>
+        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">{error}</div>
       </div>
     );
   }

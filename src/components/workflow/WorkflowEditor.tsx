@@ -24,7 +24,18 @@ import type { IncomingWebhookConfig } from '../../types/incoming-webhook';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../../lib/utils';
-import { Terminal, ChevronDown, ChevronUp, Plus, Play, FolderOpen, Trash2, LayoutTemplate, PenLine, Star } from 'lucide-react';
+import {
+  Terminal,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Play,
+  FolderOpen,
+  Trash2,
+  LayoutTemplate,
+  PenLine,
+  Star,
+} from 'lucide-react';
 import { resolveCommand, saveNodeAsTemplate } from '../../data/step-templates';
 import { exportWorkflow, importWorkflow, exportNode, importNode } from '../../lib/export-import';
 import { settingsAPI, workflowAPI } from '../../lib/tauri-api';
@@ -39,7 +50,13 @@ interface NewNodeDialogProps {
   insertIndex?: number;
   packageManager?: string;
   onClose: () => void;
-  onSave: (name: string, command: string, cwd?: string, insertIndex?: number, saveAsTemplate?: boolean) => void;
+  onSave: (
+    name: string,
+    command: string,
+    cwd?: string,
+    insertIndex?: number,
+    saveAsTemplate?: boolean
+  ) => void;
 }
 
 type DialogTab = 'templates' | 'custom';
@@ -49,7 +66,14 @@ function containsRmCommand(cmd: string): boolean {
   return trimmed.startsWith('rm ') || trimmed === 'rm' || /\|\s*rm(\s|$)/.test(trimmed);
 }
 
-function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm', onClose, onSave }: NewNodeDialogProps) {
+function NewNodeDialog({
+  isOpen,
+  defaultCwd,
+  insertIndex,
+  packageManager = 'npm',
+  onClose,
+  onSave,
+}: NewNodeDialogProps) {
   const [activeTab, setActiveTab] = useState<DialogTab>('templates');
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
@@ -70,12 +94,15 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
     }
   }, [isOpen, defaultCwd]);
 
-  const handleSelectTemplate = useCallback((template: StepTemplate) => {
-    setSelectedTemplateId(template.id);
-    setName(template.name);
-    setCommand(resolveCommand(template.command, packageManager));
-    setActiveTab('custom');
-  }, [packageManager]);
+  const handleSelectTemplate = useCallback(
+    (template: StepTemplate) => {
+      setSelectedTemplateId(template.id);
+      setName(template.name);
+      setCommand(resolveCommand(template.command, packageManager));
+      setActiveTab('custom');
+    },
+    [packageManager]
+  );
 
   const handleSave = () => {
     if (!name.trim() || !command.trim()) return;
@@ -94,30 +121,36 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
-        'bg-background border-blue-500/30 max-w-2xl max-h-[90vh] p-0 overflow-hidden',
-        'shadow-2xl shadow-black/60',
-        'flex flex-col'
-      )}>
+      <DialogContent
+        className={cn(
+          'bg-background border-blue-500/30 max-w-2xl max-h-[90vh] p-0 overflow-hidden',
+          'shadow-2xl shadow-black/60',
+          'flex flex-col'
+        )}
+      >
         {/* Header with gradient background and icon badge */}
-        <div className={cn(
-          'relative px-6 py-5',
-          'border-b border-border',
-          'bg-gradient-to-r',
-          'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent',
-          'from-blue-500/10 via-blue-600/5 to-transparent'
-        )}>
+        <div
+          className={cn(
+            'relative px-6 py-5',
+            'border-b border-border',
+            'bg-gradient-to-r',
+            'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent',
+            'from-blue-500/10 via-blue-600/5 to-transparent'
+          )}
+        >
           <div className="flex items-center gap-4">
             {/* Icon badge */}
-            <div className={cn(
-              'flex-shrink-0',
-              'w-12 h-12 rounded-xl',
-              'flex items-center justify-center',
-              'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
-              'border',
-              'bg-blue-500/10 border-blue-500/20',
-              'shadow-lg'
-            )}>
+            <div
+              className={cn(
+                'flex-shrink-0',
+                'w-12 h-12 rounded-xl',
+                'flex items-center justify-center',
+                'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
+                'border',
+                'bg-blue-500/10 border-blue-500/20',
+                'shadow-lg'
+              )}
+            >
               <Plus className="w-6 h-6 text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
@@ -127,8 +160,7 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
               <p className="mt-1 text-sm text-muted-foreground">
                 {isInsertMode
                   ? 'Insert a new step into your workflow at the specified position'
-                  : 'Choose a template or create a custom step for your workflow'
-                }
+                  : 'Choose a template or create a custom step for your workflow'}
               </p>
             </div>
           </div>
@@ -169,126 +201,143 @@ function NewNodeDialog({ isOpen, defaultCwd, insertIndex, packageManager = 'npm'
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
-        {activeTab === 'templates' ? (
-          <div>
-            <TemplateSelector
-              selectedTemplateId={selectedTemplateId}
-              onSelectTemplate={handleSelectTemplate}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4" onKeyDown={handleKeyDown}>
-            {selectedTemplateId && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 border border-blue-600/30 rounded-lg">
-                <LayoutTemplate className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-blue-400 dark:text-blue-300">Based on template - feel free to customize</span>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Terminal className="w-4 h-4" />
-                Step Name
-              </label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Build Project"
-                autoFocus
-                className="bg-background border-border text-foreground"
+          {activeTab === 'templates' ? (
+            <div>
+              <TemplateSelector
+                selectedTemplateId={selectedTemplateId}
+                onSelectTemplate={handleSelectTemplate}
               />
             </div>
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Play className="w-4 h-4" />
-                Shell Command
-              </label>
-              <textarea
-                value={command}
-                onChange={(e) => setCommand(e.target.value)}
-                placeholder="e.g., npm run build"
-                rows={3}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-form-type="other"
-                className={cn(
-                  'w-full px-3 py-2 rounded-md border bg-background border-border',
-                  'text-foreground placeholder-muted-foreground font-mono text-sm',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-                  'resize-none'
-                )}
-              />
-              {hasRmCommand && (
-                <div className="flex items-start gap-2 mt-2 p-2.5 rounded-lg bg-amber-500/10 dark:bg-amber-900/30 border border-amber-500/30 dark:border-amber-700/50">
-                  <Trash2 className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    <span className="font-medium">Safe Delete:</span> Files will be moved to Trash instead of being permanently deleted.
-                  </p>
+          ) : (
+            <div className="space-y-4" onKeyDown={handleKeyDown}>
+              {selectedTemplateId && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-600/10 border border-blue-600/30 rounded-lg">
+                  <LayoutTemplate className="w-4 h-4 text-blue-400" />
+                  <span className="text-xs text-blue-400 dark:text-blue-300">
+                    Based on template - feel free to customize
+                  </span>
                 </div>
               )}
-            </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <FolderOpen className="w-4 h-4" />
-                Working Directory
-                <span className="text-muted-foreground font-normal">(Optional)</span>
-              </label>
-              <Input
-                value={cwd}
-                onChange={(e) => setCwd(e.target.value)}
-                placeholder="e.g., ~/Developer/project"
-                className="bg-background border-border text-foreground font-mono text-sm"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Terminal className="w-4 h-4" />
+                  Step Name
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Build Project"
+                  autoFocus
+                  className="bg-background border-border text-foreground"
+                />
+              </div>
 
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setSaveAsTemplate(!saveAsTemplate)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all w-full text-left h-auto',
-                saveAsTemplate
-                  ? 'border-yellow-500/50 bg-yellow-500/10'
-                  : 'border-border bg-muted/50 hover:border-accent hover:bg-accent/50'
-              )}
-            >
-              <div className={cn(
-                'w-5 h-5 rounded flex items-center justify-center transition-colors',
-                saveAsTemplate ? 'bg-yellow-500' : 'bg-muted'
-              )}>
-                <Star className={cn('w-3 h-3', saveAsTemplate ? 'text-background' : 'text-muted-foreground')} />
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Play className="w-4 h-4" />
+                  Shell Command
+                </label>
+                <textarea
+                  value={command}
+                  onChange={(e) => setCommand(e.target.value)}
+                  placeholder="e.g., npm run build"
+                  rows={3}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  data-form-type="other"
+                  className={cn(
+                    'w-full px-3 py-2 rounded-md border bg-background border-border',
+                    'text-foreground placeholder-muted-foreground font-mono text-sm',
+                    'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+                    'resize-none'
+                  )}
+                />
+                {hasRmCommand && (
+                  <div className="flex items-start gap-2 mt-2 p-2.5 rounded-lg bg-amber-500/10 dark:bg-amber-900/30 border border-amber-500/30 dark:border-amber-700/50">
+                    <Trash2 className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <span className="font-medium">Safe Delete:</span> Files will be moved to Trash
+                      instead of being permanently deleted.
+                    </p>
+                  </div>
+                )}
               </div>
-              <div className="flex-1">
-                <span className={cn('text-sm', saveAsTemplate ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground')}>
-                  Save as Template
-                </span>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <FolderOpen className="w-4 h-4" />
+                  Working Directory
+                  <span className="text-muted-foreground font-normal">(Optional)</span>
+                </label>
+                <Input
+                  value={cwd}
+                  onChange={(e) => setCwd(e.target.value)}
+                  placeholder="e.g., ~/Developer/project"
+                  className="bg-background border-border text-foreground font-mono text-sm"
+                />
               </div>
-              <span className="text-xs text-muted-foreground">Reuse later</span>
-            </Button>
-          </div>
-        )}
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setSaveAsTemplate(!saveAsTemplate)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all w-full text-left h-auto',
+                  saveAsTemplate
+                    ? 'border-yellow-500/50 bg-yellow-500/10'
+                    : 'border-border bg-muted/50 hover:border-accent hover:bg-accent/50'
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-5 h-5 rounded flex items-center justify-center transition-colors',
+                    saveAsTemplate ? 'bg-yellow-500' : 'bg-muted'
+                  )}
+                >
+                  <Star
+                    className={cn(
+                      'w-3 h-3',
+                      saveAsTemplate ? 'text-background' : 'text-muted-foreground'
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <span
+                    className={cn(
+                      'text-sm',
+                      saveAsTemplate ? 'text-yellow-600 dark:text-yellow-400' : 'text-foreground'
+                    )}
+                  >
+                    Save as Template
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">Reuse later</span>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Footer with actions */}
-        <div className={cn(
-          'px-6 py-4',
-          'border-t border-border',
-          'bg-card/50',
-          'flex justify-end gap-3',
-          'flex-shrink-0'
-        )}>
-          <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+        <div
+          className={cn(
+            'px-6 py-4',
+            'border-t border-border',
+            'bg-card/50',
+            'flex justify-end gap-3',
+            'flex-shrink-0'
+          )}
+        >
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             Cancel
           </Button>
-          <Button
-            variant="default"
-            onClick={handleSave}
-            disabled={!name.trim() || !command.trim()}
-          >
+          <Button variant="default" onClick={handleSave} disabled={!name.trim() || !command.trim()}>
             {isInsertMode ? 'Insert Step' : 'Add Step'}
           </Button>
         </div>
@@ -308,7 +357,12 @@ interface WorkflowEditorProps {
  * Workflow Editor Component
  * Enhanced visual workflow editor with n8n-like experience
  */
-export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }: WorkflowEditorProps) {
+export function WorkflowEditor({
+  initialWorkflow,
+  defaultCwd,
+  onBack,
+  onSaved,
+}: WorkflowEditorProps) {
   const {
     workflow,
     isSaving,
@@ -388,7 +442,7 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
   }, [finishedAt, workflow, refreshHistory]);
 
   const selectedNode = selectedNodeId
-    ? workflow?.nodes.find((n) => n.id === selectedNodeId) ?? null
+    ? (workflow?.nodes.find((n) => n.id === selectedNodeId) ?? null)
     : null;
 
   useEffect(() => {
@@ -469,7 +523,9 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
 
     setTimeout(() => {
       if (workflow) {
-        const newNode = workflow.nodes.find((n) => n.type === 'trigger-workflow' && n.name === 'Trigger Workflow');
+        const newNode = workflow.nodes.find(
+          (n) => n.type === 'trigger-workflow' && n.name === 'Trigger Workflow'
+        );
         if (newNode) {
           setSelectedNodeId(newNode.id);
           setIsNodePanelOpen(true);
@@ -484,7 +540,13 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
   }, []);
 
   const handleSaveNewNode = useCallback(
-    async (name: string, command: string, cwd?: string, insertIndex?: number, shouldSaveAsTemplate?: boolean) => {
+    async (
+      name: string,
+      command: string,
+      cwd?: string,
+      insertIndex?: number,
+      shouldSaveAsTemplate?: boolean
+    ) => {
       if (insertIndex !== undefined) {
         insertNodeAt(name, command, insertIndex, cwd);
       } else {
@@ -600,10 +662,7 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
   const handleCancel = useCallback(async () => {
     terminal.addSystemMessage('Stopping execution...');
     // Cancel via both useWorkflow and Context
-    await Promise.all([
-      cancel(),
-      workflow?.id ? cancelViaContext(workflow.id) : Promise.resolve(),
-    ]);
+    await Promise.all([cancel(), workflow?.id ? cancelViaContext(workflow.id) : Promise.resolve()]);
     terminal.addSystemMessage('Execution stopped');
   }, [cancel, cancelViaContext, workflow?.id, terminal]);
 
@@ -621,30 +680,33 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
     setLocalTerminalHeight(terminalHeight);
   }, [terminalHeight]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
 
-    const startY = e.clientY;
-    const startHeight = localTerminalHeight;
+      const startY = e.clientY;
+      const startHeight = localTerminalHeight;
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaY = startY - moveEvent.clientY;
-      const newHeight = Math.min(Math.max(startHeight + deltaY, 100), 600);
-      setLocalTerminalHeight(newHeight);
-    };
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const deltaY = startY - moveEvent.clientY;
+        const newHeight = Math.min(Math.max(startHeight + deltaY, 100), 600);
+        setLocalTerminalHeight(newHeight);
+      };
 
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      // Save to persistent settings
-      saveTerminalHeight(localTerminalHeight);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        setIsResizing(false);
+        // Save to persistent settings
+        saveTerminalHeight(localTerminalHeight);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [localTerminalHeight, saveTerminalHeight]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [localTerminalHeight, saveTerminalHeight]
+  );
 
   const handleExportWorkflow = useCallback(async () => {
     if (!workflow) return;
@@ -663,7 +725,9 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
       const imported = result.workflow;
       const workflows = await settingsAPI.loadWorkflows();
       await settingsAPI.saveWorkflows([...workflows, imported]);
-      terminal.addSystemMessage(`Imported workflow: "${imported.name}" (${imported.nodes.length} steps)`);
+      terminal.addSystemMessage(
+        `Imported workflow: "${imported.name}" (${imported.nodes.length} steps)`
+      );
       loadWorkflow(imported);
       if (onSaved) {
         onSaved(imported);
@@ -688,22 +752,19 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
     [workflow, terminal]
   );
 
-  const handleImportNodeFromToolbar = useCallback(
-    async () => {
-      const result = await importNode();
-      if (result.success && result.node) {
-        if (isScriptNodeConfig(result.node.config)) {
-          addNode(result.node.name, result.node.config.command, result.node.config.cwd);
-          terminal.addSystemMessage(`Imported step: "${result.node.name}"`);
-        } else {
-          terminal.addSystemMessage('Import failed: Only script nodes can be imported');
-        }
-      } else if (result.error && result.error !== 'USER_CANCELLED') {
-        terminal.addSystemMessage(`Import failed: ${result.error}`);
+  const handleImportNodeFromToolbar = useCallback(async () => {
+    const result = await importNode();
+    if (result.success && result.node) {
+      if (isScriptNodeConfig(result.node.config)) {
+        addNode(result.node.name, result.node.config.command, result.node.config.cwd);
+        terminal.addSystemMessage(`Imported step: "${result.node.name}"`);
+      } else {
+        terminal.addSystemMessage('Import failed: Only script nodes can be imported');
       }
-    },
-    [terminal, addNode]
-  );
+    } else if (result.error && result.error !== 'USER_CANCELLED') {
+      terminal.addSystemMessage(`Import failed: ${result.error}`);
+    }
+  }, [terminal, addNode]);
 
   const handleSaveAsTemplate = useCallback(
     (nodeId: string) => {
@@ -749,7 +810,10 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
   }, []);
 
   const handleSaveWebhookSettings = useCallback(
-    (webhookConfig: WebhookConfig | undefined, incomingConfig: IncomingWebhookConfig | undefined) => {
+    (
+      webhookConfig: WebhookConfig | undefined,
+      incomingConfig: IncomingWebhookConfig | undefined
+    ) => {
       console.log('[WorkflowEditor] handleSaveWebhookSettings called');
       console.log('[WorkflowEditor] incomingConfig:', incomingConfig);
       console.log('[WorkflowEditor] incomingConfig?.token length:', incomingConfig?.token?.length);
@@ -759,7 +823,10 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
           webhook: webhookConfig,
           incomingWebhook: incomingConfig,
         };
-        console.log('[WorkflowEditor] updatedWorkflow.incomingWebhook:', updatedWorkflow.incomingWebhook);
+        console.log(
+          '[WorkflowEditor] updatedWorkflow.incomingWebhook:',
+          updatedWorkflow.incomingWebhook
+        );
         updateWorkflow(updatedWorkflow);
       }
     },
@@ -807,10 +874,7 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
 
         <div className="flex-1 flex overflow-hidden relative">
           <div
-            className={cn(
-              'flex-1 transition-all duration-300',
-              isNodePanelOpen && 'lg:mr-[400px]'
-            )}
+            className={cn('flex-1 transition-all duration-300', isNodePanelOpen && 'lg:mr-[400px]')}
           >
             <VisualCanvas
               nodes={workflow.nodes}
@@ -915,7 +979,7 @@ export function WorkflowEditor({ initialWorkflow, defaultCwd, onBack, onSaved }:
           isOpen={isSaveTemplateDialogOpen}
           node={
             nodeToSaveAsTemplate
-              ? workflow?.nodes.find((n) => n.id === nodeToSaveAsTemplate) ?? null
+              ? (workflow?.nodes.find((n) => n.id === nodeToSaveAsTemplate) ?? null)
               : null
           }
           onClose={handleCloseSaveTemplateDialog}

@@ -127,7 +127,10 @@ export function ProjectManagerPage({
         if (response.success && response.worktrees) {
           setWorktrees(response.worktrees);
           // Default select main worktree (project path)
-          if (!selectedWorktreePath || !response.worktrees.some(w => w.path === selectedWorktreePath)) {
+          if (
+            !selectedWorktreePath ||
+            !response.worktrees.some((w) => w.path === selectedWorktreePath)
+          ) {
             setSelectedWorktreePath(activeProject.path);
           }
         }
@@ -169,9 +172,11 @@ export function ProjectManagerPage({
         (script.status === 'completed' || script.status === 'failed')
       ) {
         // Script just completed - check if it's related to current project
-        if (script.projectPath === activeProject?.path ||
-            script.projectPath === selectedWorktreePath ||
-            worktrees.some(w => w.path === script.projectPath)) {
+        if (
+          script.projectPath === activeProject?.path ||
+          script.projectPath === selectedWorktreePath ||
+          worktrees.some((w) => w.path === script.projectPath)
+        ) {
           shouldRefresh = true;
           break;
         }
@@ -192,7 +197,14 @@ export function ProjectManagerPage({
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [runningScripts, activeProjectId, activeProject?.path, selectedWorktreePath, worktrees, refreshProject]);
+  }, [
+    runningScripts,
+    activeProjectId,
+    activeProject?.path,
+    selectedWorktreePath,
+    worktrees,
+    refreshProject,
+  ]);
 
   // Watch package.json for changes (file watcher)
   useEffect(() => {
@@ -231,18 +243,23 @@ export function ProjectManagerPage({
 
     let unlistenFn: (() => void) | null = null;
 
-    tauriEvents.onPackageJsonChanged((payload) => {
-      // Check if the changed file belongs to current project or its worktrees
-      if (
-        payload.project_path === activeProject?.path ||
-        worktrees.some((w) => w.path === payload.project_path)
-      ) {
-        console.log('[FileWatcher] package.json changed, refreshing project:', payload.project_path);
-        refreshProject(activeProjectId);
-      }
-    }).then((unlisten) => {
-      unlistenFn = unlisten;
-    });
+    tauriEvents
+      .onPackageJsonChanged((payload) => {
+        // Check if the changed file belongs to current project or its worktrees
+        if (
+          payload.project_path === activeProject?.path ||
+          worktrees.some((w) => w.path === payload.project_path)
+        ) {
+          console.log(
+            '[FileWatcher] package.json changed, refreshing project:',
+            payload.project_path
+          );
+          refreshProject(activeProjectId);
+        }
+      })
+      .then((unlisten) => {
+        unlistenFn = unlisten;
+      });
 
     return () => {
       unlistenFn?.();
@@ -276,102 +293,120 @@ export function ProjectManagerPage({
   }, [handleAddProject]);
 
   // Handle execute script
-  const handleExecuteScript = useCallback(async (scriptName: string, cwd?: string) => {
-    if (!activeProject || !ptyTerminalRef?.current) return;
+  const handleExecuteScript = useCallback(
+    async (scriptName: string, cwd?: string) => {
+      if (!activeProject || !ptyTerminalRef?.current) return;
 
-    const projectPath = cwd || activeProject.path;
-    const pm = activeProject.packageManager;
-    const baseCommand = pm === 'yarn' ? 'yarn' : pm === 'pnpm' ? 'pnpm' : 'npm';
-    const baseArgs = pm === 'npm' ? ['run', scriptName] : [scriptName];
+      const projectPath = cwd || activeProject.path;
+      const pm = activeProject.packageManager;
+      const baseCommand = pm === 'yarn' ? 'yarn' : pm === 'pnpm' ? 'pnpm' : 'npm';
+      const baseArgs = pm === 'npm' ? ['run', scriptName] : [scriptName];
 
-    // Get Volta-wrapped command if project has volta config
-    const wrapped = await scriptAPI.getVoltaWrappedCommand(baseCommand, baseArgs, projectPath);
+      // Get Volta-wrapped command if project has volta config
+      const wrapped = await scriptAPI.getVoltaWrappedCommand(baseCommand, baseArgs, projectPath);
 
-    await ptyTerminalRef.current.spawnSession(
-      wrapped.command,
-      wrapped.args,
-      projectPath,
-      scriptName,
-      activeProject.name
-    );
-    // Expand terminal if collapsed
-    if (isTerminalCollapsed) {
-      onToggleTerminalCollapse?.();
-    }
-  }, [activeProject, ptyTerminalRef, isTerminalCollapsed, onToggleTerminalCollapse]);
+      await ptyTerminalRef.current.spawnSession(
+        wrapped.command,
+        wrapped.args,
+        projectPath,
+        scriptName,
+        activeProject.name
+      );
+      // Expand terminal if collapsed
+      if (isTerminalCollapsed) {
+        onToggleTerminalCollapse?.();
+      }
+    },
+    [activeProject, ptyTerminalRef, isTerminalCollapsed, onToggleTerminalCollapse]
+  );
 
   // Handle cancel script (using PTY terminal)
-  const handleCancelScript = useCallback(async (scriptName: string, cwd?: string) => {
-    // Find corresponding sessionId (must match both scriptName and projectPath)
-    for (const [id, script] of runningScripts) {
-      if (
-        script.scriptName === scriptName &&
-        script.status === 'running' &&
-        (!cwd || script.projectPath === cwd)
-      ) {
-        // Use PTY terminal's killSession to terminate process
-        ptyTerminalRef?.current?.killSession(id);
-        break;
+  const handleCancelScript = useCallback(
+    async (scriptName: string, cwd?: string) => {
+      // Find corresponding sessionId (must match both scriptName and projectPath)
+      for (const [id, script] of runningScripts) {
+        if (
+          script.scriptName === scriptName &&
+          script.status === 'running' &&
+          (!cwd || script.projectPath === cwd)
+        ) {
+          // Use PTY terminal's killSession to terminate process
+          ptyTerminalRef?.current?.killSession(id);
+          break;
+        }
       }
-    }
-  }, [runningScripts, ptyTerminalRef]);
+    },
+    [runningScripts, ptyTerminalRef]
+  );
 
   // Handle cancel command (same logic as cancel script, both use PTY)
-  const handleCancelCommand = useCallback(async (commandId: string) => {
-    if (!activeProject) return;
-    // Find corresponding sessionId (match commandId and projectPath)
-    for (const [id, script] of runningScripts) {
-      if (
-        script.scriptName === commandId &&
-        script.status === 'running' &&
-        script.projectPath === activeProject.path
-      ) {
-        // Use PTY terminal's killSession to terminate process
-        ptyTerminalRef?.current?.killSession(id);
-        break;
+  const handleCancelCommand = useCallback(
+    async (commandId: string) => {
+      if (!activeProject) return;
+      // Find corresponding sessionId (match commandId and projectPath)
+      for (const [id, script] of runningScripts) {
+        if (
+          script.scriptName === commandId &&
+          script.status === 'running' &&
+          script.projectPath === activeProject.path
+        ) {
+          // Use PTY terminal's killSession to terminate process
+          ptyTerminalRef?.current?.killSession(id);
+          break;
+        }
       }
-    }
-  }, [activeProject, runningScripts, ptyTerminalRef]);
+    },
+    [activeProject, runningScripts, ptyTerminalRef]
+  );
 
   // Handle execute package manager command
-  const handleExecuteCommand = useCallback(async (command: string) => {
-    if (!activeProject || !ptyTerminalRef?.current) return;
+  const handleExecuteCommand = useCallback(
+    async (command: string) => {
+      if (!activeProject || !ptyTerminalRef?.current) return;
 
-    // Extract ID from command (e.g., 'install', 'update', etc.)
-    // Handle volta wrapped case: "/path/to/volta run yarn install" -> "install"
-    // Or general case: "yarn install" -> "install"
-    const parts = command.trim().split(/\s+/);
-    let commandId: string;
+      // Extract ID from command (e.g., 'install', 'update', etc.)
+      // Handle volta wrapped case: "/path/to/volta run yarn install" -> "install"
+      // Or general case: "yarn install" -> "install"
+      const parts = command.trim().split(/\s+/);
+      let commandId: string;
 
-    // Check if it's a volta run wrapped command
-    const voltaRunIndex = parts.findIndex((p, i) =>
-      p === 'run' && i > 0 && parts[i - 1].endsWith('volta')
-    );
+      // Check if it's a volta run wrapped command
+      const voltaRunIndex = parts.findIndex(
+        (p, i) => p === 'run' && i > 0 && parts[i - 1].endsWith('volta')
+      );
 
-    if (voltaRunIndex !== -1 && parts.length > voltaRunIndex + 2) {
-      // volta run <pm> <action> -> take <action>
-      commandId = parts[voltaRunIndex + 2] || parts[voltaRunIndex + 1];
-    } else {
-      // General case: <pm> <action> -> take <action>
-      commandId = parts[1] || parts[0];
-    }
+      if (voltaRunIndex !== -1 && parts.length > voltaRunIndex + 2) {
+        // volta run <pm> <action> -> take <action>
+        commandId = parts[voltaRunIndex + 2] || parts[voltaRunIndex + 1];
+      } else {
+        // General case: <pm> <action> -> take <action>
+        commandId = parts[1] || parts[0];
+      }
 
-    // Parse command: first part is command, rest are arguments
-    const cmd = parts[0];
-    const args = parts.slice(1);
+      // Parse command: first part is command, rest are arguments
+      const cmd = parts[0];
+      const args = parts.slice(1);
 
-    await ptyTerminalRef.current.spawnSession(
-      cmd,
-      args,
-      selectedWorktreePath || activeProject.path,
-      commandId,
-      activeProject.name
-    );
-    // Expand terminal if collapsed
-    if (isTerminalCollapsed) {
-      onToggleTerminalCollapse?.();
-    }
-  }, [activeProject, selectedWorktreePath, ptyTerminalRef, isTerminalCollapsed, onToggleTerminalCollapse]);
+      await ptyTerminalRef.current.spawnSession(
+        cmd,
+        args,
+        selectedWorktreePath || activeProject.path,
+        commandId,
+        activeProject.name
+      );
+      // Expand terminal if collapsed
+      if (isTerminalCollapsed) {
+        onToggleTerminalCollapse?.();
+      }
+    },
+    [
+      activeProject,
+      selectedWorktreePath,
+      ptyTerminalRef,
+      isTerminalCollapsed,
+      onToggleTerminalCollapse,
+    ]
+  );
 
   // Handle refresh project
   const handleRefreshProject = useCallback(async () => {
@@ -379,10 +414,13 @@ export function ProjectManagerPage({
     await refreshProject(activeProjectId);
   }, [activeProjectId, refreshProject]);
 
-  const handleUpdateActiveProject = useCallback(async (updater: (project: Project) => Project) => {
-    if (!activeProjectId) return;
-    await updateProject(activeProjectId, updater);
-  }, [activeProjectId, updateProject]);
+  const handleUpdateActiveProject = useCallback(
+    async (updater: (project: Project) => Project) => {
+      if (!activeProjectId) return;
+      await updateProject(activeProjectId, updater);
+    },
+    [activeProjectId, updateProject]
+  );
 
   // Handle open in Finder
   const handleOpenInFinder = useCallback(async () => {
@@ -427,7 +465,13 @@ export function ProjectManagerPage({
     if (isTerminalCollapsed) {
       onToggleTerminalCollapse?.();
     }
-  }, [activeProject, selectedWorktreePath, ptyTerminalRef, isTerminalCollapsed, onToggleTerminalCollapse]);
+  }, [
+    activeProject,
+    selectedWorktreePath,
+    ptyTerminalRef,
+    isTerminalCollapsed,
+    onToggleTerminalCollapse,
+  ]);
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -459,9 +503,9 @@ export function ProjectManagerPage({
         {/* Main content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Project explorer */}
-            <ProjectExplorer
-              project={activeProject}
-              workspaces={activeWorkspaces}
+          <ProjectExplorer
+            project={activeProject}
+            workspaces={activeWorkspaces}
             runningScriptsMap={runningScriptsMap}
             runningCommands={currentProjectRunningCommands}
             isLoading={isProjectLoading}
@@ -473,14 +517,14 @@ export function ProjectManagerPage({
             onUpdateProject={handleUpdateActiveProject}
             onExecuteScript={handleExecuteScript}
             onCancelScript={handleCancelScript}
-              onExecuteCommand={handleExecuteCommand}
-              onCancelCommand={handleCancelCommand}
-              onOpenInFinder={handleOpenInFinder}
-              onOpenInVSCode={handleOpenInVSCode}
-              onOpenTerminal={handleOpenTerminal}
-              onOpenSettings={onOpenSettings}
-              onNavigateToWorkflow={onNavigateToWorkflow}
-            />
+            onExecuteCommand={handleExecuteCommand}
+            onCancelCommand={handleCancelCommand}
+            onOpenInFinder={handleOpenInFinder}
+            onOpenInVSCode={handleOpenInVSCode}
+            onOpenTerminal={handleOpenTerminal}
+            onOpenSettings={onOpenSettings}
+            onNavigateToWorkflow={onNavigateToWorkflow}
+          />
           {/* PTY Terminal Portal container - Terminal renders here via Portal */}
           <div id="terminal-portal-container" />
         </div>

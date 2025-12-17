@@ -5,7 +5,24 @@
  */
 
 import React, { useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
-import { X, Loader2, Search, HardDrive, Users, Bot, FileText, Server, Palette, Keyboard, ArrowLeftRight, Sun, Moon, Wrench, Bell, Info } from 'lucide-react';
+import {
+  X,
+  Loader2,
+  Search,
+  HardDrive,
+  Users,
+  Bot,
+  FileText,
+  Server,
+  Palette,
+  Keyboard,
+  ArrowLeftRight,
+  Sun,
+  Moon,
+  Wrench,
+  Bell,
+  Info,
+} from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { cn } from '../../lib/utils';
 import type { SettingsSection } from '../../types/settings';
@@ -41,10 +58,14 @@ const McpSettingsFullPanel = lazy(() =>
   import('./panels/McpSettingsFullPanel').then((m) => ({ default: m.McpSettingsFullPanel }))
 );
 const ToolchainPreferencesPanel = lazy(() =>
-  import('./panels/ToolchainPreferencesPanel').then((m) => ({ default: m.ToolchainPreferencesPanel }))
+  import('./panels/ToolchainPreferencesPanel').then((m) => ({
+    default: m.ToolchainPreferencesPanel,
+  }))
 );
 const NotificationSettingsPanel = lazy(() =>
-  import('./panels/NotificationSettingsPanel').then((m) => ({ default: m.NotificationSettingsPanel }))
+  import('./panels/NotificationSettingsPanel').then((m) => ({
+    default: m.NotificationSettingsPanel,
+  }))
 );
 const DataSettingsPanel = lazy(() =>
   import('./panels/DataSettingsPanel').then((m) => ({ default: m.DataSettingsPanel }))
@@ -76,7 +97,10 @@ const SECTION_ICONS: Record<SettingsSection, React.ElementType> = {
 };
 
 // Panel components mapping
-const SECTION_PANELS: Record<SettingsSection, React.LazyExoticComponent<React.ComponentType<{ onExport?: () => void; onImport?: () => void }>>> = {
+const SECTION_PANELS: Record<
+  SettingsSection,
+  React.LazyExoticComponent<React.ComponentType<{ onExport?: () => void; onImport?: () => void }>>
+> = {
   storage: StorageSettingsPanel,
   'deploy-accounts': DeployAccountsPanel,
   'ai-providers': AIProviderSettingsPanel,
@@ -138,7 +162,7 @@ function searchSections(query: string): SettingsSection[] {
       score = 100;
     } else if (item.description.toLowerCase().includes(normalizedQuery)) {
       score = 50;
-    } else if (item.keywords.some(k => k.toLowerCase().includes(normalizedQuery))) {
+    } else if (item.keywords.some((k) => k.toLowerCase().includes(normalizedQuery))) {
       score = 30;
     }
 
@@ -147,7 +171,7 @@ function searchSections(query: string): SettingsSection[] {
     }
   }
 
-  return results.sort((a, b) => b.score - a.score).map(r => r.section);
+  return results.sort((a, b) => b.score - a.score).map((r) => r.section);
 }
 
 // Loading fallback
@@ -185,9 +209,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setImportDialogOpen(true);
   }, []);
 
-  const handleImportComplete = useCallback((result: ImportResult) => {
-    onImportComplete?.(result);
-  }, [onImportComplete]);
+  const handleImportComplete = useCallback(
+    (result: ImportResult) => {
+      onImportComplete?.(result);
+    },
+    [onImportComplete]
+  );
 
   // Listen for external events to open dialogs (from keyboard shortcuts)
   useEffect(() => {
@@ -319,9 +346,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         'bg-background',
         'transition-opacity duration-150',
         'flex flex-col',
-        isClosing
-          ? 'opacity-0'
-          : 'opacity-100 animate-in fade-in-0 duration-200'
+        isClosing ? 'opacity-0' : 'opacity-100 animate-in fade-in-0 duration-200'
       )}
       role="dialog"
       aria-modal="true"
@@ -380,11 +405,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
           {/* Quick Settings - Gradient Card */}
           <div className="px-3 pb-3">
-            <div className={cn(
-              'p-3 rounded-lg space-y-3',
-              'bg-gradient-to-r from-primary/5 to-purple-500/5',
-              'border border-primary/10'
-            )}>
+            <div
+              className={cn(
+                'p-3 rounded-lg space-y-3',
+                'bg-gradient-to-r from-primary/5 to-purple-500/5',
+                'border border-primary/10'
+              )}
+            >
               {/* Theme Toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">Theme</span>
@@ -425,7 +452,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <span className="text-xs font-medium text-muted-foreground">Compact Paths</span>
                 <Toggle
                   checked={pathDisplayFormat === 'short'}
-                  onChange={() => setPathDisplayFormat(pathDisplayFormat === 'short' ? 'full' : 'short')}
+                  onChange={() =>
+                    setPathDisplayFormat(pathDisplayFormat === 'short' ? 'full' : 'short')
+                  }
                   size="sm"
                   aria-label="Toggle compact paths"
                 />
@@ -524,10 +553,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       </div>
 
       {/* Export Dialog - rendered within Settings page */}
-      <ExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-      />
+      <ExportDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
 
       {/* Import Dialog - rendered within Settings page */}
       <ImportDialog

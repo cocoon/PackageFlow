@@ -87,21 +87,12 @@ function IconArea({
     if (status && status !== 'idle') {
       const config = statusConfig[status];
       const StatusIcon = config.icon;
-      return (
-        <StatusIcon
-          className={cn('w-4 h-4', config.color, config.animation)}
-        />
-      );
+      return <StatusIcon className={cn('w-4 h-4', config.color, config.animation)} />;
     }
 
     const Icon = isSelected && ActiveIcon ? ActiveIcon : DefaultIcon;
     return (
-      <Icon
-        className={cn(
-          'w-4 h-4',
-          isSelected ? 'text-blue-400' : 'text-muted-foreground'
-        )}
-      />
+      <Icon className={cn('w-4 h-4', isSelected ? 'text-blue-400' : 'text-muted-foreground')} />
     );
   };
 
@@ -161,13 +152,7 @@ export const ListSidebarItem = forwardRef<HTMLLIElement, ListSidebarItemProps>(
     const isRunning = status === 'running';
 
     return (
-      <li
-        ref={ref}
-        className={cn(
-          'group relative',
-          isDragging && 'opacity-50'
-        )}
-      >
+      <li ref={ref} className={cn('group relative', isDragging && 'opacity-50')}>
         <button
           onClick={onClick}
           onContextMenu={onContextMenu}
@@ -180,15 +165,14 @@ export const ListSidebarItem = forwardRef<HTMLLIElement, ListSidebarItemProps>(
               'shadow-sm',
             ],
             // Focused state (keyboard navigation)
-            !isSelected && isFocused && [
-              'bg-muted',
-              'ring-2 ring-blue-500 ring-offset-1 ring-offset-background',
-            ],
+            !isSelected &&
+              isFocused && [
+                'bg-muted',
+                'ring-2 ring-blue-500 ring-offset-1 ring-offset-background',
+              ],
             // Default hover state
-            !isSelected && !isFocused && [
-              'border border-transparent',
-              'hover:bg-accent hover:border-border',
-            ],
+            !isSelected &&
+              !isFocused && ['border border-transparent', 'hover:bg-accent hover:border-border'],
             // Running pulse effect
             isRunning && isSelected && 'animate-pulse-subtle'
           )}
@@ -216,9 +200,7 @@ export const ListSidebarItem = forwardRef<HTMLLIElement, ListSidebarItemProps>(
 
             {/* Description (if provided) */}
             {description && (
-              <div className="text-xs text-muted-foreground truncate">
-                {description}
-              </div>
+              <div className="text-xs text-muted-foreground truncate">{description}</div>
             )}
 
             {/* Metadata row */}

@@ -141,8 +141,8 @@ export function ShortcutEditor({
                 conflict?.hasConflict
                   ? 'border-red-500 text-red-400'
                   : recordedKey
-                  ? 'border-green-500 text-green-400'
-                  : 'border-blue-500 text-blue-400 animate-pulse'
+                    ? 'border-green-500 text-green-400'
+                    : 'border-blue-500 text-blue-400 animate-pulse'
               )}
               tabIndex={0}
             >

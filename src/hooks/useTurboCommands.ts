@@ -6,7 +6,12 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { monorepoAPI, tauriEvents, type ScriptOutputPayload, type ScriptCompletedPayload } from '../lib/tauri-api';
+import {
+  monorepoAPI,
+  tauriEvents,
+  type ScriptOutputPayload,
+  type ScriptCompletedPayload,
+} from '../lib/tauri-api';
 import type { TurboPipeline, RunTurboCommandParams } from '../types/monorepo';
 import { useDebouncedOutput } from './useDebouncedOutput';
 
@@ -36,7 +41,10 @@ export interface UseTurboCommandsActions {
   /** Refresh pipelines from turbo.json */
   refreshPipelines: () => Promise<void>;
   /** Run a Turbo task */
-  runTask: (task: string, options?: { filter?: string[]; force?: boolean }) => Promise<string | null>;
+  runTask: (
+    task: string,
+    options?: { filter?: string[]; force?: boolean }
+  ) => Promise<string | null>;
   /** Dry run a Turbo task */
   dryRun: (task: string, filter?: string[]) => Promise<string | null>;
   /** Cancel a running execution */
@@ -161,7 +169,10 @@ export function useTurboCommands(projectPath: string | null): UseTurboCommandsRe
 
   // Run a task
   const runTask = useCallback(
-    async (task: string, options?: { filter?: string[]; force?: boolean }): Promise<string | null> => {
+    async (
+      task: string,
+      options?: { filter?: string[]; force?: boolean }
+    ): Promise<string | null> => {
       if (!projectPath) return null;
 
       const params: RunTurboCommandParams = {

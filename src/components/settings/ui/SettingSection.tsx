@@ -49,17 +49,11 @@ export const SettingSection: React.FC<SettingSectionProps> = ({
         <div className="space-y-1">
           {title && (
             <h3 className="flex items-center gap-2 text-sm font-medium text-foreground">
-              {icon && (
-                <span className="text-muted-foreground flex-shrink-0">
-                  {icon}
-                </span>
-              )}
+              {icon && <span className="text-muted-foreground flex-shrink-0">{icon}</span>}
               {title}
             </h3>
           )}
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
+          {description && <p className="text-xs text-muted-foreground">{description}</p>}
         </div>
       )}
 

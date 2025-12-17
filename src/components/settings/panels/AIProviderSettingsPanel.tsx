@@ -27,7 +27,12 @@ import {
   Sparkles,
   Terminal,
 } from 'lucide-react';
-import { useAIService, getAIExecutionMode, setAIExecutionMode, type AIExecutionMode } from '../../../hooks/useAIService';
+import {
+  useAIService,
+  getAIExecutionMode,
+  setAIExecutionMode,
+  type AIExecutionMode,
+} from '../../../hooks/useAIService';
 import { useDetectedCLITools } from '../../../hooks/useAICLI';
 import { DeleteConfirmDialog } from '../../ui/ConfirmDialog';
 import { Button } from '../../ui/Button';
@@ -44,7 +49,12 @@ import type {
   ModelInfo,
   CLIToolType,
 } from '../../../types/ai';
-import { AI_PROVIDERS, getProviderInfo, providerRequiresApiKey, CLI_TOOLS } from '../../../types/ai';
+import {
+  AI_PROVIDERS,
+  getProviderInfo,
+  providerRequiresApiKey,
+  CLI_TOOLS,
+} from '../../../types/ai';
 import { cn } from '../../../lib/utils';
 import { openUrl } from '../../../lib/tauri-api';
 
@@ -161,68 +171,68 @@ const AIStatusCard: React.FC<AIStatusCardProps> = ({
           )}
         </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground">AI Providers</span>
-          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            {totalServices} configured
-          </span>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">AI Providers</span>
+            <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+              {totalServices} configured
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {defaultService
+              ? `Default: ${defaultService.name} (${getProviderInfo(defaultService.provider)?.name})`
+              : 'No default provider selected'}
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {defaultService
-            ? `Default: ${defaultService.name} (${getProviderInfo(defaultService.provider)?.name})`
-            : 'No default provider selected'}
-        </p>
-      </div>
 
-      {/* Status & Stats */}
-      <div className="flex items-center gap-4 shrink-0">
-        {/* Stats badges */}
-        <div className="hidden sm:flex items-center gap-2">
+        {/* Status & Stats */}
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Stats badges */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                'bg-green-500/10 text-green-600 dark:text-green-400'
+              )}
+            >
+              <Server className="w-3 h-3" />
+              <span>{localServices} Local</span>
+            </div>
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              )}
+            >
+              <Cloud className="w-3 h-3" />
+              <span>{cloudServices} Cloud</span>
+            </div>
+          </div>
+
+          {/* Status badge */}
           <div
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-              'bg-green-500/10 text-green-600 dark:text-green-400'
+              'transition-all duration-300',
+              hasEnabledServices
+                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                : 'bg-muted text-muted-foreground'
             )}
           >
-            <Server className="w-3 h-3" />
-            <span>{localServices} Local</span>
-          </div>
-          <div
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-              'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+            {hasEnabledServices ? (
+              <>
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Ready</span>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3 h-3" />
+                <span>No Providers</span>
+              </>
             )}
-          >
-            <Cloud className="w-3 h-3" />
-            <span>{cloudServices} Cloud</span>
           </div>
         </div>
-
-        {/* Status badge */}
-        <div
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-            'transition-all duration-300',
-            hasEnabledServices
-              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {hasEnabledServices ? (
-            <>
-              <CheckCircle2 className="w-3 h-3" />
-              <span>Ready</span>
-            </>
-          ) : (
-            <>
-              <XCircle className="w-3 h-3" />
-              <span>No Providers</span>
-            </>
-          )}
-        </div>
-      </div>
       </div>
     </div>
   );
@@ -249,7 +259,7 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
   const localProviders = AI_PROVIDERS.filter((p) => !p.requiresApiKey);
   const cloudProviders = AI_PROVIDERS.filter((p) => p.requiresApiKey);
 
-  const renderProviderButton = (provider: typeof AI_PROVIDERS[0]) => {
+  const renderProviderButton = (provider: (typeof AI_PROVIDERS)[0]) => {
     const isSelected = value === provider.id;
     const isLocal = !provider.requiresApiKey;
     const colorScheme = getProviderColorScheme(provider.id);
@@ -264,9 +274,7 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
           'flex flex-col items-center gap-2 p-3 rounded-xl',
           'border-2 transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-          isSelected
-            ? colorScheme.selected
-            : 'border-border bg-card/50 text-muted-foreground',
+          isSelected ? colorScheme.selected : 'border-border bg-card/50 text-muted-foreground',
           !isSelected && !disabled && colorScheme.unselected,
           disabled && 'opacity-50 cursor-not-allowed'
         )}
@@ -308,9 +316,7 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
             Local (Privacy-First)
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {localProviders.map(renderProviderButton)}
-        </div>
+        <div className="grid grid-cols-2 gap-2">{localProviders.map(renderProviderButton)}</div>
       </div>
 
       {/* Cloud Providers */}
@@ -321,18 +327,11 @@ const ProviderSelector: React.FC<ProviderSelectorProps> = ({
             Cloud Providers
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {cloudProviders.map(renderProviderButton)}
-        </div>
+        <div className="grid grid-cols-3 gap-2">{cloudProviders.map(renderProviderButton)}</div>
       </div>
 
       {/* Info text for selected provider */}
-      <div
-        className={cn(
-          'p-3 rounded-lg text-sm',
-          'bg-muted/50 border border-border'
-        )}
-      >
+      <div className={cn('p-3 rounded-lg text-sm', 'bg-muted/50 border border-border')}>
         {value === 'ollama' && (
           <p>Ollama runs AI models locally on your machine. Great for privacy and offline use.</p>
         )}
@@ -426,7 +425,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <div
                 className={cn(
                   'text-xs mt-2 flex items-center gap-1.5',
-                  testResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  testResult.success
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
                 )}
               >
                 {testResult.success ? (
@@ -437,7 +438,9 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
                 ) : (
                   <>
                     <WifiOff className="w-3 h-3" />
-                    <span className="truncate max-w-[200px]">{testResult.error || 'Connection failed'}</span>
+                    <span className="truncate max-w-[200px]">
+                      {testResult.error || 'Connection failed'}
+                    </span>
                   </>
                 )}
               </div>
@@ -674,34 +677,39 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           {/* API Mode */}
           <button
             onClick={() => onExecutionModeChange('api')}
-            className={cn(
-              'p-3 rounded-lg border-2 transition-all text-left',
-              getAPIButtonStyles()
-            )}
+            className={cn('p-3 rounded-lg border-2 transition-all text-left', getAPIButtonStyles())}
           >
             <div className="flex items-center gap-2 mb-1.5">
               {renderAPIIcon()}
-              <span className={cn(
-                'text-sm font-medium',
-                apiModeSelected && apiProviderColors ? 'text-foreground' : (apiModeSelected ? 'text-blue-500' : 'text-foreground')
-              )}>
+              <span
+                className={cn(
+                  'text-sm font-medium',
+                  apiModeSelected && apiProviderColors
+                    ? 'text-foreground'
+                    : apiModeSelected
+                      ? 'text-blue-500'
+                      : 'text-foreground'
+                )}
+              >
                 API Mode
               </span>
               {apiModeSelected && (
-                <CheckCircle2 className={cn(
-                  'w-3.5 h-3.5 ml-auto',
-                  apiProviderColors ? 'text-primary' : 'text-blue-500'
-                )} />
+                <CheckCircle2
+                  className={cn(
+                    'w-3.5 h-3.5 ml-auto',
+                    apiProviderColors ? 'text-primary' : 'text-blue-500'
+                  )}
+                />
               )}
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Use cloud AI services via API
-            </p>
+            <p className="text-[10px] text-muted-foreground">Use cloud AI services via API</p>
             {defaultService && apiModeSelected && (
-              <p className={cn(
-                'text-[10px] mt-1',
-                apiProviderColors ? 'text-muted-foreground' : 'text-blue-500'
-              )}>
+              <p
+                className={cn(
+                  'text-[10px] mt-1',
+                  apiProviderColors ? 'text-muted-foreground' : 'text-blue-500'
+                )}
+              >
                 Default: {defaultService.name}
               </p>
             )}
@@ -719,17 +727,21 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           >
             <div className="flex items-center gap-2 mb-1.5">
               {renderCLIIcon()}
-              <span className={cn(
-                'text-sm font-medium',
-                cliModeSelected && cliToolColors ? cliToolColors.text : 'text-foreground'
-              )}>
+              <span
+                className={cn(
+                  'text-sm font-medium',
+                  cliModeSelected && cliToolColors ? cliToolColors.text : 'text-foreground'
+                )}
+              >
                 CLI Mode
               </span>
               {cliModeSelected && (
-                <CheckCircle2 className={cn(
-                  'w-3.5 h-3.5 ml-auto',
-                  cliToolColors ? cliToolColors.text : 'text-primary'
-                )} />
+                <CheckCircle2
+                  className={cn(
+                    'w-3.5 h-3.5 ml-auto',
+                    cliToolColors ? cliToolColors.text : 'text-primary'
+                  )}
+                />
               )}
             </div>
             <p className="text-[10px] text-muted-foreground">
@@ -742,9 +754,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </p>
               )
             ) : (
-              <p className="text-[10px] text-yellow-500 mt-1">
-                Set default CLI tool first
-              </p>
+              <p className="text-[10px] text-yellow-500 mt-1">Set default CLI tool first</p>
             )}
           </button>
         </div>
@@ -791,9 +801,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <h4 className="text-sm font-medium text-foreground">AI Features</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              AI providers power intelligent features like commit message generation,
-              code review suggestions, and security analysis. Configure both API and CLI
-              options, then choose your preferred execution mode above.
+              AI providers power intelligent features like commit message generation, code review
+              suggestions, and security analysis. Configure both API and CLI options, then choose
+              your preferred execution mode above.
             </p>
           </div>
         </div>
@@ -805,8 +815,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <Bot className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <h4 className="text-sm font-medium text-foreground mb-1">No Providers Configured</h4>
           <p className="text-xs text-muted-foreground mb-4">
-            Add an AI provider to enable intelligent features. We recommend starting with
-            Ollama for local, privacy-first AI.
+            Add an AI provider to enable intelligent features. We recommend starting with Ollama for
+            local, privacy-first AI.
           </p>
         </div>
       )}
@@ -911,10 +921,12 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                     {/* Tool Info */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={cn(
-                          'text-sm font-semibold',
-                          isAvailable ? 'text-foreground' : 'text-muted-foreground'
-                        )}>
+                        <span
+                          className={cn(
+                            'text-sm font-semibold',
+                            isAvailable ? 'text-foreground' : 'text-muted-foreground'
+                          )}
+                        >
                           {tool.name}
                         </span>
                         {isDefault && (
@@ -924,10 +936,12 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                           </span>
                         )}
                         {isAvailable && (
-                          <span className={cn(
-                            'px-2 py-0.5 text-[10px] font-medium rounded-full',
-                            'bg-green-500/10 text-green-600 dark:text-green-400'
-                          )}>
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 text-[10px] font-medium rounded-full',
+                              'bg-green-500/10 text-green-600 dark:text-green-400'
+                            )}
+                          >
                             Installed
                           </span>
                         )}
@@ -940,7 +954,10 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                                 v{detected.version}
                               </code>
                             )}
-                            <span className="text-muted-foreground/70 truncate max-w-[200px]" title={detected.binaryPath}>
+                            <span
+                              className="text-muted-foreground/70 truncate max-w-[200px]"
+                              title={detected.binaryPath}
+                            >
                               {detected.binaryPath}
                             </span>
                           </span>
@@ -967,10 +984,12 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                     )}
 
                     {isAvailable && (
-                      <div className={cn(
-                        'w-7 h-7 rounded-full flex items-center justify-center',
-                        'bg-green-500/15'
-                      )}>
+                      <div
+                        className={cn(
+                          'w-7 h-7 rounded-full flex items-center justify-center',
+                          'bg-green-500/15'
+                        )}
+                      >
                         <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
                       </div>
                     )}
@@ -1020,7 +1039,9 @@ const CLIToolsTab: React.FC<CLIToolsTabProps> = ({
                     title={tool.name}
                   >
                     <CLIToolIcon tool={tool.id} size={14} />
-                    <span className="text-[10px] font-medium text-muted-foreground">{tool.name}</span>
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                      {tool.name}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1240,70 +1261,28 @@ const AddServiceTab: React.FC<AddServiceTabProps> = ({
           />
         )}
 
-      {/* Provider Details Form */}
-      <div className="p-4 border border-border rounded-xl bg-card/50 space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Settings2 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Provider Configuration</span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* Name */}
-          <div>
-            <label htmlFor={`${formId}-name`} className="block text-xs font-medium text-muted-foreground mb-1.5">
-              Provider Name
-            </label>
-            <input
-              id={`${formId}-name`}
-              type="text"
-              value={formData.name}
-              onChange={(e) => onFormDataChange({ name: e.target.value })}
-              placeholder={`My ${currentProviderInfo?.name || 'AI'} Provider`}
-              className={cn(
-                'w-full px-3 py-2 rounded-lg text-sm',
-                'bg-background border border-border',
-                'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
-                'placeholder:text-muted-foreground/50'
-              )}
-            />
+        {/* Provider Details Form */}
+        <div className="p-4 border border-border rounded-xl bg-card/50 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Settings2 className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">Provider Configuration</span>
           </div>
 
-          {/* Model */}
-          <div>
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <label htmlFor={`${formId}-model`} className="block text-xs font-medium text-muted-foreground">
-                Model
-              </label>
-              <button
-                type="button"
-                onClick={onProbeModels}
-                disabled={isProbingModels || (requiresApiKey && !formData.apiKey)}
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded transition-colors',
-                  'border border-border',
-                  'hover:border-primary hover:text-primary',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Name */}
+            <div>
+              <label
+                htmlFor={`${formId}-name`}
+                className="block text-xs font-medium text-muted-foreground mb-1.5"
               >
-                {isProbingModels ? 'Loading...' : 'Fetch models'}
-              </button>
-            </div>
-
-            {modelOptions.length > 0 ? (
-              <Select
-                value={formData.model}
-                onValueChange={(val) => onFormDataChange({ model: val })}
-                options={modelOptions}
-                placeholder="Choose a model"
-                aria-label="Model"
-              />
-            ) : (
+                Provider Name
+              </label>
               <input
-                id={`${formId}-model`}
+                id={`${formId}-name`}
                 type="text"
-                value={formData.model}
-                onChange={(e) => onFormDataChange({ model: e.target.value })}
-                placeholder={currentProviderInfo?.defaultModel || 'model-name'}
+                value={formData.name}
+                onChange={(e) => onFormDataChange({ name: e.target.value })}
+                placeholder={`My ${currentProviderInfo?.name || 'AI'} Provider`}
                 className={cn(
                   'w-full px-3 py-2 rounded-lg text-sm',
                   'bg-background border border-border',
@@ -1311,72 +1290,129 @@ const AddServiceTab: React.FC<AddServiceTabProps> = ({
                   'placeholder:text-muted-foreground/50'
                 )}
               />
-            )}
+            </div>
 
-            {probeError && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" />
-                {probeError}
-              </p>
-            )}
-          </div>
-
-          {/* Endpoint */}
-          <div className="col-span-2">
-            <label htmlFor={`${formId}-endpoint`} className="block text-xs font-medium text-muted-foreground mb-1.5">
-              API Endpoint
-            </label>
-            <input
-              id={`${formId}-endpoint`}
-              type="text"
-              value={formData.endpoint}
-              onChange={(e) => onFormDataChange({ endpoint: e.target.value })}
-              placeholder={currentProviderInfo?.defaultEndpoint || 'https://api.example.com'}
-              className={cn(
-                'w-full px-3 py-2 rounded-lg text-sm font-mono',
-                'bg-background border border-border',
-                'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
-                'placeholder:text-muted-foreground/50'
-              )}
-            />
-          </div>
-
-          {/* API Key (for cloud providers) */}
-          {requiresApiKey && (
-            <div className="col-span-2">
-              <label htmlFor={`${formId}-apikey`} className="block text-xs font-medium text-muted-foreground mb-1.5">
-                API Key {editingService && <span className="text-muted-foreground/70">(leave empty to keep current)</span>}
-              </label>
-              <div className="relative">
-                <input
-                  id={`${formId}-apikey`}
-                  type={showApiKey ? 'text' : 'password'}
-                  value={formData.apiKey || ''}
-                  onChange={(e) => onFormDataChange({ apiKey: e.target.value })}
-                  placeholder={editingService ? '********' : 'sk-...'}
+            {/* Model */}
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label
+                  htmlFor={`${formId}-model`}
+                  className="block text-xs font-medium text-muted-foreground"
+                >
+                  Model
+                </label>
+                <button
+                  type="button"
+                  onClick={onProbeModels}
+                  disabled={isProbingModels || (requiresApiKey && !formData.apiKey)}
                   className={cn(
-                    'w-full px-3 py-2 pr-10 rounded-lg text-sm font-mono',
+                    'text-xs px-2 py-0.5 rounded transition-colors',
+                    'border border-border',
+                    'hover:border-primary hover:text-primary',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {isProbingModels ? 'Loading...' : 'Fetch models'}
+                </button>
+              </div>
+
+              {modelOptions.length > 0 ? (
+                <Select
+                  value={formData.model}
+                  onValueChange={(val) => onFormDataChange({ model: val })}
+                  options={modelOptions}
+                  placeholder="Choose a model"
+                  aria-label="Model"
+                />
+              ) : (
+                <input
+                  id={`${formId}-model`}
+                  type="text"
+                  value={formData.model}
+                  onChange={(e) => onFormDataChange({ model: e.target.value })}
+                  placeholder={currentProviderInfo?.defaultModel || 'model-name'}
+                  className={cn(
+                    'w-full px-3 py-2 rounded-lg text-sm',
                     'bg-background border border-border',
                     'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
                     'placeholder:text-muted-foreground/50'
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={onToggleShowApiKey}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                Stored securely in system keychain
-              </p>
+              )}
+
+              {probeError && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {probeError}
+                </p>
+              )}
             </div>
-          )}
+
+            {/* Endpoint */}
+            <div className="col-span-2">
+              <label
+                htmlFor={`${formId}-endpoint`}
+                className="block text-xs font-medium text-muted-foreground mb-1.5"
+              >
+                API Endpoint
+              </label>
+              <input
+                id={`${formId}-endpoint`}
+                type="text"
+                value={formData.endpoint}
+                onChange={(e) => onFormDataChange({ endpoint: e.target.value })}
+                placeholder={currentProviderInfo?.defaultEndpoint || 'https://api.example.com'}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg text-sm font-mono',
+                  'bg-background border border-border',
+                  'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                  'placeholder:text-muted-foreground/50'
+                )}
+              />
+            </div>
+
+            {/* API Key (for cloud providers) */}
+            {requiresApiKey && (
+              <div className="col-span-2">
+                <label
+                  htmlFor={`${formId}-apikey`}
+                  className="block text-xs font-medium text-muted-foreground mb-1.5"
+                >
+                  API Key{' '}
+                  {editingService && (
+                    <span className="text-muted-foreground/70">(leave empty to keep current)</span>
+                  )}
+                </label>
+                <div className="relative">
+                  <input
+                    id={`${formId}-apikey`}
+                    type={showApiKey ? 'text' : 'password'}
+                    value={formData.apiKey || ''}
+                    onChange={(e) => onFormDataChange({ apiKey: e.target.value })}
+                    placeholder={editingService ? '********' : 'sk-...'}
+                    className={cn(
+                      'w-full px-3 py-2 pr-10 rounded-lg text-sm font-mono',
+                      'bg-background border border-border',
+                      'focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30',
+                      'placeholder:text-muted-foreground/50'
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={onToggleShowApiKey}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Stored securely in system keychain
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Submit Button - Fixed at bottom */}
@@ -1420,7 +1456,12 @@ export function AIProviderSettingsPanel() {
   const [activeTab, setActiveTab] = useState<string>('overview');
 
   // CLI Tools state
-  const { tools: detectedCLITools, loading: cliToolsLoading, error: cliToolsError, refresh: refreshCLITools } = useDetectedCLITools();
+  const {
+    tools: detectedCLITools,
+    loading: cliToolsLoading,
+    error: cliToolsError,
+    refresh: refreshCLITools,
+  } = useDetectedCLITools();
   const [defaultCliTool, setDefaultCliToolState] = useState<CLIToolType | null>(() => {
     // Load from localStorage on init
     const saved = localStorage.getItem('packageflow:defaultCliTool');
@@ -1473,8 +1514,14 @@ export function AIProviderSettingsPanel() {
   const formId = useId();
 
   // Computed values
-  const localServices = useMemo(() => services.filter((s) => !providerRequiresApiKey(s.provider)), [services]);
-  const cloudServices = useMemo(() => services.filter((s) => providerRequiresApiKey(s.provider)), [services]);
+  const localServices = useMemo(
+    () => services.filter((s) => !providerRequiresApiKey(s.provider)),
+    [services]
+  );
+  const cloudServices = useMemo(
+    () => services.filter((s) => providerRequiresApiKey(s.provider)),
+    [services]
+  );
   const defaultService = useMemo(() => services.find((s) => s.isDefault), [services]);
 
   // Track if we've tested connections for this tab visit
@@ -1626,34 +1673,40 @@ export function AIProviderSettingsPanel() {
   }, [formData, editingService, addService, updateService, resetForm]);
 
   // Test connection
-  const handleTestConnection = useCallback(async (service: AIProviderConfig) => {
-    setTestingServiceId(service.id);
-    try {
-      const result = await testConnection(service.id);
-      if (result) {
-        setTestResult((prev) => ({ ...prev, [service.id]: result }));
+  const handleTestConnection = useCallback(
+    async (service: AIProviderConfig) => {
+      setTestingServiceId(service.id);
+      try {
+        const result = await testConnection(service.id);
+        if (result) {
+          setTestResult((prev) => ({ ...prev, [service.id]: result }));
+        }
+      } catch {
+        // Error handling in hook
+      } finally {
+        setTestingServiceId(null);
       }
-    } catch {
-      // Error handling in hook
-    } finally {
-      setTestingServiceId(null);
-    }
-  }, [testConnection]);
+    },
+    [testConnection]
+  );
 
   // Load models
-  const handleLoadModels = useCallback(async (service: AIProviderConfig) => {
-    setLoadingModels(service.id);
-    try {
-      const models = await listModels(service.id);
-      if (models) {
-        setAvailableModels((prev) => ({ ...prev, [service.id]: models }));
+  const handleLoadModels = useCallback(
+    async (service: AIProviderConfig) => {
+      setLoadingModels(service.id);
+      try {
+        const models = await listModels(service.id);
+        if (models) {
+          setAvailableModels((prev) => ({ ...prev, [service.id]: models }));
+        }
+      } catch {
+        // Error handling in hook
+      } finally {
+        setLoadingModels(null);
       }
-    } catch {
-      // Error handling in hook
-    } finally {
-      setLoadingModels(null);
-    }
-  }, [listModels]);
+    },
+    [listModels]
+  );
 
   // Probe models for current form
   const handleProbeModels = useCallback(async () => {
@@ -1719,9 +1772,7 @@ export function AIProviderSettingsPanel() {
   if (isLoadingServices) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LoadingSkeleton />
         </div>
@@ -1732,9 +1783,7 @@ export function AIProviderSettingsPanel() {
   if (servicesError) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ErrorState message={servicesError} onRetry={loadServices} />
         </div>

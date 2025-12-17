@@ -187,7 +187,9 @@ function HistoryItem({
   onDelete: () => void;
   isSelected?: boolean;
 }) {
-  const config = statusVariantConfig[item.status as keyof typeof statusVariantConfig] || statusVariantConfig.cancelled;
+  const config =
+    statusVariantConfig[item.status as keyof typeof statusVariantConfig] ||
+    statusVariantConfig.cancelled;
 
   return (
     <div
@@ -259,9 +261,7 @@ function HistoryItem({
       {/* Error message preview */}
       {item.errorMessage && (
         <div className="mt-3 px-3 py-2 rounded bg-red-500/10 border border-red-500/20">
-          <p className="text-xs text-red-500 dark:text-red-400 line-clamp-2">
-            {item.errorMessage}
-          </p>
+          <p className="text-xs text-red-500 dark:text-red-400 line-clamp-2">{item.errorMessage}</p>
         </div>
       )}
     </div>
@@ -280,7 +280,9 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
   const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const config = statusVariantConfig[item.status as keyof typeof statusVariantConfig] || statusVariantConfig.cancelled;
+  const config =
+    statusVariantConfig[item.status as keyof typeof statusVariantConfig] ||
+    statusVariantConfig.cancelled;
 
   // Register/unregister modal
   useEffect(() => {
@@ -312,11 +314,7 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
 
   // Render function for history output lines
   const renderHistoryOutputLine = useCallback((line: WorkflowOutputLine) => {
-    return (
-      <div className={getOutputLineClassName(line.stream, line.content)}>
-        {line.content}
-      </div>
-    );
+    return <div className={getOutputLineClassName(line.stream, line.content)}>{line.content}</div>;
   }, []);
 
   // Copy all output to clipboard
@@ -409,9 +407,7 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 <StatusIcon status={item.status} />
-                <span className="text-sm text-muted-foreground">
-                  {config.label}
-                </span>
+                <span className="text-sm text-muted-foreground">{config.label}</span>
                 <span className="text-sm text-muted-foreground">•</span>
                 <span className="text-sm text-muted-foreground">
                   {formatDuration(item.durationMs)}
@@ -480,11 +476,7 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
                 </>
               )}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              className="h-auto px-4 py-1.5 text-sm"
-            >
+            <Button variant="secondary" onClick={onClose} className="h-auto px-4 py-1.5 text-sm">
               Close
             </Button>
           </div>
@@ -511,7 +503,7 @@ function FilterButton({
   return (
     <div className="relative">
       <Button
-        variant={value !== 'all' ? "default" : "outline"}
+        variant={value !== 'all' ? 'default' : 'outline'}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'h-auto px-2 py-1 text-xs',
@@ -558,7 +550,8 @@ export function ExecutionHistoryPanel({
   onClose,
 }: ExecutionHistoryPanelProps) {
   const modalId = useId();
-  const { getHistory, refreshHistory, deleteHistory, clearWorkflowHistory } = useExecutionHistoryContext();
+  const { getHistory, refreshHistory, deleteHistory, clearWorkflowHistory } =
+    useExecutionHistoryContext();
   const { getExecutionState } = useWorkflowExecutionContext();
   const [selectedItem, setSelectedItem] = useState<ExecutionHistoryItem | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<ExecutionHistoryItem | null>(null);
@@ -670,7 +663,8 @@ export function ExecutionHistoryPanel({
 
   const groupedHistory = useMemo(() => groupByDate(history), [history]);
 
-  const hasActiveFilters = statusFilter !== 'all' || triggerFilter !== 'all' || searchQuery.trim() !== '';
+  const hasActiveFilters =
+    statusFilter !== 'all' || triggerFilter !== 'all' || searchQuery.trim() !== '';
 
   const handleDelete = async (historyId: string) => {
     try {
@@ -771,10 +765,7 @@ export function ExecutionHistoryPanel({
               >
                 Execution History
               </h2>
-              <p
-                className="mt-1 text-sm text-muted-foreground truncate"
-                title={workflowName}
-              >
+              <p className="mt-1 text-sm text-muted-foreground truncate" title={workflowName}>
                 {workflowName}
               </p>
             </div>
@@ -861,11 +852,7 @@ export function ExecutionHistoryPanel({
               <Search className="w-12 h-12 mb-4 opacity-30" />
               <p className="text-sm font-medium">No matching results</p>
               <p className="text-xs mt-1">Try adjusting your filters</p>
-              <Button
-                variant="link"
-                onClick={resetFilters}
-                className="mt-3 h-auto text-xs"
-              >
+              <Button variant="link" onClick={resetFilters} className="mt-3 h-auto text-xs">
                 Reset filters
               </Button>
             </div>

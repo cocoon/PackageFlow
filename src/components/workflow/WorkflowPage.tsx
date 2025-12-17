@@ -64,11 +64,14 @@ export function WorkflowPage({
   }, [executions]);
 
   // Helper: Get project path by projectId
-  const getProjectPath = useCallback((projectId: string | undefined): string | undefined => {
-    if (!projectId) return undefined;
-    const project = projects.find(p => p.id === projectId);
-    return project?.path;
-  }, [projects]);
+  const getProjectPath = useCallback(
+    (projectId: string | undefined): string | undefined => {
+      if (!projectId) return undefined;
+      const project = projects.find((p) => p.id === projectId);
+      return project?.path;
+    },
+    [projects]
+  );
 
   const fetchWorkflows = useCallback(async () => {
     try {
@@ -129,7 +132,7 @@ export function WorkflowPage({
     if (!isLoading && workflows.length > 0 && !selectedWorkflow && !initialWorkflow && settings) {
       const lastWorkflowId = settings.lastWorkflowId;
       if (lastWorkflowId) {
-        const lastWorkflow = workflows.find(w => w.id === lastWorkflowId);
+        const lastWorkflow = workflows.find((w) => w.id === lastWorkflowId);
         if (lastWorkflow) {
           setSelectedWorkflow(lastWorkflow);
           // If workflow is bound to a project, use project path as default cwd
@@ -141,16 +144,19 @@ export function WorkflowPage({
     }
   }, [isLoading, workflows, selectedWorkflow, initialWorkflow, settings, getProjectPath]);
 
-  const saveLastWorkflowId = useCallback(async (workflowId: string | null) => {
-    if (!settings) return;
-    const updatedSettings = { ...settings, lastWorkflowId: workflowId ?? undefined };
-    setSettings(updatedSettings);
-    try {
-      await settingsAPI.saveSettings(updatedSettings);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    }
-  }, [settings]);
+  const saveLastWorkflowId = useCallback(
+    async (workflowId: string | null) => {
+      if (!settings) return;
+      const updatedSettings = { ...settings, lastWorkflowId: workflowId ?? undefined };
+      setSettings(updatedSettings);
+      try {
+        await settingsAPI.saveSettings(updatedSettings);
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+      }
+    },
+    [settings]
+  );
 
   useEffect(() => {
     if (initialWorkflow && !initialWorkflowHandled.current) {
@@ -169,14 +175,17 @@ export function WorkflowPage({
     };
   }, [onClearNavState]);
 
-  const handleSelectWorkflow = useCallback((workflow: Workflow) => {
-    setSelectedWorkflow(workflow);
-    // If workflow is bound to a project, use project path as default cwd
-    const projectPath = getProjectPath(workflow.projectId);
-    setCurrentDefaultCwd(projectPath);
-    setEditorKey((k) => k + 1);
-    saveLastWorkflowId(workflow.id);
-  }, [saveLastWorkflowId, getProjectPath]);
+  const handleSelectWorkflow = useCallback(
+    (workflow: Workflow) => {
+      setSelectedWorkflow(workflow);
+      // If workflow is bound to a project, use project path as default cwd
+      const projectPath = getProjectPath(workflow.projectId);
+      setCurrentDefaultCwd(projectPath);
+      setEditorKey((k) => k + 1);
+      saveLastWorkflowId(workflow.id);
+    },
+    [saveLastWorkflowId, getProjectPath]
+  );
 
   const handleCreateWorkflow = useCallback(async () => {
     const newWorkflow = createWorkflow('New Workflow');
@@ -229,41 +238,44 @@ export function WorkflowPage({
     fetchWorkflows();
   }, [fetchWorkflows, saveLastWorkflowId]);
 
-  const handleDuplicateWorkflow = useCallback(async (workflow: Workflow) => {
-    const duplicatedWorkflow = createWorkflow(`${workflow.name} (copy)`);
-    duplicatedWorkflow.nodes = workflow.nodes.map((node) => ({
-      ...JSON.parse(JSON.stringify(node)),
-      id: generateId(),
-    }));
-    if (workflow.description) {
-      duplicatedWorkflow.description = workflow.description;
-    }
-    if (workflow.projectId) {
-      duplicatedWorkflow.projectId = workflow.projectId;
-    }
-    if (workflow.webhook) {
-      duplicatedWorkflow.webhook = JSON.parse(JSON.stringify(workflow.webhook));
-    }
-    if (workflow.incomingWebhook) {
-      try {
-        const newConfig = await incomingWebhookAPI.createConfig();
-        duplicatedWorkflow.incomingWebhook = {
-          ...newConfig,
-          enabled: false,
-        };
-      } catch (error) {
-        console.error('Failed to create incoming webhook config for duplicate:', error);
+  const handleDuplicateWorkflow = useCallback(
+    async (workflow: Workflow) => {
+      const duplicatedWorkflow = createWorkflow(`${workflow.name} (copy)`);
+      duplicatedWorkflow.nodes = workflow.nodes.map((node) => ({
+        ...JSON.parse(JSON.stringify(node)),
+        id: generateId(),
+      }));
+      if (workflow.description) {
+        duplicatedWorkflow.description = workflow.description;
       }
-    }
+      if (workflow.projectId) {
+        duplicatedWorkflow.projectId = workflow.projectId;
+      }
+      if (workflow.webhook) {
+        duplicatedWorkflow.webhook = JSON.parse(JSON.stringify(workflow.webhook));
+      }
+      if (workflow.incomingWebhook) {
+        try {
+          const newConfig = await incomingWebhookAPI.createConfig();
+          duplicatedWorkflow.incomingWebhook = {
+            ...newConfig,
+            enabled: false,
+          };
+        } catch (error) {
+          console.error('Failed to create incoming webhook config for duplicate:', error);
+        }
+      }
 
-    const response = await saveWorkflowApi(duplicatedWorkflow);
-    if (response.success && response.workflow) {
-      setWorkflows((prev) => [...prev, response.workflow!]);
-      setSelectedWorkflow(response.workflow);
-      setEditorKey((k) => k + 1);
-      saveLastWorkflowId(response.workflow.id);
-    }
-  }, [saveLastWorkflowId]);
+      const response = await saveWorkflowApi(duplicatedWorkflow);
+      if (response.success && response.workflow) {
+        setWorkflows((prev) => [...prev, response.workflow!]);
+        setSelectedWorkflow(response.workflow);
+        setEditorKey((k) => k + 1);
+        saveLastWorkflowId(response.workflow.id);
+      }
+    },
+    [saveLastWorkflowId]
+  );
 
   const handleKillProcess = useCallback(async (executionId: string) => {
     try {
@@ -274,51 +286,60 @@ export function WorkflowPage({
     }
   }, []);
 
-  const handleWorkflowSaved = useCallback((savedWorkflow: Workflow) => {
-    setWorkflows((prev) => {
-      const index = prev.findIndex((w) => w.id === savedWorkflow.id);
-      if (index !== -1) {
-        const updated = [...prev];
-        updated[index] = savedWorkflow;
-        return updated;
-      } else {
-        return [...prev, savedWorkflow];
-      }
-    });
-    setSelectedWorkflow(savedWorkflow);
-    saveLastWorkflowId(savedWorkflow.id);
-  }, [saveLastWorkflowId]);
+  const handleWorkflowSaved = useCallback(
+    (savedWorkflow: Workflow) => {
+      setWorkflows((prev) => {
+        const index = prev.findIndex((w) => w.id === savedWorkflow.id);
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = savedWorkflow;
+          return updated;
+        } else {
+          return [...prev, savedWorkflow];
+        }
+      });
+      setSelectedWorkflow(savedWorkflow);
+      saveLastWorkflowId(savedWorkflow.id);
+    },
+    [saveLastWorkflowId]
+  );
 
-  const handleSortModeChange = useCallback(async (mode: WorkflowSortMode) => {
-    setWorkflowSortMode(mode);
-    if (settings) {
-      const updatedSettings = { ...settings, workflowSortMode: mode };
-      setSettings(updatedSettings);
-      try {
-        await settingsAPI.saveSettings(updatedSettings);
-      } catch (error) {
-        console.error('Failed to save sort mode:', error);
+  const handleSortModeChange = useCallback(
+    async (mode: WorkflowSortMode) => {
+      setWorkflowSortMode(mode);
+      if (settings) {
+        const updatedSettings = { ...settings, workflowSortMode: mode };
+        setSettings(updatedSettings);
+        try {
+          await settingsAPI.saveSettings(updatedSettings);
+        } catch (error) {
+          console.error('Failed to save sort mode:', error);
+        }
       }
-    }
-  }, [settings]);
+    },
+    [settings]
+  );
 
-  const handleWorkflowOrderChange = useCallback(async (order: string[]) => {
-    setWorkflowOrder(order);
-    setWorkflowSortMode('custom');
-    if (settings) {
-      const updatedSettings = {
-        ...settings,
-        workflowSortMode: 'custom' as WorkflowSortMode,
-        workflowOrder: order,
-      };
-      setSettings(updatedSettings);
-      try {
-        await settingsAPI.saveSettings(updatedSettings);
-      } catch (error) {
-        console.error('Failed to save workflow order:', error);
+  const handleWorkflowOrderChange = useCallback(
+    async (order: string[]) => {
+      setWorkflowOrder(order);
+      setWorkflowSortMode('custom');
+      if (settings) {
+        const updatedSettings = {
+          ...settings,
+          workflowSortMode: 'custom' as WorkflowSortMode,
+          workflowOrder: order,
+        };
+        setSettings(updatedSettings);
+        try {
+          await settingsAPI.saveSettings(updatedSettings);
+        } catch (error) {
+          console.error('Failed to save workflow order:', error);
+        }
       }
-    }
-  }, [settings]);
+    },
+    [settings]
+  );
 
   if (isLoading) {
     return (
@@ -330,7 +351,6 @@ export function WorkflowPage({
 
   return (
     <div className="flex h-full bg-background">
-      
       <div className="w-60 shrink-0 border-r border-border">
         <WorkflowSidebar
           workflows={workflows}
@@ -360,7 +380,9 @@ export function WorkflowPage({
           <div className="flex flex-col h-full bg-card">
             {runningExecutions.length > 0 && (
               <div className="p-4 border-b border-border">
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">Running processes</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                  Running processes
+                </h3>
                 <div className="space-y-2">
                   {runningExecutions.map((exec) => (
                     <div
@@ -378,9 +400,7 @@ export function WorkflowPage({
                           {exec.command}
                         </div>
                         {exec.pid && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            PID: {exec.pid}
-                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">PID: {exec.pid}</div>
                         )}
                       </div>
                       <Button
@@ -409,9 +429,7 @@ export function WorkflowPage({
                 icon: Plus,
                 onClick: handleCreateWorkflow,
               }}
-              shortcuts={[
-                { key: '⌘N', label: 'New workflow' },
-              ]}
+              shortcuts={[{ key: '⌘N', label: 'New workflow' }]}
               className="flex-1"
             />
           </div>

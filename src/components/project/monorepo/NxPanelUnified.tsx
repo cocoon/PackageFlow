@@ -111,26 +111,31 @@ const ExecutionItem = memo(function ExecutionItem({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const statusIcon = useMemo(() => ({
-    running: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
-    completed: <CheckCircle2 className="w-4 h-4 text-green-400" />,
-    failed: <XCircle className="w-4 h-4 text-red-400" />,
-    cancelled: <AlertCircle className="w-4 h-4 text-muted-foreground" />,
-  })[execution.status], [execution.status]);
+  const statusIcon = useMemo(
+    () =>
+      ({
+        running: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
+        completed: <CheckCircle2 className="w-4 h-4 text-green-400" />,
+        failed: <XCircle className="w-4 h-4 text-red-400" />,
+        cancelled: <AlertCircle className="w-4 h-4 text-muted-foreground" />,
+      })[execution.status],
+    [execution.status]
+  );
 
-  const taskName = useMemo(() =>
-    execution.project
-      ? `${execution.project}:${execution.target}`
-      : execution.target,
+  const taskName = useMemo(
+    () => (execution.project ? `${execution.project}:${execution.target}` : execution.target),
     [execution.project, execution.target]
   );
 
-  const handleViewOutput = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onViewOutput(execution);
-  }, [onViewOutput, execution]);
+  const handleViewOutput = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onViewOutput(execution);
+    },
+    [onViewOutput, execution]
+  );
 
-  const toggleExpanded = useCallback(() => setExpanded(prev => !prev), []);
+  const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);
 
   // Truncate output display to avoid rendering huge strings
   const displayOutput = useMemo(() => {
@@ -156,17 +161,15 @@ const ExecutionItem = memo(function ExecutionItem({
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
           {statusIcon}
-          <span className="flex-1 text-sm font-medium text-foreground">
-            {taskName}
-          </span>
+          <span className="flex-1 text-sm font-medium text-foreground">{taskName}</span>
         </Button>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {execution.status === 'running'
               ? 'Running...'
               : execution.exitCode !== undefined
-              ? `Exit: ${execution.exitCode}`
-              : execution.status}
+                ? `Exit: ${execution.exitCode}`
+                : execution.status}
           </span>
           {/* View output button */}
           <Button
@@ -192,21 +195,32 @@ const ExecutionItem = memo(function ExecutionItem({
 /**
  * Batch execution result item (Memoized for performance)
  */
-const BatchResultItem = memo(function BatchResultItem({ execution }: { execution: BatchExecution }) {
+const BatchResultItem = memo(function BatchResultItem({
+  execution,
+}: {
+  execution: BatchExecution;
+}) {
   const [expanded, setExpanded] = useState(false);
 
-  const { successCount, failureCount } = useMemo(() => ({
-    successCount: execution.results.filter((r) => r.success).length,
-    failureCount: execution.results.filter((r) => !r.success).length,
-  }), [execution.results]);
+  const { successCount, failureCount } = useMemo(
+    () => ({
+      successCount: execution.results.filter((r) => r.success).length,
+      failureCount: execution.results.filter((r) => !r.success).length,
+    }),
+    [execution.results]
+  );
 
-  const statusIcon = useMemo(() => ({
-    running: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
-    completed: <CheckCircle2 className="w-4 h-4 text-green-400" />,
-    failed: <XCircle className="w-4 h-4 text-red-400" />,
-  })[execution.status], [execution.status]);
+  const statusIcon = useMemo(
+    () =>
+      ({
+        running: <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />,
+        completed: <CheckCircle2 className="w-4 h-4 text-green-400" />,
+        failed: <XCircle className="w-4 h-4 text-red-400" />,
+      })[execution.status],
+    [execution.status]
+  );
 
-  const toggleExpanded = useCallback(() => setExpanded(prev => !prev), []);
+  const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -234,12 +248,8 @@ const BatchResultItem = memo(function BatchResultItem({ execution }: { execution
             </span>
           ) : (
             <>
-              {successCount > 0 && (
-                <span className="text-green-400">{successCount} passed</span>
-              )}
-              {failureCount > 0 && (
-                <span className="text-red-400">{failureCount} failed</span>
-              )}
+              {successCount > 0 && <span className="text-green-400">{successCount} passed</span>}
+              {failureCount > 0 && <span className="text-red-400">{failureCount} failed</span>}
             </>
           )}
         </div>
@@ -454,9 +464,7 @@ export function NxPanelUnified({
   const [selectedScript, setSelectedScript] = useState<string>(availableScripts[0] || '');
   const [outputPanelExecution, setOutputPanelExecution] = useState<NxCommandExecution | null>(null);
 
-  const runningCount = Array.from(executions.values()).filter(
-    (e) => e.status === 'running'
-  ).length;
+  const runningCount = Array.from(executions.values()).filter((e) => e.status === 'running').length;
 
   // Running tasks set for TaskCategoryGroup
   const runningTasks = useMemo(() => {
@@ -533,16 +541,13 @@ export function NxPanelUnified({
             onClick={() => setSkipCache(!skipCache)}
             className={cn(
               'flex items-center gap-1.5',
-              skipCache && 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
+              skipCache &&
+                'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 hover:text-amber-300'
             )}
             title={skipCache ? 'Cache will be skipped' : 'Enable to skip cache'}
             aria-pressed={skipCache}
           >
-            {skipCache ? (
-              <ToggleRight className="w-4 h-4" />
-            ) : (
-              <ToggleLeft className="w-4 h-4" />
-            )}
+            {skipCache ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
             <span>Skip Cache</span>
           </Button>
 

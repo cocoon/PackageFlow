@@ -34,10 +34,7 @@ import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from '../ui/Contex
 import { EmptyState } from '../ui/EmptyState';
 import { cn } from '../../lib/utils';
 import { useWorkflowExecutionContext } from '../../contexts/WorkflowExecutionContext';
-import {
-  WorkflowStatusBadge,
-  WorkflowExecutionStatus,
-} from '../workflow/WorkflowExecutionStatus';
+import { WorkflowStatusBadge, WorkflowExecutionStatus } from '../workflow/WorkflowExecutionStatus';
 import { WorkflowOutputPanel } from '../workflow/WorkflowOutputPanel';
 import { WorkflowPreview } from '../workflow/WorkflowPreview';
 import type { WorkflowExecutionState } from '../../hooks/useWorkflowExecution';
@@ -147,10 +144,7 @@ function ExecuteButton({
         onClick();
       }}
       disabled={disabled || isExecuting}
-      className={cn(
-        'h-8 w-8',
-        isExecuting && 'bg-blue-500/20 cursor-wait'
-      )}
+      className={cn('h-8 w-8', isExecuting && 'bg-blue-500/20 cursor-wait')}
       title={isExecuting ? 'Running...' : disabled ? 'No steps to run' : 'Run workflow'}
     >
       {isExecuting ? (
@@ -178,12 +172,16 @@ export function ProjectWorkflows({
   const [showNewForm, setShowNewForm] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
-  const [contextMenu, setContextMenu] = useState<{ workflowId: string; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    workflowId: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [outputPanelWorkflowId, setOutputPanelWorkflowId] = useState<string | null>(null);
   const [expandedWorkflows, setExpandedWorkflows] = useState<Set<string>>(new Set());
 
   const toggleWorkflowExpand = useCallback((workflowId: string) => {
-    setExpandedWorkflows(prev => {
+    setExpandedWorkflows((prev) => {
       const next = new Set(prev);
       if (next.has(workflowId)) {
         next.delete(workflowId);
@@ -218,7 +216,7 @@ export function ProjectWorkflows({
   const loadGlobalWorkflowsList = useCallback(async () => {
     try {
       const all = await loadWorkflows();
-      const globals = all.filter(w => !w.projectId);
+      const globals = all.filter((w) => !w.projectId);
       setGlobalWorkflows(globals);
     } catch (error) {
       console.error('Failed to load global workflows:', error);
@@ -241,7 +239,7 @@ export function ProjectWorkflows({
     const response = await saveWorkflow(newWorkflow);
 
     if (response.success && response.workflow) {
-      setWorkflows(prev => [...prev, response.workflow!]);
+      setWorkflows((prev) => [...prev, response.workflow!]);
       setShowNewForm(false);
       setShowAddDialog(false);
       setNewWorkflowName('');
@@ -263,8 +261,8 @@ export function ProjectWorkflows({
     const response = await saveWorkflow(updatedWorkflow);
 
     if (response.success && response.workflow) {
-      setWorkflows(prev => [...prev, response.workflow!]);
-      setGlobalWorkflows(prev => prev.filter(w => w.id !== workflow.id));
+      setWorkflows((prev) => [...prev, response.workflow!]);
+      setGlobalWorkflows((prev) => prev.filter((w) => w.id !== workflow.id));
       setShowLinkDialog(false);
       setShowAddDialog(false);
     }
@@ -306,7 +304,7 @@ export function ProjectWorkflows({
     try {
       const response = await deleteWorkflowApi(workflowId);
       if (response.success) {
-        setWorkflows(prev => prev.filter(w => w.id !== workflowId));
+        setWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
       }
     } catch (error) {
       console.error('Failed to delete workflow:', error);
@@ -316,7 +314,7 @@ export function ProjectWorkflows({
   void _handleDeleteWorkflow;
 
   const handleUnlinkWorkflow = async (workflowId: string) => {
-    const workflow = workflows.find(w => w.id === workflowId);
+    const workflow = workflows.find((w) => w.id === workflowId);
     if (!workflow) return;
 
     try {
@@ -327,7 +325,7 @@ export function ProjectWorkflows({
 
       const response = await saveWorkflow(updatedWorkflow);
       if (response.success) {
-        setWorkflows(prev => prev.filter(w => w.id !== workflowId));
+        setWorkflows((prev) => prev.filter((w) => w.id !== workflowId));
       }
     } catch (error) {
       console.error('Failed to unlink workflow:', error);
@@ -360,11 +358,7 @@ export function ProjectWorkflows({
   }, [contextMenu]);
 
   if (isLoading) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">
-        Loading...
-      </div>
-    );
+    return <div className="p-4 text-center text-muted-foreground">Loading...</div>;
   }
 
   return (
@@ -372,11 +366,7 @@ export function ProjectWorkflows({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">Project workflows</h3>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleAddClick}
-        >
+        <Button variant="default" size="sm" onClick={handleAddClick}>
           <Plus className="w-4 h-4 mr-1.5" />
           New
         </Button>
@@ -400,7 +390,7 @@ export function ProjectWorkflows({
         />
       ) : (
         <ul className="space-y-2">
-          {workflows.map(workflow => {
+          {workflows.map((workflow) => {
             const executionState = getExecutionState(workflow.id);
             const workflowIsExecuting = isExecuting(workflow.id);
             const hasExecutionState = executionState.status !== 'idle';
@@ -408,14 +398,11 @@ export function ProjectWorkflows({
             const iconStatus = getIconStatus(executionState);
 
             return (
-              <li
-                key={workflow.id}
-                className="group relative"
-              >
+              <li key={workflow.id} className="group relative">
                 {/* Main card - clickable to expand/collapse */}
                 <div
                   onClick={() => toggleWorkflowExpand(workflow.id)}
-                  onContextMenu={e => handleContextMenu(e, workflow.id)}
+                  onContextMenu={(e) => handleContextMenu(e, workflow.id)}
                   className={cn(
                     'w-full flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer',
                     'transition-all duration-150',
@@ -435,10 +422,7 @@ export function ProjectWorkflows({
                   )}
                 >
                   {/* Icon area with status indicator */}
-                  <WorkflowIconArea
-                    status={iconStatus}
-                    isExpanded={isExpanded}
-                  />
+                  <WorkflowIconArea status={iconStatus} isExpanded={isExpanded} />
 
                   {/* Content area */}
                   <div className="flex-1 min-w-0 space-y-0.5 py-0.5">
@@ -453,9 +437,7 @@ export function ProjectWorkflows({
                         {workflow.name}
                       </span>
                       {/* Inline status badge */}
-                      {hasExecutionState && (
-                        <WorkflowStatusBadge state={executionState} />
-                      )}
+                      {hasExecutionState && <WorkflowStatusBadge state={executionState} />}
                     </div>
 
                     {/* Metadata row */}
@@ -486,7 +468,7 @@ export function ProjectWorkflows({
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleViewOutput(workflow.id);
                         }}
@@ -501,7 +483,7 @@ export function ProjectWorkflows({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         handleContextMenu(e, workflow.id);
                       }}
@@ -540,17 +522,20 @@ export function ProjectWorkflows({
                 )}
 
                 {/* Collapsed execution status (when not expanded but has state) */}
-                {!isExpanded && hasExecutionState && !workflowIsExecuting && executionState.status !== 'idle' && (
-                  <div className="ml-[52px] mt-2">
-                    <WorkflowExecutionStatus
-                      state={executionState}
-                      onCancel={() => handleCancelExecution(workflow.id)}
-                      onViewOutput={() => handleViewOutput(workflow.id)}
-                      onClear={() => clearExecution(workflow.id)}
-                      compact={false}
-                    />
-                  </div>
-                )}
+                {!isExpanded &&
+                  hasExecutionState &&
+                  !workflowIsExecuting &&
+                  executionState.status !== 'idle' && (
+                    <div className="ml-[52px] mt-2">
+                      <WorkflowExecutionStatus
+                        state={executionState}
+                        onCancel={() => handleCancelExecution(workflow.id)}
+                        onViewOutput={() => handleViewOutput(workflow.id)}
+                        onClear={() => clearExecution(workflow.id)}
+                        compact={false}
+                      />
+                    </div>
+                  )}
 
                 {/* Running progress bar (when collapsed) */}
                 {!isExpanded && workflowIsExecuting && (
@@ -582,7 +567,7 @@ export function ProjectWorkflows({
         <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu}>
           <ContextMenuItem
             onClick={() => {
-              const workflow = workflows.find(w => w.id === contextMenu.workflowId);
+              const workflow = workflows.find((w) => w.id === contextMenu.workflowId);
               if (workflow) handleEditClick(workflow);
               closeContextMenu();
             }}
@@ -603,32 +588,38 @@ export function ProjectWorkflows({
 
       {/* Add workflow selection dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className={cn(
-          'bg-background border-blue-500/30 max-w-md p-0 overflow-hidden',
-          'shadow-2xl shadow-black/60'
-        )}>
+        <DialogContent
+          className={cn(
+            'bg-background border-blue-500/30 max-w-md p-0 overflow-hidden',
+            'shadow-2xl shadow-black/60'
+          )}
+        >
           {/* Header with gradient background and icon badge */}
-          <div className={cn(
-            'relative px-6 py-5',
-            'border-b border-border',
-            'bg-gradient-to-r',
-            'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent',
-            'from-blue-500/10 via-blue-600/5 to-transparent'
-          )}>
+          <div
+            className={cn(
+              'relative px-6 py-5',
+              'border-b border-border',
+              'bg-gradient-to-r',
+              'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent',
+              'from-blue-500/10 via-blue-600/5 to-transparent'
+            )}
+          >
             {/* Close button - positioned inside header which has relative */}
             <DialogClose onClick={() => setShowAddDialog(false)} />
 
             <div className="flex items-center gap-4 pr-8">
               {/* Icon badge */}
-              <div className={cn(
-                'flex-shrink-0',
-                'w-12 h-12 rounded-xl',
-                'flex items-center justify-center',
-                'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
-                'border',
-                'bg-blue-500/10 border-blue-500/20',
-                'shadow-lg'
-              )}>
+              <div
+                className={cn(
+                  'flex-shrink-0',
+                  'w-12 h-12 rounded-xl',
+                  'flex items-center justify-center',
+                  'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
+                  'border',
+                  'bg-blue-500/10 border-blue-500/20',
+                  'shadow-lg'
+                )}
+              >
                 <WorkflowIcon className="w-6 h-6 text-blue-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -662,12 +653,14 @@ export function ProjectWorkflows({
                   )}
                 >
                   {/* Icon with refined styling */}
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl flex-shrink-0',
-                    'flex items-center justify-center',
-                    'bg-blue-500/10 border border-blue-500/20',
-                    'group-hover:bg-blue-500/15 transition-colors'
-                  )}>
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-xl flex-shrink-0',
+                      'flex items-center justify-center',
+                      'bg-blue-500/10 border border-blue-500/20',
+                      'group-hover:bg-blue-500/15 transition-colors'
+                    )}
+                  >
                     <Plus className="w-6 h-6 text-blue-400" />
                   </div>
 
@@ -701,22 +694,25 @@ export function ProjectWorkflows({
                   )}
                 >
                   {/* Icon with refined styling */}
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl flex-shrink-0',
-                    'flex items-center justify-center',
-                    'bg-purple-500/10 border border-purple-500/20',
-                    'group-hover:bg-purple-500/15 group-disabled:group-hover:bg-purple-500/10 transition-colors'
-                  )}>
+                  <div
+                    className={cn(
+                      'w-12 h-12 rounded-xl flex-shrink-0',
+                      'flex items-center justify-center',
+                      'bg-purple-500/10 border border-purple-500/20',
+                      'group-hover:bg-purple-500/15 group-disabled:group-hover:bg-purple-500/10 transition-colors'
+                    )}
+                  >
                     <Link2 className="w-6 h-6 text-purple-400" />
                   </div>
 
                   <div className="flex-1 min-w-0 text-left">
-                    <div className="text-sm font-medium text-foreground">Link existing workflow</div>
+                    <div className="text-sm font-medium text-foreground">
+                      Link existing workflow
+                    </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {globalWorkflows.length > 0
                         ? `Choose a global workflow to link (${globalWorkflows.length} available)`
-                        : 'No global workflows available'
-                      }
+                        : 'No global workflows available'}
                     </div>
                   </div>
 
@@ -737,10 +733,7 @@ export function ProjectWorkflows({
                     setShowNewForm(false);
                     setNewWorkflowName('');
                   }}
-                  className={cn(
-                    'gap-2 h-auto px-0',
-                    'hover:text-foreground'
-                  )}
+                  className={cn('gap-2 h-auto px-0', 'hover:text-foreground')}
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to options
@@ -754,8 +747,8 @@ export function ProjectWorkflows({
                       type="text"
                       placeholder="Enter workflow name..."
                       value={newWorkflowName}
-                      onChange={e => setNewWorkflowName(e.target.value)}
-                      onKeyDown={e => {
+                      onChange={(e) => setNewWorkflowName(e.target.value)}
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter') handleCreateWorkflow();
                         if (e.key === 'Escape') {
                           setShowNewForm(false);
@@ -777,7 +770,8 @@ export function ProjectWorkflows({
                     />
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Working directory: <span className="font-mono text-foreground/70">{projectPath}</span>
+                    Working directory:{' '}
+                    <span className="font-mono text-foreground/70">{projectPath}</span>
                   </p>
                 </div>
 
@@ -820,7 +814,7 @@ export function ProjectWorkflows({
 
                 {/* Workflow list */}
                 <div className="max-h-64 overflow-y-auto space-y-2">
-                  {globalWorkflows.map(workflow => (
+                  {globalWorkflows.map((workflow) => (
                     <button
                       key={workflow.id}
                       onClick={() => handleLinkWorkflow(workflow)}
@@ -836,17 +830,21 @@ export function ProjectWorkflows({
                       )}
                     >
                       {/* Workflow icon */}
-                      <div className={cn(
-                        'w-10 h-10 rounded-lg flex-shrink-0',
-                        'flex items-center justify-center',
-                        'bg-purple-500/10 border border-purple-500/20',
-                        'group-hover:bg-purple-500/15 transition-colors'
-                      )}>
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-lg flex-shrink-0',
+                          'flex items-center justify-center',
+                          'bg-purple-500/10 border border-purple-500/20',
+                          'group-hover:bg-purple-500/15 transition-colors'
+                        )}
+                      >
                         <WorkflowIcon className="w-5 h-5 text-purple-400" />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground truncate">{workflow.name}</div>
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {workflow.name}
+                        </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {workflow.nodes.length} {workflow.nodes.length === 1 ? 'step' : 'steps'}
                         </div>
@@ -866,7 +864,7 @@ export function ProjectWorkflows({
       {outputPanelWorkflowId && (
         <WorkflowOutputPanel
           workflowId={outputPanelWorkflowId}
-          workflowName={workflows.find(w => w.id === outputPanelWorkflowId)?.name || 'Workflow'}
+          workflowName={workflows.find((w) => w.id === outputPanelWorkflowId)?.name || 'Workflow'}
           state={getExecutionState(outputPanelWorkflowId)}
           onClose={() => setOutputPanelWorkflowId(null)}
         />

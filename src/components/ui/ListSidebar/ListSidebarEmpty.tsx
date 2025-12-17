@@ -32,12 +32,7 @@ export function ListSidebarEmpty({
         <p className="mt-1 text-xs text-muted-foreground max-w-[180px]">
           No {type} matching "{searchQuery}"
         </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4"
-          onClick={onCreateNew}
-        >
+        <Button variant="outline" size="sm" className="mt-4" onClick={onCreateNew}>
           <Plus className="w-4 h-4 mr-2" />
           Create new {type === 'workflows' ? 'workflow' : 'project'}
         </Button>

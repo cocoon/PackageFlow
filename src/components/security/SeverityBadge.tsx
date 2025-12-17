@@ -121,9 +121,7 @@ export function SeverityBadge({
     >
       {showIcon && <Icon className="w-3 h-3" aria-hidden="true" />}
       <span>{config.label}</span>
-      {count !== undefined && (
-        <span className="ml-0.5 font-bold">({count})</span>
-      )}
+      {count !== undefined && <span className="ml-0.5 font-bold">({count})</span>}
     </span>
   );
 }
@@ -149,11 +147,7 @@ export function SeverityDot({ severity, className }: SeverityDotProps) {
 
   return (
     <span
-      className={cn(
-        'inline-block w-2 h-2 rounded-full',
-        dotColorMap[severity],
-        className
-      )}
+      className={cn('inline-block w-2 h-2 rounded-full', dotColorMap[severity], className)}
       title={config.label}
       role="status"
       aria-label={`Severity: ${config.label}`}
@@ -199,9 +193,7 @@ export function SeveritySummaryBar({
 
   if (visibleItems.length === 0) {
     return (
-      <span className={cn('text-sm text-muted-foreground', className)}>
-        No vulnerabilities
-      </span>
+      <span className={cn('text-sm text-muted-foreground', className)}>No vulnerabilities</span>
     );
   }
 
@@ -213,10 +205,7 @@ export function SeveritySummaryBar({
           return (
             <span
               key={severity}
-              className={cn(
-                'flex items-center gap-0.5 text-xs',
-                config.textColor
-              )}
+              className={cn('flex items-center gap-0.5 text-xs', config.textColor)}
               title={`${count} ${config.label}`}
             >
               <SeverityDot severity={severity} />
@@ -235,12 +224,7 @@ export function SeveritySummaryBar({
       aria-label="Vulnerability summary by severity"
     >
       {visibleItems.map(({ severity, count }) => (
-        <SeverityBadge
-          key={severity}
-          severity={severity}
-          count={count}
-          showIcon={true}
-        />
+        <SeverityBadge key={severity} severity={severity} count={count} showIcon={true} />
       ))}
     </div>
   );
@@ -255,11 +239,7 @@ interface RiskLevelIndicatorProps {
   className?: string;
 }
 
-export function RiskLevelIndicator({
-  critical,
-  high,
-  className,
-}: RiskLevelIndicatorProps) {
+export function RiskLevelIndicator({ critical, high, className }: RiskLevelIndicatorProps) {
   let riskLevel: 'critical' | 'high' | 'moderate' | 'low';
   let label: string;
 

@@ -5,7 +5,20 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FileBox, RefreshCw, FolderOpen, CheckCircle, XCircle, Search, Copy, Check, X, ChevronRight, ChevronDown, GripVertical } from 'lucide-react';
+import {
+  FileBox,
+  RefreshCw,
+  FolderOpen,
+  CheckCircle,
+  XCircle,
+  Search,
+  Copy,
+  Check,
+  X,
+  ChevronRight,
+  ChevronDown,
+  GripVertical,
+} from 'lucide-react';
 import { ipaAPI, type IpaMetadata } from '../../lib/tauri-api';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { formatDate } from '../../lib/utils';
@@ -26,7 +39,9 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
   const [copiedBundleId, setCopiedBundleId] = useState<number | null>(null);
 
   // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ index: number; x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ index: number; x: number; y: number } | null>(
+    null
+  );
 
   // Load IPA files in project directory
   const loadIpaFiles = useCallback(async () => {
@@ -53,7 +68,7 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
   }, [loadIpaFiles]);
 
   // Filter results
-  const filteredResults = ipaResults.filter(ipa => {
+  const filteredResults = ipaResults.filter((ipa) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -171,7 +186,8 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-4 mb-4">
           <h3 className="text-sm font-medium text-muted-foreground">
-            IPA files ({filteredResults.length}{searchQuery && ` / ${ipaResults.length}`})
+            IPA files ({filteredResults.length}
+            {searchQuery && ` / ${ipaResults.length}`})
           </h3>
           <div className="flex items-center gap-2">
             {/* Search box */}
@@ -219,9 +235,11 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
                   <div className="flex-1 min-w-0">
                     {/* Filename and status */}
                     <div className="flex items-center gap-2 mb-2">
-                      <FileBox className={`w-5 h-5 shrink-0 ${
-                        ipa.error ? 'text-red-400' : 'text-green-400'
-                      }`} />
+                      <FileBox
+                        className={`w-5 h-5 shrink-0 ${
+                          ipa.error ? 'text-red-400' : 'text-green-400'
+                        }`}
+                      />
                       <span className="text-sm font-medium text-foreground truncate">
                         {ipa.fileName}
                       </span>
@@ -265,7 +283,9 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
                       </div>
                       <div>
                         <span className="text-muted-foreground">Display name:</span>
-                        <span className="text-foreground ml-1.5 truncate">{ipa.displayName || '-'}</span>
+                        <span className="text-foreground ml-1.5 truncate">
+                          {ipa.displayName || '-'}
+                        </span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Created at:</span>
@@ -306,20 +326,14 @@ export function ProjectIpaInspector({ projectPath }: ProjectIpaInspectorProps) {
 
       {/* Right: Detail panel */}
       {selectedIndex !== null && ipaResults[selectedIndex] && (
-        <IpaDetailPanel
-          result={ipaResults[selectedIndex]}
-          onClose={handleCloseDetail}
-        />
+        <IpaDetailPanel result={ipaResults[selectedIndex]} onClose={handleCloseDetail} />
       )}
 
       {/* Context menu */}
       {contextMenu && (
         <>
           {/* Background mask */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={closeContextMenu}
-          />
+          <div className="fixed inset-0 z-40" onClick={closeContextMenu} />
           {/* Menu */}
           <div
             className="fixed z-50 bg-card border border-border rounded-lg shadow-xl py-1 min-w-[180px]"
@@ -361,31 +375,34 @@ function IpaDetailPanel({ result, onClose }: IpaDetailPanelProps) {
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isResizing.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      isResizing.current = true;
+      startX.current = e.clientX;
+      startWidth.current = width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      const delta = startX.current - e.clientX;
-      const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 600);
-      setWidth(newWidth);
-    };
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizing.current) return;
+        const delta = startX.current - e.clientX;
+        const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 600);
+        setWidth(newWidth);
+      };
 
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        isResizing.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [width]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [width]
+  );
 
   const handleCopy = async () => {
     const jsonText = result.fullPlist
@@ -457,7 +474,9 @@ function IpaDetailPanel({ result, onClose }: IpaDetailPanelProps) {
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Version:</span>
-            <span className="text-foreground">{result.version} ({result.build})</span>
+            <span className="text-foreground">
+              {result.version} ({result.build})
+            </span>
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Display name:</span>
@@ -465,7 +484,9 @@ function IpaDetailPanel({ result, onClose }: IpaDetailPanelProps) {
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Created at:</span>
-            <span className="text-foreground">{result.createdAt ? formatDate(result.createdAt) : 'N/A'}</span>
+            <span className="text-foreground">
+              {result.createdAt ? formatDate(result.createdAt) : 'N/A'}
+            </span>
           </div>
         </div>
 
@@ -565,12 +586,7 @@ function JsonNodeView({ keyName, value, level }: JsonNodeViewProps) {
         <div>
           {isArray
             ? (value as unknown[]).map((item, index) => (
-                <JsonNodeView
-                  key={index}
-                  keyName={`[${index}]`}
-                  value={item}
-                  level={level + 1}
-                />
+                <JsonNodeView key={index} keyName={`[${index}]`} value={item} level={level + 1} />
               ))
             : Object.entries(value as Record<string, unknown>).map(([k, v]) => (
                 <JsonNodeView key={k} keyName={k} value={v} level={level + 1} />

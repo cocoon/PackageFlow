@@ -12,7 +12,18 @@
  */
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
-import { Bot, User, Info, Copy, Check, RefreshCw, AlertCircle, Sparkles, Brain, Wrench } from 'lucide-react';
+import {
+  Bot,
+  User,
+  Info,
+  Copy,
+  Check,
+  RefreshCw,
+  AlertCircle,
+  Sparkles,
+  Brain,
+  Wrench,
+} from 'lucide-react';
 import { marked } from 'marked';
 import { cn } from '../../lib/utils';
 import { ActionConfirmationCard } from './ActionConfirmationCard';
@@ -113,9 +124,7 @@ function InlineStatusIndicator({ status }: { status: ResponseStatus }) {
     >
       <span className="flex items-center gap-1">{config.icon}</span>
       <span>{config.label}</span>
-      {showIteration && (
-        <span className="opacity-70 ml-0.5">(Step {status.iteration})</span>
-      )}
+      {showIteration && <span className="opacity-70 ml-0.5">(Step {status.iteration})</span>}
       {status.model && status.phase === 'generating' && (
         <span className="text-muted-foreground/60 ml-1">· {status.model}</span>
       )}
@@ -229,23 +238,32 @@ export function ChatMessage({
   }, [message.content]);
 
   // Find tool result for a given call ID
-  const getToolResult = useCallback((callId: string): ToolResult | undefined => {
-    return message.toolResults?.find(r => r.callId === callId);
-  }, [message.toolResults]);
+  const getToolResult = useCallback(
+    (callId: string): ToolResult | undefined => {
+      return message.toolResults?.find((r) => r.callId === callId);
+    },
+    [message.toolResults]
+  );
 
   // Handle tool call approval
-  const handleApproveToolCall = useCallback(async (toolCallId: string) => {
-    if (onApproveToolCall) {
-      await onApproveToolCall(toolCallId);
-    }
-  }, [onApproveToolCall]);
+  const handleApproveToolCall = useCallback(
+    async (toolCallId: string) => {
+      if (onApproveToolCall) {
+        await onApproveToolCall(toolCallId);
+      }
+    },
+    [onApproveToolCall]
+  );
 
   // Handle tool call denial
-  const handleDenyToolCall = useCallback(async (toolCallId: string, reason?: string) => {
-    if (onDenyToolCall) {
-      await onDenyToolCall(toolCallId, reason);
-    }
-  }, [onDenyToolCall]);
+  const handleDenyToolCall = useCallback(
+    async (toolCallId: string, reason?: string) => {
+      if (onDenyToolCall) {
+        await onDenyToolCall(toolCallId, reason);
+      }
+    },
+    [onDenyToolCall]
+  );
 
   // System message variant
   if (message.role === 'system') {
@@ -297,9 +315,7 @@ export function ChatMessage({
           </div>
 
           {/* Timestamp */}
-          <span className="text-[10px] text-muted-foreground/60 px-1.5">
-            {formattedTime}
-          </span>
+          <span className="text-[10px] text-muted-foreground/60 px-1.5">{formattedTime}</span>
         </div>
 
         {/* Avatar - Compact with gradient */}
@@ -380,11 +396,14 @@ export function ChatMessage({
           )}
         >
           {/* Inline status indicator - ChatGPT style (Feature 023) */}
-          {isStreaming && responseStatus && responseStatus.phase !== 'idle' && responseStatus.phase !== 'complete' && (
-            <div className="not-prose">
-              <InlineStatusIndicator status={responseStatus} />
-            </div>
-          )}
+          {isStreaming &&
+            responseStatus &&
+            responseStatus.phase !== 'idle' &&
+            responseStatus.phase !== 'complete' && (
+              <div className="not-prose">
+                <InlineStatusIndicator status={responseStatus} />
+              </div>
+            )}
 
           {/* Show thinking animation when streaming with no content and no status */}
           {isStreaming && !message.content && !responseStatus ? (
@@ -431,9 +450,7 @@ export function ChatMessage({
               )}
             >
               <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-              <span className="flex-1 text-destructive/90">
-                Failed to get response
-              </span>
+              <span className="flex-1 text-destructive/90">Failed to get response</span>
               <button
                 onClick={onRegenerate}
                 className={cn(

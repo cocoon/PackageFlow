@@ -37,7 +37,10 @@ export interface UseDeployAccountsActions {
   refreshAccounts: () => Promise<void>;
   addAccount: (platform: PlatformType) => Promise<OAuthFlowResult>;
   removeAccount: (accountId: string, force?: boolean) => Promise<RemoveAccountResult>;
-  updateAccountDisplayName: (accountId: string, displayName?: string) => Promise<DeployAccount | null>;
+  updateAccountDisplayName: (
+    accountId: string,
+    displayName?: string
+  ) => Promise<DeployAccount | null>;
 
   // Platform Filtering
   getAccountsByPlatform: (platform: PlatformType) => DeployAccount[];
@@ -56,7 +59,6 @@ export interface UseDeployAccountsActions {
 }
 
 export type UseDeployAccountsReturn = UseDeployAccountsState & UseDeployAccountsActions;
-
 
 // ============================================================================
 // Hook Implementation
@@ -90,80 +92,92 @@ export function useDeployAccounts(): UseDeployAccountsReturn {
     }
   }, []);
 
-  const addAccount = useCallback(async (platform: PlatformType): Promise<OAuthFlowResult> => {
-    setAddingPlatform(platform);
-    setError(null);
-    try {
-      const result = await deployAPI.addDeployAccount(platform);
-      if (result.success) {
-        // Refresh accounts list
-        await refreshAccounts();
-      } else if (result.error) {
-        setError(result.error);
+  const addAccount = useCallback(
+    async (platform: PlatformType): Promise<OAuthFlowResult> => {
+      setAddingPlatform(platform);
+      setError(null);
+      try {
+        const result = await deployAPI.addDeployAccount(platform);
+        if (result.success) {
+          // Refresh accounts list
+          await refreshAccounts();
+        } else if (result.error) {
+          setError(result.error);
+        }
+        return result;
+      } catch (err) {
+        const errorMsg = `Failed to add account: ${err}`;
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      } finally {
+        setAddingPlatform(null);
       }
-      return result;
-    } catch (err) {
-      const errorMsg = `Failed to add account: ${err}`;
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setAddingPlatform(null);
-    }
-  }, [refreshAccounts]);
+    },
+    [refreshAccounts]
+  );
 
-  const removeAccount = useCallback(async (
-    accountId: string,
-    force?: boolean
-  ): Promise<RemoveAccountResult> => {
-    setRemovingAccountId(accountId);
-    setError(null);
-    try {
-      const result = await deployAPI.removeDeployAccount(accountId, force);
-      if (result.success) {
-        setAccounts(prev => prev.filter(a => a.id !== accountId));
-        // Refresh preferences in case this was a default account
-        await refreshPreferences();
+  const removeAccount = useCallback(
+    async (accountId: string, force?: boolean): Promise<RemoveAccountResult> => {
+      setRemovingAccountId(accountId);
+      setError(null);
+      try {
+        const result = await deployAPI.removeDeployAccount(accountId, force);
+        if (result.success) {
+          setAccounts((prev) => prev.filter((a) => a.id !== accountId));
+          // Refresh preferences in case this was a default account
+          await refreshPreferences();
+        }
+        return result;
+      } catch (err) {
+        const errorMsg = `Failed to remove account: ${err}`;
+        setError(errorMsg);
+        return { success: false, affectedProjects: [] };
+      } finally {
+        setRemovingAccountId(null);
       }
-      return result;
-    } catch (err) {
-      const errorMsg = `Failed to remove account: ${err}`;
-      setError(errorMsg);
-      return { success: false, affectedProjects: [] };
-    } finally {
-      setRemovingAccountId(null);
-    }
-  }, []);
+    },
+    []
+  );
 
-  const updateAccountDisplayName = useCallback(async (
-    accountId: string,
-    displayName?: string
-  ): Promise<DeployAccount | null> => {
-    setError(null);
-    try {
-      const updated = await deployAPI.updateDeployAccount(accountId, displayName);
-      setAccounts(prev => prev.map(a => a.id === accountId ? updated : a));
-      return updated;
-    } catch (err) {
-      setError(`Failed to update account: ${err}`);
-      return null;
-    }
-  }, []);
+  const updateAccountDisplayName = useCallback(
+    async (accountId: string, displayName?: string): Promise<DeployAccount | null> => {
+      setError(null);
+      try {
+        const updated = await deployAPI.updateDeployAccount(accountId, displayName);
+        setAccounts((prev) => prev.map((a) => (a.id === accountId ? updated : a)));
+        return updated;
+      } catch (err) {
+        setError(`Failed to update account: ${err}`);
+        return null;
+      }
+    },
+    []
+  );
 
   // ========================================================================
   // Platform Filtering
   // ========================================================================
 
-  const getAccountsByPlatform = useCallback((platform: PlatformType): DeployAccount[] => {
-    return accounts.filter(a => a.platform === platform);
-  }, [accounts]);
+  const getAccountsByPlatform = useCallback(
+    (platform: PlatformType): DeployAccount[] => {
+      return accounts.filter((a) => a.platform === platform);
+    },
+    [accounts]
+  );
 
-  const getAccountById = useCallback((accountId: string): DeployAccount | undefined => {
-    return accounts.find(a => a.id === accountId);
-  }, [accounts]);
+  const getAccountById = useCallback(
+    (accountId: string): DeployAccount | undefined => {
+      return accounts.find((a) => a.id === accountId);
+    },
+    [accounts]
+  );
 
-  const hasAccountsForPlatform = useCallback((platform: PlatformType): boolean => {
-    return accounts.some(a => a.platform === platform);
-  }, [accounts]);
+  const hasAccountsForPlatform = useCallback(
+    (platform: PlatformType): boolean => {
+      return accounts.some((a) => a.platform === platform);
+    },
+    [accounts]
+  );
 
   // ========================================================================
   // Preferences
@@ -181,45 +195,51 @@ export function useDeployAccounts(): UseDeployAccountsReturn {
     }
   }, []);
 
-  const setDefaultAccount = useCallback(async (
-    platform: PlatformType,
-    accountId?: string
-  ): Promise<void> => {
-    try {
-      const updated = await deployAPI.setDefaultAccount(platform, accountId);
-      setPreferences(updated);
-    } catch (err) {
-      setError(`Failed to set default account: ${err}`);
-    }
-  }, []);
+  const setDefaultAccount = useCallback(
+    async (platform: PlatformType, accountId?: string): Promise<void> => {
+      try {
+        const updated = await deployAPI.setDefaultAccount(platform, accountId);
+        setPreferences(updated);
+      } catch (err) {
+        setError(`Failed to set default account: ${err}`);
+      }
+    },
+    []
+  );
 
-  const getDefaultAccount = useCallback((platform: PlatformType): DeployAccount | undefined => {
-    let defaultId: string | undefined;
-    switch (platform) {
-      case 'github_pages':
-        defaultId = preferences.defaultGithubPagesAccountId;
-        break;
-      case 'netlify':
-        defaultId = preferences.defaultNetlifyAccountId;
-        break;
-      case 'cloudflare_pages':
-        defaultId = preferences.defaultCloudflarePagesAccountId;
-        break;
-    }
+  const getDefaultAccount = useCallback(
+    (platform: PlatformType): DeployAccount | undefined => {
+      let defaultId: string | undefined;
+      switch (platform) {
+        case 'github_pages':
+          defaultId = preferences.defaultGithubPagesAccountId;
+          break;
+        case 'netlify':
+          defaultId = preferences.defaultNetlifyAccountId;
+          break;
+        case 'cloudflare_pages':
+          defaultId = preferences.defaultCloudflarePagesAccountId;
+          break;
+      }
 
-    if (!defaultId) return undefined;
-    return accounts.find(a => a.id === defaultId);
-  }, [accounts, preferences]);
+      if (!defaultId) return undefined;
+      return accounts.find((a) => a.id === defaultId);
+    },
+    [accounts, preferences]
+  );
 
-  const isDefaultAccount = useCallback((accountId: string): boolean => {
-    return preferences.defaultGithubPagesAccountId === accountId ||
-           preferences.defaultNetlifyAccountId === accountId ||
-           preferences.defaultCloudflarePagesAccountId === accountId;
-  }, [preferences]);
+  const isDefaultAccount = useCallback(
+    (accountId: string): boolean => {
+      return (
+        preferences.defaultGithubPagesAccountId === accountId ||
+        preferences.defaultNetlifyAccountId === accountId ||
+        preferences.defaultCloudflarePagesAccountId === accountId
+      );
+    },
+    [preferences]
+  );
 
-  const checkUsage = useCallback(async (
-    accountId: string,
-  ): Promise<CheckAccountResult | null> => {
+  const checkUsage = useCallback(async (accountId: string): Promise<CheckAccountResult | null> => {
     setError(null);
     try {
       const result = await deployAPI.checkAccountUsage(accountId);

@@ -7,7 +7,19 @@
  */
 
 import { useRef, useEffect, useMemo, useState, useCallback, useId } from 'react';
-import { X, Terminal, Copy, Check, Workflow, Loader2, CheckCircle2, XCircle, AlertCircle, List, Layers } from 'lucide-react';
+import {
+  X,
+  Terminal,
+  Copy,
+  Check,
+  Workflow,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  List,
+  Layers,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import type { WorkflowExecutionState, OutputLine } from '../../hooks/useWorkflowExecution';
@@ -267,45 +279,41 @@ export function WorkflowOutputPanel({
 
         {/* Output content */}
         <div className="flex-1 overflow-hidden p-4 bg-card/30">
-          <div
-            ref={outputRef}
-            onScroll={handleScroll}
-            className="h-full overflow-auto"
-          >
-          {output.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <Terminal className="w-12 h-12 mb-3 opacity-30" />
-              <p>{isActive ? 'Waiting for output...' : 'No output'}</p>
-            </div>
-          ) : viewMode === 'grouped' ? (
-            // Grouped view - output organized by node
-            <div className="space-y-3">
-              {groupedOutput.map((group) => (
-                <OutputNodeGroup
-                  key={group.nodeId}
-                  group={group}
-                  isLatest={group.nodeId === latestNodeId}
-                  defaultExpanded={group.status === 'running' || group.nodeId === latestNodeId}
-                />
-              ))}
-              {/* Cursor indicator when running */}
-              {isActive && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                  <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse" />
-                  <span>Workflow is running...</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            // Raw view - virtualized line-by-line output
-            <VirtualizedOutputList
-              lines={output}
-              renderLine={renderRawOutputLine}
-              autoScroll={autoScroll}
-              onScrollChange={handleVirtualizedScrollChange}
-              className="h-full"
-            />
-          )}
+          <div ref={outputRef} onScroll={handleScroll} className="h-full overflow-auto">
+            {output.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <Terminal className="w-12 h-12 mb-3 opacity-30" />
+                <p>{isActive ? 'Waiting for output...' : 'No output'}</p>
+              </div>
+            ) : viewMode === 'grouped' ? (
+              // Grouped view - output organized by node
+              <div className="space-y-3">
+                {groupedOutput.map((group) => (
+                  <OutputNodeGroup
+                    key={group.nodeId}
+                    group={group}
+                    isLatest={group.nodeId === latestNodeId}
+                    defaultExpanded={group.status === 'running' || group.nodeId === latestNodeId}
+                  />
+                ))}
+                {/* Cursor indicator when running */}
+                {isActive && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                    <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse" />
+                    <span>Workflow is running...</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Raw view - virtualized line-by-line output
+              <VirtualizedOutputList
+                lines={output}
+                renderLine={renderRawOutputLine}
+                autoScroll={autoScroll}
+                onScrollChange={handleVirtualizedScrollChange}
+                className="h-full"
+              />
+            )}
           </div>
         </div>
 
@@ -377,11 +385,7 @@ export function WorkflowOutputPanel({
                 </>
               )}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              className="h-auto px-4 py-1.5 text-sm"
-            >
+            <Button variant="secondary" onClick={onClose} className="h-auto px-4 py-1.5 text-sm">
               Close
             </Button>
           </div>
@@ -440,9 +444,7 @@ export function OutputPreview({ output, maxLines = 3, className }: OutputPreview
         </div>
       ))}
       {output.length > maxLines && (
-        <div className="text-muted-foreground mt-1">
-          ... {output.length - maxLines} more lines
-        </div>
+        <div className="text-muted-foreground mt-1">... {output.length - maxLines} more lines</div>
       )}
     </div>
   );
@@ -496,12 +498,8 @@ function ChildExecutionSummary({ nodeId: _nodeId, child }: ChildExecutionSummary
       {/* Workflow Name */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-foreground truncate">
-            {child.childWorkflowName}
-          </span>
-          <span className="text-muted-foreground">
-            {formatChildProgress(child)}
-          </span>
+          <span className="font-medium text-foreground truncate">{child.childWorkflowName}</span>
+          <span className="text-muted-foreground">{formatChildProgress(child)}</span>
         </div>
 
         {/* Progress Bar (when running) */}
@@ -523,9 +521,7 @@ function ChildExecutionSummary({ nodeId: _nodeId, child }: ChildExecutionSummary
 
         {/* Error Message (when failed) */}
         {child.status === 'failed' && child.errorMessage && (
-          <div className="mt-1 text-red-400 truncate">
-            {child.errorMessage}
-          </div>
+          <div className="mt-1 text-red-400 truncate">{child.errorMessage}</div>
         )}
       </div>
 

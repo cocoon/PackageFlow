@@ -20,8 +20,7 @@ const buttonVariants = cva(
         warning:
           'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 hover:text-amber-300 active:bg-amber-500/40 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30 dark:hover:bg-amber-500/30',
         // Info action - cyan theme with translucent style
-        info:
-          'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 hover:text-cyan-300 active:bg-cyan-500/40 dark:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/30 dark:hover:bg-cyan-500/30',
+        info: 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 hover:text-cyan-300 active:bg-cyan-500/40 dark:bg-cyan-500/20 dark:text-cyan-400 dark:border-cyan-500/30 dark:hover:bg-cyan-500/30',
         // Outline variants
         outline:
           'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
@@ -37,8 +36,7 @@ const buttonVariants = cva(
         secondary:
           'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:bg-secondary/70',
         // Ghost - minimal style
-        ghost:
-          'hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground active:bg-accent/80',
         // Link style
         link: 'text-primary underline-offset-4 hover:underline',
       },
@@ -57,17 +55,12 @@ const buttonVariants = cva(
 );
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, ...props }, ref) => {
     return (
-      <button
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
+      <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
     );
   }
 );

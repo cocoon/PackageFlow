@@ -42,13 +42,7 @@ export const DEFAULT_KEYBOARD_SHORTCUTS_SETTINGS: KeyboardShortcutsSettings = {
 /**
  * Shortcut category definition
  */
-export type ShortcutCategory =
-  | 'General'
-  | 'Navigation'
-  | 'Data'
-  | 'Execution'
-  | 'Editor'
-  | 'Help';
+export type ShortcutCategory = 'General' | 'Navigation' | 'Data' | 'Execution' | 'Editor' | 'Help';
 
 /**
  * All available shortcut categories
@@ -66,12 +60,12 @@ export const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
  * System reserved shortcuts that cannot be customized (macOS)
  */
 export const SYSTEM_RESERVED_SHORTCUTS = [
-  'cmd+q',      // Quit
-  'cmd+h',      // Hide
-  'cmd+m',      // Minimize
-  'cmd+tab',    // App switch
-  'cmd+space',  // Spotlight
-  'cmd+`',      // Window switch
+  'cmd+q', // Quit
+  'cmd+h', // Hide
+  'cmd+m', // Minimize
+  'cmd+tab', // App switch
+  'cmd+space', // Spotlight
+  'cmd+`', // Window switch
 ] as const;
 
 /**
@@ -79,7 +73,5 @@ export const SYSTEM_RESERVED_SHORTCUTS = [
  */
 export function isSystemReservedShortcut(key: string): boolean {
   const normalized = key.toLowerCase().replace(/\s/g, '');
-  return SYSTEM_RESERVED_SHORTCUTS.some(
-    reserved => normalized === reserved.toLowerCase()
-  );
+  return SYSTEM_RESERVED_SHORTCUTS.some((reserved) => normalized === reserved.toLowerCase());
 }

@@ -118,7 +118,10 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
               const outputResponse = await workflowAPI.getWorkflowOutput(exec.workflowId);
               return { workflowId: exec.workflowId, output: outputResponse };
             } catch (error) {
-              console.error(`[useWorkflowExecution] Failed to get output for ${exec.workflowId}:`, error);
+              console.error(
+                `[useWorkflowExecution] Failed to get output for ${exec.workflowId}:`,
+                error
+              );
               return { workflowId: exec.workflowId, output: null };
             }
           });
@@ -144,25 +147,28 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
                 const existingState = prev[exec.workflowId];
 
                 // Convert backend output lines to frontend OutputLine format
-                const restoredOutput: OutputLine[] = backendOutput?.lines?.map((line) => ({
-                  id: `${line.nodeId}-${line.timestamp}`,
-                  nodeId: line.nodeId,
-                  nodeName: line.nodeName,
-                  content: line.content,
-                  stream: line.stream as 'stdout' | 'stderr' | 'system',
-                  timestamp: new Date(line.timestamp),
-                })) || existingState?.output || [];
+                const restoredOutput: OutputLine[] =
+                  backendOutput?.lines?.map((line) => ({
+                    id: `${line.nodeId}-${line.timestamp}`,
+                    nodeId: line.nodeId,
+                    nodeName: line.nodeName,
+                    content: line.content,
+                    stream: line.stream as 'stdout' | 'stderr' | 'system',
+                    timestamp: new Date(line.timestamp),
+                  })) ||
+                  existingState?.output ||
+                  [];
 
                 newStates[exec.workflowId] = {
                   executionId,
                   status: 'running',
-                  currentNode: runningNode ? {
-                    id: runningNode.nodeId,
-                    name: runningNode.nodeId, // We don't have the name, use ID
-                  } : null,
-                  progress: totalNodes > 0
-                    ? Math.round((completedNodes / totalNodes) * 100)
-                    : 0,
+                  currentNode: runningNode
+                    ? {
+                        id: runningNode.nodeId,
+                        name: runningNode.nodeId, // We don't have the name, use ID
+                      }
+                    : null,
+                  progress: totalNodes > 0 ? Math.round((completedNodes / totalNodes) * 100) : 0,
                   totalNodes,
                   completedNodes,
                   error: null,
@@ -176,7 +182,10 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
               }
             }
 
-            console.log('[useWorkflowExecution] Restored running executions with output:', Object.keys(runningExecutions));
+            console.log(
+              '[useWorkflowExecution] Restored running executions with output:',
+              Object.keys(runningExecutions)
+            );
             return newStates;
           });
         }
@@ -328,21 +337,24 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
               prev[workflowId].status === 'starting' && prev[workflowId].executionId === null;
 
             // Determine node type from payload
-            const nodeType = payload.nodeType === 'trigger-workflow' ? 'trigger-workflow' : 'script';
+            const nodeType =
+              payload.nodeType === 'trigger-workflow' ? 'trigger-workflow' : 'script';
 
             // Create a system message for node start
             // Feature 013: Use target workflow name for trigger-workflow nodes
-            const displayName = nodeType === 'trigger-workflow' && payload.targetWorkflowName
-              ? payload.targetWorkflowName
-              : payload.nodeName;
+            const displayName =
+              nodeType === 'trigger-workflow' && payload.targetWorkflowName
+                ? payload.targetWorkflowName
+                : payload.nodeName;
             const startLine: OutputLine = {
               id: `node-start-${++outputIdCounter.current}`,
               nodeId: payload.nodeId,
               nodeName: payload.nodeName,
               nodeType,
-              content: nodeType === 'trigger-workflow'
-                ? `>> Triggering workflow: ${displayName}`
-                : `> Starting: ${payload.nodeName}`,
+              content:
+                nodeType === 'trigger-workflow'
+                  ? `>> Triggering workflow: ${displayName}`
+                  : `> Starting: ${payload.nodeName}`,
               stream: 'system',
               timestamp: new Date(),
             };
@@ -391,9 +403,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
               .reverse()
               .find(
                 (line) =>
-                  line.nodeId === payload.nodeId &&
-                  line.stream === 'system' &&
-                  line.nodeName
+                  line.nodeId === payload.nodeId && line.stream === 'system' && line.nodeName
               );
 
             const newLine: OutputLine = {
@@ -437,9 +447,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
             const state = prev[workflowId];
             const newCompletedNodes = state.completedNodes + 1;
             const progress =
-              state.totalNodes > 0
-                ? Math.round((newCompletedNodes / state.totalNodes) * 100)
-                : 0;
+              state.totalNodes > 0 ? Math.round((newCompletedNodes / state.totalNodes) * 100) : 0;
 
             // Find the node metadata from output
             const currentOutput = state.output || [];
@@ -447,9 +455,7 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
               .reverse()
               .find(
                 (line) =>
-                  line.nodeId === payload.nodeId &&
-                  line.stream === 'system' &&
-                  line.nodeName
+                  line.nodeId === payload.nodeId && line.stream === 'system' && line.nodeName
               );
 
             // Create completion message based on status
@@ -537,7 +543,8 @@ export function useWorkflowExecution(options: UseWorkflowExecutionOptions = {}) 
                 nodeName: line.nodeName || '',
                 content: line.content,
                 stream: line.stream,
-                timestamp: line.timestamp instanceof Date ? line.timestamp.toISOString() : line.timestamp,
+                timestamp:
+                  line.timestamp instanceof Date ? line.timestamp.toISOString() : line.timestamp,
               })),
               triggeredBy: 'manual' as const,
             };

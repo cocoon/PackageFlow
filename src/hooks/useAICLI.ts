@@ -206,11 +206,7 @@ export function useAICLI(): UseAICLIReturn {
           executionId: result.executionId,
           exitCode: result.exitCode ?? null,
           durationMs: result.durationMs ?? null,
-          state: result.cancelled
-            ? 'cancelled'
-            : result.exitCode === 0
-              ? 'completed'
-              : 'failed',
+          state: result.cancelled ? 'cancelled' : result.exitCode === 0 ? 'completed' : 'failed',
         }));
 
         return result;
@@ -369,31 +365,37 @@ export function useCLIToolConfigs(): {
     loadConfigs();
   }, [loadConfigs]);
 
-  const saveConfig = useCallback(async (config: CLIToolConfig): Promise<boolean> => {
-    try {
-      const response = await aiCLIAPI.saveTool(config);
-      if (response.success) {
-        await loadConfigs();
-        return true;
+  const saveConfig = useCallback(
+    async (config: CLIToolConfig): Promise<boolean> => {
+      try {
+        const response = await aiCLIAPI.saveTool(config);
+        if (response.success) {
+          await loadConfigs();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [loadConfigs]);
+    },
+    [loadConfigs]
+  );
 
-  const deleteConfig = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const response = await aiCLIAPI.deleteTool(id);
-      if (response.success) {
-        await loadConfigs();
-        return true;
+  const deleteConfig = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const response = await aiCLIAPI.deleteTool(id);
+        if (response.success) {
+          await loadConfigs();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
-    } catch {
-      return false;
-    }
-  }, [loadConfigs]);
+    },
+    [loadConfigs]
+  );
 
   return {
     configs,

@@ -74,10 +74,7 @@ export function EnvVariablesPreview({
       {/* Variable List */}
       <div className="divide-y divide-border">
         {displayVariables.map((variable) => (
-          <div
-            key={variable.key}
-            className="flex items-center gap-3 px-4 py-2.5"
-          >
+          <div key={variable.key} className="flex items-center gap-3 px-4 py-2.5">
             <code className="text-xs font-medium text-foreground bg-muted px-2 py-0.5 rounded">
               {variable.key}
             </code>

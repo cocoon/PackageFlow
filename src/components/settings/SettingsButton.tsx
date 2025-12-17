@@ -16,14 +16,10 @@ interface SettingsButtonProps {
 
 // Keyboard shortcut display helper
 const isMac =
-  typeof navigator !== 'undefined' &&
-  navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 const modKey = isMac ? 'Cmd' : 'Ctrl';
 
-export const SettingsButton: React.FC<SettingsButtonProps> = ({
-  onClick,
-  className,
-}) => {
+export const SettingsButton: React.FC<SettingsButtonProps> = ({ onClick, className }) => {
   return (
     <Button
       variant="ghost"

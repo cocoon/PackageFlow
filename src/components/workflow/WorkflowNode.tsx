@@ -120,9 +120,7 @@ export function WorkflowNode({
           </div>
 
           {node.config.cwd && (
-            <div className="mt-2 text-xs text-muted-foreground truncate">
-              📁 {node.config.cwd}
-            </div>
+            <div className="mt-2 text-xs text-muted-foreground truncate">📁 {node.config.cwd}</div>
           )}
         </>
       )}

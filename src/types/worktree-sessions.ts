@@ -73,4 +73,3 @@ export interface ResumeSessionResult {
   status: ResumeSessionStatus;
   results: ResumeActionResult[];
 }
-

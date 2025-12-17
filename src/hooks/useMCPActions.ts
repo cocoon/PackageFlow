@@ -47,7 +47,11 @@ export interface UseMCPActionsReturn {
   error: string | null;
 
   // Actions CRUD
-  fetchActions: (projectId?: string, actionType?: MCPActionType, isEnabled?: boolean) => Promise<void>;
+  fetchActions: (
+    projectId?: string,
+    actionType?: MCPActionType,
+    isEnabled?: boolean
+  ) => Promise<void>;
   createAction: (
     actionType: MCPActionType,
     name: string,
@@ -112,7 +116,8 @@ export function useMCPActions(options: UseMCPActionsOptions = {}): UseMCPActions
   const [error, setError] = useState<string | null>(null);
 
   // Combined loading state
-  const isLoading = isActionsLoading || isPermissionsLoading || isExecutionsLoading || isPendingLoading;
+  const isLoading =
+    isActionsLoading || isPermissionsLoading || isExecutionsLoading || isPendingLoading;
 
   // ============================================================================
   // Fetch functions
@@ -205,7 +210,13 @@ export function useMCPActions(options: UseMCPActionsOptions = {}): UseMCPActions
       config: Record<string, unknown>,
       projectId?: string
     ): Promise<MCPAction> => {
-      const action = await mcpActionAPI.createAction(actionType, name, description, config, projectId);
+      const action = await mcpActionAPI.createAction(
+        actionType,
+        name,
+        description,
+        config,
+        projectId
+      );
       setActions((prev) => [...prev, action]);
       return action;
     },

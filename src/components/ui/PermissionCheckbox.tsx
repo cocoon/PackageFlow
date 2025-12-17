@@ -35,19 +35,22 @@ interface PermissionCheckboxProps {
 const variantStyles = {
   read: {
     checked: 'bg-blue-500 border-blue-500 shadow-blue-500/25',
-    unchecked: 'border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500',
+    unchecked:
+      'border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500',
     disabled: 'bg-muted border-muted-foreground/20',
     label: 'text-blue-600 dark:text-blue-400',
   },
   execute: {
     checked: 'bg-amber-500 border-amber-500 shadow-amber-500/25',
-    unchecked: 'border-amber-300 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500',
+    unchecked:
+      'border-amber-300 dark:border-amber-700 hover:border-amber-400 dark:hover:border-amber-500',
     disabled: 'bg-muted border-muted-foreground/20',
     label: 'text-amber-600 dark:text-amber-400',
   },
   write: {
     checked: 'bg-rose-500 border-rose-500 shadow-rose-500/25',
-    unchecked: 'border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-500',
+    unchecked:
+      'border-rose-300 dark:border-rose-700 hover:border-rose-400 dark:hover:border-rose-500',
     disabled: 'bg-muted border-muted-foreground/20',
     label: 'text-rose-600 dark:text-rose-400',
   },
@@ -208,17 +211,20 @@ interface PermissionPillProps {
 const pillVariantStyles = {
   read: {
     checked: 'bg-blue-500/15 border-blue-500/30 text-blue-600 dark:text-blue-400',
-    unchecked: 'bg-transparent border-border text-muted-foreground hover:border-blue-300 dark:hover:border-blue-600',
+    unchecked:
+      'bg-transparent border-border text-muted-foreground hover:border-blue-300 dark:hover:border-blue-600',
     disabled: 'bg-muted/50 border-transparent text-muted-foreground/40',
   },
   execute: {
     checked: 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400',
-    unchecked: 'bg-transparent border-border text-muted-foreground hover:border-amber-300 dark:hover:border-amber-600',
+    unchecked:
+      'bg-transparent border-border text-muted-foreground hover:border-amber-300 dark:hover:border-amber-600',
     disabled: 'bg-muted/50 border-transparent text-muted-foreground/40',
   },
   write: {
     checked: 'bg-rose-500/15 border-rose-500/30 text-rose-600 dark:text-rose-400',
-    unchecked: 'bg-transparent border-border text-muted-foreground hover:border-rose-300 dark:hover:border-rose-600',
+    unchecked:
+      'bg-transparent border-border text-muted-foreground hover:border-rose-300 dark:hover:border-rose-600',
     disabled: 'bg-muted/50 border-transparent text-muted-foreground/40',
   },
 };

@@ -130,9 +130,7 @@ export const DeployAccountsPanel: React.FC = () => {
             onAddAccount={() => handleAddAccount(platform.id)}
             onRemoveAccount={handleRemoveAccount}
             onUpdateDisplayName={handleUpdateDisplayName}
-            onSetDefaultAccount={(accountId) =>
-              handleSetDefaultAccount(platform.id, accountId)
-            }
+            onSetDefaultAccount={(accountId) => handleSetDefaultAccount(platform.id, accountId)}
             onCheckUsage={checkUsage}
           />
         ))}

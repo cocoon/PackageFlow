@@ -5,7 +5,16 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Check, Loader2, ChevronDown, Sparkles, AlertCircle, X, Settings, FileSearch } from 'lucide-react';
+import {
+  Check,
+  Loader2,
+  ChevronDown,
+  Sparkles,
+  AlertCircle,
+  X,
+  Settings,
+  FileSearch,
+} from 'lucide-react';
 import { useAICommitMessage, useAIService, useAIStagedReview } from '../../../hooks/useAIService';
 import { AIReviewDialog } from '../../ui/AIReviewDialog';
 import { Button } from '../../ui/Button';
@@ -115,7 +124,7 @@ export function GitCommitForm({
   };
 
   // Handle template selection
-  const handleSelectTemplate = (template: typeof COMMIT_TEMPLATES[0]) => {
+  const handleSelectTemplate = (template: (typeof COMMIT_TEMPLATES)[0]) => {
     setSelectedTemplate(template.id);
     setMessage(template.prefix);
     setShowTemplates(false);
@@ -226,17 +235,33 @@ export function GitCommitForm({
                 <Button
                   variant="ghost"
                   onClick={handleAIGenerate}
-                  disabled={!hasStagedChanges || aiCommit.isGenerating || aiReview.isGenerating || isLoadingServices}
-                  title={!hasStagedChanges ? 'Stage files first' : aiReview.isGenerating ? 'Wait for AI Review to complete' : 'Generate commit message with AI'}
+                  disabled={
+                    !hasStagedChanges ||
+                    aiCommit.isGenerating ||
+                    aiReview.isGenerating ||
+                    isLoadingServices
+                  }
+                  title={
+                    !hasStagedChanges
+                      ? 'Stage files first'
+                      : aiReview.isGenerating
+                        ? 'Wait for AI Review to complete'
+                        : 'Generate commit message with AI'
+                  }
                   className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 h-auto border border-purple-500/30 ${aiCommit.isGenerating ? 'animate-ai-generate-glow' : ''}`}
                 >
                   <span className="relative">
-                    <Sparkles className={`w-4 h-4 text-purple-400 transition-transform duration-200 ${aiCommit.isGenerating ? 'animate-sparkle-glow' : 'group-hover:scale-110'}`} />
+                    <Sparkles
+                      className={`w-4 h-4 text-purple-400 transition-transform duration-200 ${aiCommit.isGenerating ? 'animate-sparkle-glow' : 'group-hover:scale-110'}`}
+                    />
                     {/* Sparkle particles when generating */}
                     {aiCommit.isGenerating && (
                       <>
                         <span className="absolute -top-0.5 -right-0.5 w-1 h-1 bg-purple-400 rounded-full animate-sparkle-twinkle" />
-                        <span className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-purple-300 rounded-full animate-sparkle-twinkle" style={{ animationDelay: '300ms' }} />
+                        <span
+                          className="absolute -bottom-0.5 -left-0.5 w-1 h-1 bg-purple-300 rounded-full animate-sparkle-twinkle"
+                          style={{ animationDelay: '300ms' }}
+                        />
                       </>
                     )}
                   </span>
@@ -249,12 +274,25 @@ export function GitCommitForm({
                 <Button
                   variant="ghost"
                   onClick={handleAIReview}
-                  disabled={!hasStagedChanges || aiReview.isGenerating || aiCommit.isGenerating || isLoadingServices}
-                  title={!hasStagedChanges ? 'Stage files first' : aiCommit.isGenerating ? 'Wait for AI Generate to complete' : 'Review all staged changes with AI'}
+                  disabled={
+                    !hasStagedChanges ||
+                    aiReview.isGenerating ||
+                    aiCommit.isGenerating ||
+                    isLoadingServices
+                  }
+                  title={
+                    !hasStagedChanges
+                      ? 'Stage files first'
+                      : aiCommit.isGenerating
+                        ? 'Wait for AI Generate to complete'
+                        : 'Review all staged changes with AI'
+                  }
                   className={`group relative flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 h-auto border border-blue-500/30 ${aiReview.isGenerating ? 'animate-ai-review-glow' : ''}`}
                 >
                   <span className="relative">
-                    <FileSearch className={`w-4 h-4 text-blue-400 transition-transform duration-200 ${aiReview.isGenerating ? 'animate-scan-glow' : 'group-hover:scale-110'}`} />
+                    <FileSearch
+                      className={`w-4 h-4 text-blue-400 transition-transform duration-200 ${aiReview.isGenerating ? 'animate-scan-glow' : 'group-hover:scale-110'}`}
+                    />
                     {/* Scan indicator when reviewing */}
                     {aiReview.isGenerating && (
                       <span className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-1 h-3 bg-blue-400/60 rounded-full animate-scan-line" />
@@ -271,9 +309,7 @@ export function GitCommitForm({
 
         {/* Tokens used indicator */}
         {aiCommit.tokensUsed !== null && (
-          <span className="text-xs text-muted-foreground">
-            {aiCommit.tokensUsed} tokens
-          </span>
+          <span className="text-xs text-muted-foreground">{aiCommit.tokensUsed} tokens</span>
         )}
       </div>
 
@@ -310,11 +346,7 @@ export function GitCommitForm({
         <span className="text-xs text-muted-foreground">
           {hasStagedChanges ? 'Ready to commit' : 'No staged changes'}
         </span>
-        <Button
-          onClick={handleSubmit}
-          disabled={isDisabled}
-          variant="success"
-        >
+        <Button onClick={handleSubmit} disabled={isDisabled} variant="success">
           {isSubmitting || isCommitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (

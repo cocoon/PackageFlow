@@ -83,10 +83,7 @@ export function DeployTargetCard({
       <div className="flex items-center gap-3">
         {/* Platform Icon Badge */}
         <div
-          className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-lg',
-            config.bgClass
-          )}
+          className={cn('flex h-10 w-10 items-center justify-center rounded-lg', config.bgClass)}
         >
           <span className="text-white">{config.icon}</span>
         </div>
@@ -143,20 +140,13 @@ export function DeployTargetCard({
               Edit settings
             </DropdownItem>
           )}
-          <DropdownItem
-            icon={<ExternalLink className="h-4 w-4" />}
-            onClick={handleOpenDashboard}
-          >
+          <DropdownItem icon={<ExternalLink className="h-4 w-4" />} onClick={handleOpenDashboard}>
             Open dashboard
           </DropdownItem>
           {onUnbind && (
             <>
               <DropdownSeparator />
-              <DropdownItem
-                icon={<Unlink className="h-4 w-4" />}
-                onClick={onUnbind}
-                destructive
-              >
+              <DropdownItem icon={<Unlink className="h-4 w-4" />} onClick={onUnbind} destructive>
                 Remove configuration
               </DropdownItem>
             </>

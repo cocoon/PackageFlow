@@ -22,7 +22,17 @@ import { ConversationHeader } from './ConversationHeader';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useAIQuickActions } from '../../hooks/useAIQuickActions';
 import { useConversations } from '../../hooks/useConversations';
-import { Bot, AlertCircle, X, Sparkles, Zap, FolderGit2, Workflow, Terminal, GitBranch } from 'lucide-react';
+import {
+  Bot,
+  AlertCircle,
+  X,
+  Sparkles,
+  Zap,
+  FolderGit2,
+  Workflow,
+  Terminal,
+  GitBranch,
+} from 'lucide-react';
 import type { SuggestedAction } from '../../types/ai-assistant';
 
 /**
@@ -215,9 +225,9 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
       // Show if it's the last message and currently streaming
       if (msg.role === 'assistant' && !msg.content && msg.toolCalls && msg.toolCalls.length > 0) {
         const isLastMessage = index === messages.length - 1;
-        const hasSubsequentAssistantMessage = messages.slice(index + 1).some(
-          (m) => m.role === 'assistant' && m.content
-        );
+        const hasSubsequentAssistantMessage = messages
+          .slice(index + 1)
+          .some((m) => m.role === 'assistant' && m.content);
         // Hide if there's a subsequent assistant message with content
         if (hasSubsequentAssistantMessage) {
           return false;
@@ -285,24 +295,27 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
   }, [conversations, conversation]);
 
   // Navigate to previous/next conversation
-  const navigateConversation = useCallback((direction: -1 | 1) => {
-    if (conversations.length === 0) return;
+  const navigateConversation = useCallback(
+    (direction: -1 | 1) => {
+      if (conversations.length === 0) return;
 
-    const currentIndex = conversation
-      ? conversations.findIndex((c) => c.id === conversation.id)
-      : -1;
+      const currentIndex = conversation
+        ? conversations.findIndex((c) => c.id === conversation.id)
+        : -1;
 
-    let newIndex: number;
-    if (currentIndex === -1) {
-      newIndex = direction === 1 ? 0 : conversations.length - 1;
-    } else {
-      newIndex = currentIndex + direction;
-      if (newIndex < 0) newIndex = conversations.length - 1;
-      if (newIndex >= conversations.length) newIndex = 0;
-    }
+      let newIndex: number;
+      if (currentIndex === -1) {
+        newIndex = direction === 1 ? 0 : conversations.length - 1;
+      } else {
+        newIndex = currentIndex + direction;
+        if (newIndex < 0) newIndex = conversations.length - 1;
+        if (newIndex >= conversations.length) newIndex = 0;
+      }
 
-    loadConversation(conversations[newIndex].id);
-  }, [conversations, conversation, loadConversation]);
+      loadConversation(conversations[newIndex].id);
+    },
+    [conversations, conversation, loadConversation]
+  );
 
   // Handle new chat
   const handleNewChat = useCallback(async () => {
@@ -310,9 +323,12 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
   }, [createNewConversation]);
 
   // Handle conversation selection
-  const handleSelectConversation = useCallback(async (conversationId: string) => {
-    await loadConversation(conversationId);
-  }, [loadConversation]);
+  const handleSelectConversation = useCallback(
+    async (conversationId: string) => {
+      await loadConversation(conversationId);
+    },
+    [loadConversation]
+  );
 
   // Handle send message
   const handleSend = useCallback(async () => {
@@ -325,26 +341,38 @@ export function AIAssistantPage({ onOpenSettings }: AIAssistantPageProps) {
   }, [inputValue, sendMessage, setInputValue, refreshConversations]);
 
   // Handle quick action click
-  const handleQuickAction = useCallback(async (prompt: string) => {
-    setDismissedError(null);
-    await sendMessage(prompt);
-    await refreshConversations();
-  }, [sendMessage, refreshConversations]);
+  const handleQuickAction = useCallback(
+    async (prompt: string) => {
+      setDismissedError(null);
+      await sendMessage(prompt);
+      await refreshConversations();
+    },
+    [sendMessage, refreshConversations]
+  );
 
   // Handle tool call approval
-  const handleApproveToolCall = useCallback(async (toolCallId: string) => {
-    await approveToolCall(toolCallId);
-  }, [approveToolCall]);
+  const handleApproveToolCall = useCallback(
+    async (toolCallId: string) => {
+      await approveToolCall(toolCallId);
+    },
+    [approveToolCall]
+  );
 
   // Handle tool call denial
-  const handleDenyToolCall = useCallback(async (toolCallId: string, reason?: string) => {
-    await denyToolCall(toolCallId, reason);
-  }, [denyToolCall]);
+  const handleDenyToolCall = useCallback(
+    async (toolCallId: string, reason?: string) => {
+      await denyToolCall(toolCallId, reason);
+    },
+    [denyToolCall]
+  );
 
   // Handle stopping tool execution
-  const handleStopToolExecution = useCallback(async (toolCallId: string) => {
-    await stopToolExecution(toolCallId);
-  }, [stopToolExecution]);
+  const handleStopToolExecution = useCallback(
+    async (toolCallId: string) => {
+      await stopToolExecution(toolCallId);
+    },
+    [stopToolExecution]
+  );
 
   // Handle sidebar toggle
   const handleToggleSidebar = useCallback(() => {
@@ -555,12 +583,8 @@ function WelcomeState({ onAction }: WelcomeStateProps) {
           </div>
         </div>
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-foreground mb-1">
-            PackageFlow AI
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Automate workflows with MCP-powered tools
-          </p>
+          <h2 className="text-xl font-semibold text-foreground mb-1">PackageFlow AI</h2>
+          <p className="text-sm text-muted-foreground">Automate workflows with MCP-powered tools</p>
         </div>
       </div>
 
@@ -581,17 +605,17 @@ function WelcomeState({ onAction }: WelcomeStateProps) {
             )}
           >
             <div className="flex items-start gap-3">
-              <div className={cn(
-                'p-2.5 rounded-xl bg-background/60',
-                'group-hover:bg-background/90 transition-colors',
-                'shadow-sm'
-              )}>
+              <div
+                className={cn(
+                  'p-2.5 rounded-xl bg-background/60',
+                  'group-hover:bg-background/90 transition-colors',
+                  'shadow-sm'
+                )}
+              >
                 {tip.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-foreground text-sm mb-1">
-                  {tip.title}
-                </h3>
+                <h3 className="font-medium text-foreground text-sm mb-1">{tip.title}</h3>
                 <p className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed">
                   {tip.description}
                 </p>
@@ -636,15 +660,21 @@ function WelcomeState({ onAction }: WelcomeStateProps) {
       {/* Keyboard shortcuts hint */}
       <div className="mt-8 pt-6 border-t border-border/30 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[11px] text-muted-foreground/50">
         <span className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">Cmd+B</kbd>
+          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">
+            Cmd+B
+          </kbd>
           <span>sidebar</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">Cmd+N</kbd>
+          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">
+            Cmd+N
+          </kbd>
           <span>new chat</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">Cmd+[/]</kbd>
+          <kbd className="px-1.5 py-0.5 bg-muted/50 rounded text-[10px] font-mono border border-border/30">
+            Cmd+[/]
+          </kbd>
           <span>navigate history</span>
         </span>
       </div>

@@ -53,8 +53,8 @@ function WorkspaceSecurityBadge({ summary }: { summary: WorkspaceVulnSummary | u
         hasCritical
           ? 'bg-red-500/20 text-red-400'
           : hasHigh
-          ? 'bg-orange-500/20 text-orange-400'
-          : 'bg-yellow-500/20 text-yellow-400'
+            ? 'bg-orange-500/20 text-orange-400'
+            : 'bg-yellow-500/20 text-yellow-400'
       )}
       title={`${total} vulnerabilities (${critical} critical, ${high} high)`}
     >
@@ -143,15 +143,15 @@ export function MonorepoView({
   }, [shouldLoadGraph]);
 
   const dependencyGraph = useDependencyGraph(
-    shouldLoadGraph ? (projectPath || null) : null,
+    shouldLoadGraph ? projectPath || null : null,
     shouldLoadGraph ? monorepoTool.selectedTool : null
   );
 
-  const activePackage = workspaces.find(w => w.name === selectedPackage);
+  const activePackage = workspaces.find((w) => w.name === selectedPackage);
 
   const summaryMap = useMemo(() => {
     if (!workspaceSummaries) return new Map<string, WorkspaceVulnSummary>();
-    return new Map(workspaceSummaries.map(s => [s.packageName, s]));
+    return new Map(workspaceSummaries.map((s) => [s.packageName, s]));
   }, [workspaceSummaries]);
 
   // Convert dependency graph nodes for tool panel
@@ -279,7 +279,7 @@ export function MonorepoView({
               <h3 className="text-sm font-semibold text-foreground">Workspaces</h3>
             </div>
             <ul className="overflow-y-auto max-h-[calc(100vh-300px)]">
-              {workspaces.map(workspace => {
+              {workspaces.map((workspace) => {
                 const isSelected = selectedPackage === workspace.name;
                 const hasScripts = Object.keys(workspace.scripts).length > 0;
 
@@ -297,7 +297,9 @@ export function MonorepoView({
                       <Package className="w-4 h-4 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium truncate">{workspace.name}</div>
-                        <div className="text-xs text-muted-foreground truncate">{workspace.relativePath}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {workspace.relativePath}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <WorkspaceFrameworkBadge uiFramework={workspace.uiFramework} />
@@ -324,18 +326,23 @@ export function MonorepoView({
                     <Package className="w-5 h-5 text-blue-400" />
                     <h2 className="text-lg font-semibold text-foreground">{activePackage.name}</h2>
                     <span className="text-sm text-muted-foreground">v{activePackage.version}</span>
-                    {activePackage.uiFramework && UI_FRAMEWORK_CONFIG[activePackage.uiFramework] && (
+                    {activePackage.uiFramework &&
+                      UI_FRAMEWORK_CONFIG[activePackage.uiFramework] &&
                       (() => {
                         const config = UI_FRAMEWORK_CONFIG[activePackage.uiFramework!];
                         const Icon = config.icon;
                         return (
-                          <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded', config.color)}>
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded',
+                              config.color
+                            )}
+                          >
                             <Icon className="w-3 h-3" />
                             {config.label}
                           </span>
                         );
-                      })()
-                    )}
+                      })()}
                   </div>
                   <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground">
                     <Folder className="w-4 h-4" />
@@ -349,8 +356,12 @@ export function MonorepoView({
                   runningCommands={runningCommands}
                   packageManager={packageManager}
                   projectPath={activePackage.absolutePath}
-                  onExecute={(scriptName, cwd) => onExecuteScript(scriptName, cwd || activePackage.absolutePath)}
-                  onCancel={(scriptName, cwd) => onCancelScript(scriptName, cwd || activePackage.absolutePath)}
+                  onExecute={(scriptName, cwd) =>
+                    onExecuteScript(scriptName, cwd || activePackage.absolutePath)
+                  }
+                  onCancel={(scriptName, cwd) =>
+                    onCancelScript(scriptName, cwd || activePackage.absolutePath)
+                  }
                   onExecuteCommand={onExecuteCommand}
                   onCancelCommand={onCancelCommand}
                 />

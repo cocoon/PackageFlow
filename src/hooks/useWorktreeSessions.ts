@@ -229,7 +229,9 @@ export function useWorktreeSessions({ project, onUpdateProject }: UseWorktreeSes
       const knownPaths = new Set(worktrees.map((w) => w.path));
       const now = new Date().toISOString();
 
-      const shouldUpdate = sessions.some((s) => !knownPaths.has(s.worktreePath) && s.status !== 'broken');
+      const shouldUpdate = sessions.some(
+        (s) => !knownPaths.has(s.worktreePath) && s.status !== 'broken'
+      );
       if (!shouldUpdate) return;
 
       await onUpdateProject((prevProject) => {

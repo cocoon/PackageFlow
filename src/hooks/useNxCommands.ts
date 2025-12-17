@@ -6,7 +6,12 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { monorepoAPI, tauriEvents, type ScriptOutputPayload, type ScriptCompletedPayload } from '../lib/tauri-api';
+import {
+  monorepoAPI,
+  tauriEvents,
+  type ScriptOutputPayload,
+  type ScriptCompletedPayload,
+} from '../lib/tauri-api';
 import type { NxTarget, RunNxCommandParams } from '../types/monorepo';
 import { useDebouncedOutput } from './useDebouncedOutput';
 

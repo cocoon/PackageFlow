@@ -22,15 +22,7 @@ export type ProjectFramework =
   | 'tauri'
   | null;
 
-export type UIFramework =
-  | 'react'
-  | 'vue'
-  | 'svelte'
-  | 'solid'
-  | 'preact'
-  | 'lit'
-  | 'qwik'
-  | null;
+export type UIFramework = 'react' | 'vue' | 'svelte' | 'solid' | 'preact' | 'lit' | 'qwik' | null;
 
 export interface Project {
   id: string;

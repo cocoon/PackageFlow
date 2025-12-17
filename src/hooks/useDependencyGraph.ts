@@ -190,9 +190,7 @@ export function useDependencyGraph(
 
       while (queue.length > 0) {
         const current = queue.shift()!;
-        const dependencies = graph.edges
-          .filter((e) => e.target === current)
-          .map((e) => e.source);
+        const dependencies = graph.edges.filter((e) => e.target === current).map((e) => e.source);
 
         dependencies.forEach((dep) => {
           if (!upstream.has(dep)) {
@@ -217,9 +215,7 @@ export function useDependencyGraph(
 
       while (queue.length > 0) {
         const current = queue.shift()!;
-        const dependents = graph.edges
-          .filter((e) => e.source === current)
-          .map((e) => e.target);
+        const dependents = graph.edges.filter((e) => e.source === current).map((e) => e.target);
 
         dependents.forEach((dep) => {
           if (!downstream.has(dep)) {

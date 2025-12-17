@@ -17,9 +17,7 @@ type ExecuteWorkflowResult =
   | { success: false; error: string };
 
 /** Result type for cancelExecution */
-type CancelExecutionResult =
-  | { success: true }
-  | { success: false; error: string };
+type CancelExecutionResult = { success: true } | { success: false; error: string };
 
 interface WorkflowExecutionContextValue {
   /** All execution states */

@@ -39,7 +39,7 @@ export type AIExecutionMode = 'api' | 'cli';
 /** Get the AI execution mode from localStorage */
 export function getAIExecutionMode(): AIExecutionMode {
   const saved = localStorage.getItem(AI_EXECUTION_MODE_KEY);
-  return (saved === 'cli') ? 'cli' : 'api'; // Default to 'api'
+  return saved === 'cli' ? 'cli' : 'api'; // Default to 'api'
 }
 
 /** Set the AI execution mode in localStorage */
@@ -153,12 +153,17 @@ export interface UseAIServiceResult {
   // Project settings
   projectSettings: ProjectAISettings | null;
   loadProjectSettings: () => Promise<void>;
-  updateProjectSettings: (settings: Omit<UpdateProjectSettingsRequest, 'projectPath'>) => Promise<boolean>;
+  updateProjectSettings: (
+    settings: Omit<UpdateProjectSettingsRequest, 'projectPath'>
+  ) => Promise<boolean>;
 
   // Commit message generation
   isGenerating: boolean;
   generateError: string | null;
-  generateCommitMessage: (options?: { providerId?: string; templateId?: string }) => Promise<string | null>;
+  generateCommitMessage: (options?: {
+    providerId?: string;
+    templateId?: string;
+  }) => Promise<string | null>;
   tokensUsed: number | null;
 
   // Computed helpers
@@ -218,99 +223,115 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
     }
   }, []);
 
-  const addService = useCallback(async (config: AddServiceRequest): Promise<AIProviderConfig | null> => {
-    try {
-      const response = await aiAPI.addService(config);
-      if (response.success && response.data) {
-        // Refresh the list to get updated data
-        await loadServices();
-        return response.data;
-      } else {
-        setServicesError(response.error || 'Failed to add AI service');
+  const addService = useCallback(
+    async (config: AddServiceRequest): Promise<AIProviderConfig | null> => {
+      try {
+        const response = await aiAPI.addService(config);
+        if (response.success && response.data) {
+          // Refresh the list to get updated data
+          await loadServices();
+          return response.data;
+        } else {
+          setServicesError(response.error || 'Failed to add AI service');
+          return null;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error adding AI service';
+        setServicesError(message);
+        console.error('Add AI service error:', err);
         return null;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error adding AI service';
-      setServicesError(message);
-      console.error('Add AI service error:', err);
-      return null;
-    }
-  }, [loadServices]);
+    },
+    [loadServices]
+  );
 
-  const updateService = useCallback(async (config: UpdateServiceRequest): Promise<AIProviderConfig | null> => {
-    try {
-      const response = await aiAPI.updateService(config);
-      if (response.success && response.data) {
-        await loadServices();
-        return response.data;
-      } else {
-        setServicesError(response.error || 'Failed to update AI service');
+  const updateService = useCallback(
+    async (config: UpdateServiceRequest): Promise<AIProviderConfig | null> => {
+      try {
+        const response = await aiAPI.updateService(config);
+        if (response.success && response.data) {
+          await loadServices();
+          return response.data;
+        } else {
+          setServicesError(response.error || 'Failed to update AI service');
+          return null;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error updating AI service';
+        setServicesError(message);
+        console.error('Update AI service error:', err);
         return null;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error updating AI service';
-      setServicesError(message);
-      console.error('Update AI service error:', err);
-      return null;
-    }
-  }, [loadServices]);
+    },
+    [loadServices]
+  );
 
-  const deleteService = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const response = await aiAPI.deleteService(id);
-      if (response.success) {
-        await loadServices();
-        return true;
-      } else {
-        setServicesError(response.error || 'Failed to delete AI service');
+  const deleteService = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const response = await aiAPI.deleteService(id);
+        if (response.success) {
+          await loadServices();
+          return true;
+        } else {
+          setServicesError(response.error || 'Failed to delete AI service');
+          return false;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error deleting AI service';
+        setServicesError(message);
+        console.error('Delete AI service error:', err);
         return false;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error deleting AI service';
-      setServicesError(message);
-      console.error('Delete AI service error:', err);
-      return false;
-    }
-  }, [loadServices]);
+    },
+    [loadServices]
+  );
 
-  const setDefaultServiceHandler = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const response = await aiAPI.setDefaultService(id);
-      if (response.success) {
-        await loadServices();
-        return true;
-      } else {
-        setServicesError(response.error || 'Failed to set default service');
+  const setDefaultServiceHandler = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const response = await aiAPI.setDefaultService(id);
+        if (response.success) {
+          await loadServices();
+          return true;
+        } else {
+          setServicesError(response.error || 'Failed to set default service');
+          return false;
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Unknown error setting default service';
+        setServicesError(message);
+        console.error('Set default service error:', err);
         return false;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error setting default service';
-      setServicesError(message);
-      console.error('Set default service error:', err);
-      return false;
-    }
-  }, [loadServices]);
+    },
+    [loadServices]
+  );
 
-  const testConnectionHandler = useCallback(async (id: string): Promise<TestConnectionResult | null> => {
-    try {
-      const response = await aiAPI.testConnection(id);
-      if (response.success && response.data) {
-        return response.data;
-      } else {
+  const testConnectionHandler = useCallback(
+    async (id: string): Promise<TestConnectionResult | null> => {
+      try {
+        const response = await aiAPI.testConnection(id);
+        if (response.success && response.data) {
+          return response.data;
+        } else {
+          return {
+            success: false,
+            error: response.error || 'Connection test failed',
+          };
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error testing connection';
+        console.error('Test connection error:', err);
         return {
           success: false,
-          error: response.error || 'Connection test failed',
+          error: message,
         };
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error testing connection';
-      console.error('Test connection error:', err);
-      return {
-        success: false,
-        error: message,
-      };
-    }
-  }, []);
+    },
+    []
+  );
 
   const listModelsHandler = useCallback(async (providerId: string): Promise<ModelInfo[]> => {
     try {
@@ -366,77 +387,90 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
     }
   }, []);
 
-  const addTemplate = useCallback(async (template: AddTemplateRequest): Promise<PromptTemplate | null> => {
-    try {
-      const response = await aiAPI.addTemplate(template);
-      if (response.success && response.data) {
-        await loadTemplates();
-        return response.data;
-      } else {
-        setTemplatesError(response.error || 'Failed to add template');
+  const addTemplate = useCallback(
+    async (template: AddTemplateRequest): Promise<PromptTemplate | null> => {
+      try {
+        const response = await aiAPI.addTemplate(template);
+        if (response.success && response.data) {
+          await loadTemplates();
+          return response.data;
+        } else {
+          setTemplatesError(response.error || 'Failed to add template');
+          return null;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error adding template';
+        setTemplatesError(message);
+        console.error('Add template error:', err);
         return null;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error adding template';
-      setTemplatesError(message);
-      console.error('Add template error:', err);
-      return null;
-    }
-  }, [loadTemplates]);
+    },
+    [loadTemplates]
+  );
 
-  const updateTemplate = useCallback(async (template: UpdateTemplateRequest): Promise<PromptTemplate | null> => {
-    try {
-      const response = await aiAPI.updateTemplate(template);
-      if (response.success && response.data) {
-        await loadTemplates();
-        return response.data;
-      } else {
-        setTemplatesError(response.error || 'Failed to update template');
+  const updateTemplate = useCallback(
+    async (template: UpdateTemplateRequest): Promise<PromptTemplate | null> => {
+      try {
+        const response = await aiAPI.updateTemplate(template);
+        if (response.success && response.data) {
+          await loadTemplates();
+          return response.data;
+        } else {
+          setTemplatesError(response.error || 'Failed to update template');
+          return null;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error updating template';
+        setTemplatesError(message);
+        console.error('Update template error:', err);
         return null;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error updating template';
-      setTemplatesError(message);
-      console.error('Update template error:', err);
-      return null;
-    }
-  }, [loadTemplates]);
+    },
+    [loadTemplates]
+  );
 
-  const deleteTemplate = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const response = await aiAPI.deleteTemplate(id);
-      if (response.success) {
-        await loadTemplates();
-        return true;
-      } else {
-        setTemplatesError(response.error || 'Failed to delete template');
+  const deleteTemplate = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const response = await aiAPI.deleteTemplate(id);
+        if (response.success) {
+          await loadTemplates();
+          return true;
+        } else {
+          setTemplatesError(response.error || 'Failed to delete template');
+          return false;
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error deleting template';
+        setTemplatesError(message);
+        console.error('Delete template error:', err);
         return false;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error deleting template';
-      setTemplatesError(message);
-      console.error('Delete template error:', err);
-      return false;
-    }
-  }, [loadTemplates]);
+    },
+    [loadTemplates]
+  );
 
-  const setDefaultTemplateHandler = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const response = await aiAPI.setDefaultTemplate(id);
-      if (response.success) {
-        await loadTemplates();
-        return true;
-      } else {
-        // Log the error but don't set templatesError to avoid showing error state for the whole list
-        console.error('Set default template error:', response.error);
+  const setDefaultTemplateHandler = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const response = await aiAPI.setDefaultTemplate(id);
+        if (response.success) {
+          await loadTemplates();
+          return true;
+        } else {
+          // Log the error but don't set templatesError to avoid showing error state for the whole list
+          console.error('Set default template error:', response.error);
+          return false;
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Unknown error setting default template';
+        console.error('Set default template error:', message);
         return false;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error setting default template';
-      console.error('Set default template error:', message);
-      return false;
-    }
-  }, [loadTemplates]);
+    },
+    [loadTemplates]
+  );
 
   // ============================================================================
   // Project Settings
@@ -470,74 +504,77 @@ export function useAIService(options: UseAIServiceOptions = {}): UseAIServiceRes
     }
   }, [projectPath]);
 
-  const updateProjectSettingsHandler = useCallback(async (
-    settings: Omit<UpdateProjectSettingsRequest, 'projectPath'>
-  ): Promise<boolean> => {
-    if (!projectPath) {
-      console.error('Cannot update project settings without projectPath');
-      return false;
-    }
-
-    try {
-      const response = await aiAPI.updateProjectSettings({
-        projectPath,
-        ...settings,
-      });
-      if (response.success) {
-        await loadProjectSettings();
-        return true;
-      } else {
-        console.error('Update project settings error:', response.error);
+  const updateProjectSettingsHandler = useCallback(
+    async (settings: Omit<UpdateProjectSettingsRequest, 'projectPath'>): Promise<boolean> => {
+      if (!projectPath) {
+        console.error('Cannot update project settings without projectPath');
         return false;
       }
-    } catch (err) {
-      console.error('Update project settings error:', err);
-      return false;
-    }
-  }, [projectPath, loadProjectSettings]);
+
+      try {
+        const response = await aiAPI.updateProjectSettings({
+          projectPath,
+          ...settings,
+        });
+        if (response.success) {
+          await loadProjectSettings();
+          return true;
+        } else {
+          console.error('Update project settings error:', response.error);
+          return false;
+        }
+      } catch (err) {
+        console.error('Update project settings error:', err);
+        return false;
+      }
+    },
+    [projectPath, loadProjectSettings]
+  );
 
   // ============================================================================
   // Commit Message Generation
   // ============================================================================
 
-  const generateCommitMessage = useCallback(async (
-    options?: { providerId?: string; templateId?: string }
-  ): Promise<string | null> => {
-    if (!projectPath) {
-      setGenerateError('Please select a project first');
-      return null;
-    }
-
-    setIsGenerating(true);
-    setGenerateError(null);
-    setTokensUsed(null);
-
-    try {
-      const request: GenerateCommitMessageRequest = {
-        projectPath,
-        providerId: options?.providerId,
-        templateId: options?.templateId,
-      };
-
-      const response = await aiAPI.generateCommitMessage(request);
-
-      if (response.success && response.data) {
-        setTokensUsed(response.data.tokensUsed ?? null);
-        return response.data.message;
-      } else {
-        const error = response.error || 'Failed to generate commit message';
-        setGenerateError(error);
+  const generateCommitMessage = useCallback(
+    async (options?: { providerId?: string; templateId?: string }): Promise<string | null> => {
+      if (!projectPath) {
+        setGenerateError('Please select a project first');
         return null;
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error generating commit message';
-      setGenerateError(message);
-      console.error('Generate commit message error:', err);
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [projectPath]);
+
+      setIsGenerating(true);
+      setGenerateError(null);
+      setTokensUsed(null);
+
+      try {
+        const request: GenerateCommitMessageRequest = {
+          projectPath,
+          providerId: options?.providerId,
+          templateId: options?.templateId,
+        };
+
+        const response = await aiAPI.generateCommitMessage(request);
+
+        if (response.success && response.data) {
+          setTokensUsed(response.data.tokensUsed ?? null);
+          return response.data.message;
+        } else {
+          const error = response.error || 'Failed to generate commit message';
+          setGenerateError(error);
+          return null;
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Unknown error generating commit message';
+        setGenerateError(message);
+        console.error('Generate commit message error:', err);
+        return null;
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [projectPath]
+  );
 
   // ============================================================================
   // Computed Values
@@ -680,30 +717,29 @@ export function useAICommitMessage(options: UseAICommitMessageOptions): UseAICom
     return shouldUseCLI();
   }, [useCliOption]);
 
-  const generate = useCallback(async (
-    genOptions?: {
+  const generate = useCallback(
+    async (genOptions?: {
       providerId?: string;
       templateId?: string;
       useCli?: boolean;
-    }
-  ): Promise<string | null> => {
-    if (!projectPath) {
-      setError('Please select a project first');
-      return null;
-    }
+    }): Promise<string | null> => {
+      if (!projectPath) {
+        setError('Please select a project first');
+        return null;
+      }
 
-    setIsGenerating(true);
-    setError(null);
-    setTokensUsed(null);
+      setIsGenerating(true);
+      setError(null);
+      setTokensUsed(null);
 
-    // Determine if this specific call should use CLI
-    const useCliForThisCall = genOptions?.useCli ?? isCliMode;
-    const cliTool = getDefaultCliTool();
+      // Determine if this specific call should use CLI
+      const useCliForThisCall = genOptions?.useCli ?? isCliMode;
+      const cliTool = getDefaultCliTool();
 
-    try {
-      // Use CLI tool if enabled and available
-      if (useCliForThisCall && cliTool) {
-        const prompt = `Generate a concise git commit message for the staged changes in this repository.
+      try {
+        // Use CLI tool if enabled and available
+        if (useCliForThisCall && cliTool) {
+          const prompt = `Generate a concise git commit message for the staged changes in this repository.
 
 Follow the Conventional Commits specification:
 - Use format: <type>[optional scope]: <description>
@@ -713,43 +749,46 @@ Follow the Conventional Commits specification:
 
 Only output the commit message, nothing else.`;
 
-        const result = await executeCLITool(cliTool, prompt, projectPath);
+          const result = await executeCLITool(cliTool, prompt, projectPath);
 
-        if (result.success) {
-          // Clean up the output (remove any extra whitespace)
-          return result.output.trim();
+          if (result.success) {
+            // Clean up the output (remove any extra whitespace)
+            return result.output.trim();
+          } else {
+            setError(result.error || 'CLI commit message generation failed');
+            return null;
+          }
+        }
+
+        // Fall back to API
+        const request: GenerateCommitMessageRequest = {
+          projectPath,
+          providerId: genOptions?.providerId,
+          templateId: genOptions?.templateId,
+        };
+
+        const response = await aiAPI.generateCommitMessage(request);
+
+        if (response.success && response.data) {
+          setTokensUsed(response.data.tokensUsed ?? null);
+          return response.data.message;
         } else {
-          setError(result.error || 'CLI commit message generation failed');
+          const errorMsg = response.error || 'Failed to generate commit message';
+          setError(errorMsg);
           return null;
         }
-      }
-
-      // Fall back to API
-      const request: GenerateCommitMessageRequest = {
-        projectPath,
-        providerId: genOptions?.providerId,
-        templateId: genOptions?.templateId,
-      };
-
-      const response = await aiAPI.generateCommitMessage(request);
-
-      if (response.success && response.data) {
-        setTokensUsed(response.data.tokensUsed ?? null);
-        return response.data.message;
-      } else {
-        const errorMsg = response.error || 'Failed to generate commit message';
-        setError(errorMsg);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Unknown error generating commit message';
+        setError(message);
+        console.error('Generate commit message error:', err);
         return null;
+      } finally {
+        setIsGenerating(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error generating commit message';
-      setError(message);
-      console.error('Generate commit message error:', err);
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [projectPath, isCliMode]);
+    },
+    [projectPath, isCliMode]
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -817,39 +856,38 @@ export function useAICodeReview(options: UseAICodeReviewOptions): UseAICodeRevie
     return shouldUseCLI();
   }, [useCliOption]);
 
-  const generate = useCallback(async (
-    genOptions: {
+  const generate = useCallback(
+    async (genOptions: {
       filePath: string;
       staged: boolean;
       providerId?: string;
       templateId?: string;
       useCli?: boolean;
-    }
-  ): Promise<string | null> => {
-    if (!projectPath) {
-      setError('Project path is required');
-      return null;
-    }
+    }): Promise<string | null> => {
+      if (!projectPath) {
+        setError('Project path is required');
+        return null;
+      }
 
-    if (!genOptions.filePath) {
-      setError('File path is required');
-      return null;
-    }
+      if (!genOptions.filePath) {
+        setError('File path is required');
+        return null;
+      }
 
-    setIsGenerating(true);
-    setError(null);
-    setTokensUsed(null);
-    setIsTruncated(false);
+      setIsGenerating(true);
+      setError(null);
+      setTokensUsed(null);
+      setIsTruncated(false);
 
-    // Determine if this specific call should use CLI
-    const useCliForThisCall = genOptions.useCli ?? isCliMode;
-    const cliTool = getDefaultCliTool();
+      // Determine if this specific call should use CLI
+      const useCliForThisCall = genOptions.useCli ?? isCliMode;
+      const cliTool = getDefaultCliTool();
 
-    try {
-      // Use CLI tool if enabled and available
-      if (useCliForThisCall && cliTool) {
-        const diffType = genOptions.staged ? 'staged' : 'unstaged';
-        const prompt = `Review the ${diffType} changes in the file: ${genOptions.filePath}
+      try {
+        // Use CLI tool if enabled and available
+        if (useCliForThisCall && cliTool) {
+          const diffType = genOptions.staged ? 'staged' : 'unstaged';
+          const prompt = `Review the ${diffType} changes in the file: ${genOptions.filePath}
 
 Provide a comprehensive code review covering:
 1. Code quality and best practices
@@ -860,45 +898,47 @@ Provide a comprehensive code review covering:
 
 Be specific and actionable in your feedback.`;
 
-        const result = await executeCLITool(cliTool, prompt, projectPath);
+          const result = await executeCLITool(cliTool, prompt, projectPath);
 
-        if (result.success) {
-          return result.output;
+          if (result.success) {
+            return result.output;
+          } else {
+            setError(result.error || 'CLI review failed');
+            return null;
+          }
+        }
+
+        // Fall back to API
+        const request: GenerateCodeReviewRequest = {
+          projectPath,
+          filePath: genOptions.filePath,
+          staged: genOptions.staged,
+          providerId: genOptions.providerId,
+          templateId: genOptions.templateId,
+        };
+
+        const response = await aiAPI.generateCodeReview(request);
+
+        if (response.success && response.data) {
+          setTokensUsed(response.data.tokensUsed ?? null);
+          setIsTruncated(response.data.isTruncated ?? false);
+          return response.data.review;
         } else {
-          setError(result.error || 'CLI review failed');
+          const errorMsg = response.error || 'Failed to generate code review';
+          setError(errorMsg);
           return null;
         }
-      }
-
-      // Fall back to API
-      const request: GenerateCodeReviewRequest = {
-        projectPath,
-        filePath: genOptions.filePath,
-        staged: genOptions.staged,
-        providerId: genOptions.providerId,
-        templateId: genOptions.templateId,
-      };
-
-      const response = await aiAPI.generateCodeReview(request);
-
-      if (response.success && response.data) {
-        setTokensUsed(response.data.tokensUsed ?? null);
-        setIsTruncated(response.data.isTruncated ?? false);
-        return response.data.review;
-      } else {
-        const errorMsg = response.error || 'Failed to generate code review';
-        setError(errorMsg);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error generating code review';
+        setError(message);
+        console.error('Generate code review error:', err);
         return null;
+      } finally {
+        setIsGenerating(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error generating code review';
-      setError(message);
-      console.error('Generate code review error:', err);
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [projectPath, isCliMode]);
+    },
+    [projectPath, isCliMode]
+  );
 
   const clearError = useCallback(() => {
     setError(null);
@@ -965,31 +1005,30 @@ export function useAIStagedReview(options: UseAIStagedReviewOptions): UseAIStage
     return shouldUseCLI();
   }, [useCliOption]);
 
-  const generate = useCallback(async (
-    genOptions?: {
+  const generate = useCallback(
+    async (genOptions?: {
       providerId?: string;
       templateId?: string;
       useCli?: boolean;
-    }
-  ): Promise<string | null> => {
-    if (!projectPath) {
-      setError('Project path is required');
-      return null;
-    }
+    }): Promise<string | null> => {
+      if (!projectPath) {
+        setError('Project path is required');
+        return null;
+      }
 
-    setIsGenerating(true);
-    setError(null);
-    setTokensUsed(null);
-    setIsTruncated(false);
+      setIsGenerating(true);
+      setError(null);
+      setTokensUsed(null);
+      setIsTruncated(false);
 
-    // Determine if this specific call should use CLI
-    const useCliForThisCall = genOptions?.useCli ?? isCliMode;
-    const cliTool = getDefaultCliTool();
+      // Determine if this specific call should use CLI
+      const useCliForThisCall = genOptions?.useCli ?? isCliMode;
+      const cliTool = getDefaultCliTool();
 
-    try {
-      // Use CLI tool if enabled and available
-      if (useCliForThisCall && cliTool) {
-        const prompt = `Review the staged changes in this git repository. Provide a comprehensive code review covering:
+      try {
+        // Use CLI tool if enabled and available
+        if (useCliForThisCall && cliTool) {
+          const prompt = `Review the staged changes in this git repository. Provide a comprehensive code review covering:
 1. Code quality and best practices
 2. Potential bugs or issues
 3. Performance considerations
@@ -998,43 +1037,46 @@ export function useAIStagedReview(options: UseAIStagedReviewOptions): UseAIStage
 
 Be specific and actionable in your feedback.`;
 
-        const result = await executeCLITool(cliTool, prompt, projectPath);
+          const result = await executeCLITool(cliTool, prompt, projectPath);
 
-        if (result.success) {
-          return result.output;
+          if (result.success) {
+            return result.output;
+          } else {
+            setError(result.error || 'CLI review failed');
+            return null;
+          }
+        }
+
+        // Fall back to API
+        const request: GenerateStagedReviewRequest = {
+          projectPath,
+          providerId: genOptions?.providerId,
+          templateId: genOptions?.templateId,
+        };
+
+        const response = await aiAPI.generateStagedReview(request);
+
+        if (response.success && response.data) {
+          setTokensUsed(response.data.tokensUsed ?? null);
+          setIsTruncated(response.data.isTruncated ?? false);
+          return response.data.review;
         } else {
-          setError(result.error || 'CLI review failed');
+          const errorMsg = response.error || 'Failed to generate staged review';
+          setError(errorMsg);
           return null;
         }
-      }
-
-      // Fall back to API
-      const request: GenerateStagedReviewRequest = {
-        projectPath,
-        providerId: genOptions?.providerId,
-        templateId: genOptions?.templateId,
-      };
-
-      const response = await aiAPI.generateStagedReview(request);
-
-      if (response.success && response.data) {
-        setTokensUsed(response.data.tokensUsed ?? null);
-        setIsTruncated(response.data.isTruncated ?? false);
-        return response.data.review;
-      } else {
-        const errorMsg = response.error || 'Failed to generate staged review';
-        setError(errorMsg);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Unknown error generating staged review';
+        setError(message);
+        console.error('Generate staged review error:', err);
         return null;
+      } finally {
+        setIsGenerating(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error generating staged review';
-      setError(message);
-      console.error('Generate staged review error:', err);
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [projectPath, isCliMode]);
+    },
+    [projectPath, isCliMode]
+  );
 
   const clearError = useCallback(() => {
     setError(null);

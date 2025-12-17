@@ -52,7 +52,11 @@ export function createWorkflow(name: string, description?: string, projectId?: s
  * @param name Workflow name
  * @param description Description (optional)
  */
-export function createWorkflowForProject(projectId: string, name: string, description?: string): Workflow {
+export function createWorkflowForProject(
+  projectId: string,
+  name: string,
+  description?: string
+): Workflow {
   return createWorkflow(name, description, projectId);
 }
 
@@ -102,9 +106,9 @@ export async function loadWorkflows(): Promise<Workflow[]> {
 export async function loadWorkflowsByProject(projectId: string | undefined): Promise<Workflow[]> {
   const allWorkflows = await loadWorkflows();
   if (projectId === undefined) {
-    return allWorkflows.filter(w => !w.projectId);
+    return allWorkflows.filter((w) => !w.projectId);
   }
-  return allWorkflows.filter(w => w.projectId === projectId);
+  return allWorkflows.filter((w) => w.projectId === projectId);
 }
 
 /**
@@ -116,7 +120,10 @@ export async function saveWorkflow(workflow: Workflow): Promise<SaveResponse> {
     console.log('[workflow-storage] saveWorkflow called');
     console.log('[workflow-storage] workflow.projectId:', workflow.projectId);
     console.log('[workflow-storage] workflow.incomingWebhook:', workflow.incomingWebhook);
-    console.log('[workflow-storage] workflow.incomingWebhook?.token length:', workflow.incomingWebhook?.token?.length);
+    console.log(
+      '[workflow-storage] workflow.incomingWebhook?.token length:',
+      workflow.incomingWebhook?.token?.length
+    );
 
     const updatedWorkflow: Workflow = {
       ...workflow,
@@ -124,7 +131,10 @@ export async function saveWorkflow(workflow: Workflow): Promise<SaveResponse> {
     };
 
     console.log('[workflow-storage] updatedWorkflow.projectId:', updatedWorkflow.projectId);
-    console.log('[workflow-storage] updatedWorkflow.incomingWebhook:', updatedWorkflow.incomingWebhook);
+    console.log(
+      '[workflow-storage] updatedWorkflow.incomingWebhook:',
+      updatedWorkflow.incomingWebhook
+    );
     await workflowAPI.saveWorkflow(updatedWorkflow);
 
     return { success: true, workflow: updatedWorkflow };

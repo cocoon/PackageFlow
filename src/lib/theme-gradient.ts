@@ -22,12 +22,14 @@ export const GRADIENT_REW = 'bg-gradient-to-r from-blue-500 via-amber-500 to-ros
 /**
  * Subtle version with reduced opacity - for backgrounds
  */
-export const GRADIENT_REW_SUBTLE = 'bg-gradient-to-r from-blue-500/20 via-amber-500/20 to-rose-500/20';
+export const GRADIENT_REW_SUBTLE =
+  'bg-gradient-to-r from-blue-500/20 via-amber-500/20 to-rose-500/20';
 
 /**
  * Very subtle version - for hover states or large areas
  */
-export const GRADIENT_REW_GHOST = 'bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-rose-500/10';
+export const GRADIENT_REW_GHOST =
+  'bg-gradient-to-r from-blue-500/10 via-amber-500/10 to-rose-500/10';
 
 /**
  * Border gradient using CSS custom properties
@@ -72,5 +74,6 @@ export const REW_COLORS = {
  */
 export const GRADIENT_CSS = {
   value: 'linear-gradient(to right, #3b82f6, #f59e0b, #f43f5e)',
-  valueSubtle: 'linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(245, 158, 11, 0.2), rgba(244, 63, 94, 0.2))',
+  valueSubtle:
+    'linear-gradient(to right, rgba(59, 130, 246, 0.2), rgba(245, 158, 11, 0.2), rgba(244, 63, 94, 0.2))',
 };

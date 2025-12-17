@@ -30,7 +30,10 @@ export function AccountSelector({
 }: AccountSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const selectedAccount = useMemo(() => accounts.find(a => a.id === selectedAccountId), [accounts, selectedAccountId]);
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.id === selectedAccountId),
+    [accounts, selectedAccountId]
+  );
 
   const getDefaultAccountId = (): string | undefined => {
     switch (platform) {
@@ -102,16 +105,15 @@ export function AccountSelector({
             <Star className="h-3 w-3 shrink-0 fill-primary text-primary" />
           )}
         </div>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </Button>
 
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown */}
           <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-card shadow-xl">
@@ -126,16 +128,14 @@ export function AccountSelector({
               <span className="flex h-5 w-5 items-center justify-center">
                 {!selectedAccountId && <Check className="h-4 w-4" />}
               </span>
-              <span className="flex-1 text-left text-muted-foreground">
-                Use default account
-              </span>
+              <span className="flex-1 text-left text-muted-foreground">Use default account</span>
             </Button>
 
             {/* Separator */}
             <div className="h-px bg-border" />
 
             {/* Account options */}
-            {accounts.map(account => {
+            {accounts.map((account) => {
               const isSelected = account.id === selectedAccountId;
               const isDefault = account.id === defaultAccountId;
 

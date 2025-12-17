@@ -143,7 +143,8 @@ export function NodePanel({
     if (isScriptNodeConfig(node.config)) {
       const commandChanged = command !== node.config.command;
       const cwdChanged = cwd !== (node.config.cwd || '');
-      const timeoutChanged = timeout !== (node.config.timeout ? String(node.config.timeout / 1000) : '');
+      const timeoutChanged =
+        timeout !== (node.config.timeout ? String(node.config.timeout / 1000) : '');
       setHasChanges(nameChanged || commandChanged || cwdChanged || timeoutChanged);
     } else {
       // For trigger-workflow nodes, only track name changes
@@ -274,11 +275,7 @@ export function NodePanel({
               >
                 {node ? 'Edit Step' : 'Node Details'}
               </h2>
-              {node && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Step #{node.order + 1}
-                </p>
-              )}
+              {node && <p className="mt-1 text-sm text-muted-foreground">Step #{node.order + 1}</p>}
             </div>
           </div>
         </div>
@@ -355,7 +352,8 @@ export function NodePanel({
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
                   <Trash2 className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                   <p className="text-xs text-amber-600 dark:text-amber-400">
-                    <span className="font-medium">Safe Delete:</span> Files will be moved to Trash instead of being permanently deleted.
+                    <span className="font-medium">Safe Delete:</span> Files will be moved to Trash
+                    instead of being permanently deleted.
                   </p>
                 </div>
               )}
@@ -405,15 +403,21 @@ export function NodePanel({
               <h4 className="text-sm font-medium text-foreground mb-2">Keyboard Shortcuts</h4>
               <ul className="text-xs text-muted-foreground space-y-1.5">
                 <li className="flex items-center gap-2">
-                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">⌘S</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">
+                    ⌘S
+                  </kbd>
                   <span>Save changes</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">Esc</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">
+                    Esc
+                  </kbd>
                   <span>Close panel</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">Del</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">
+                    Del
+                  </kbd>
                   <span>Delete selected node</span>
                 </li>
               </ul>

@@ -50,20 +50,13 @@ export function BuildConfigCard({ config, className }: BuildConfigCardProps) {
   if (configItems.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          No build configuration set
-        </p>
+        <p className="text-sm text-muted-foreground">No build configuration set</p>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border border-border bg-card overflow-hidden',
-        className
-      )}
-    >
+    <div className={cn('rounded-lg border border-border bg-card overflow-hidden', className)}>
       {configItems.map((item, index) => {
         const Icon = item.icon;
         return (
@@ -80,10 +73,7 @@ export function BuildConfigCard({ config, className }: BuildConfigCardProps) {
             <div className="flex-1 min-w-0">
               <div className="text-xs text-muted-foreground">{item.label}</div>
               <div
-                className={cn(
-                  'text-sm text-foreground truncate',
-                  item.mono && 'font-mono'
-                )}
+                className={cn('text-sm text-foreground truncate', item.mono && 'font-mono')}
                 title={item.value}
               >
                 {item.value}

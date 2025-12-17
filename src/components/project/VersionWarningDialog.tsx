@@ -62,13 +62,8 @@ export function VersionWarningDialog({
   onUseCorepack,
 }: VersionWarningDialogProps) {
   const modalId = React.useId();
-  const {
-    node,
-    packageManager,
-    recommendedAction,
-    availableTools,
-    voltaCorepackConflict,
-  } = compatibility;
+  const { node, packageManager, recommendedAction, availableTools, voltaCorepackConflict } =
+    compatibility;
   const [copiedFix, setCopiedFix] = React.useState(false);
 
   // Remember this choice state
@@ -76,15 +71,11 @@ export function VersionWarningDialog({
   const [isSavingPreference, setIsSavingPreference] = React.useState(false);
 
   // Corepack and PNPM HOME conflict state
-  const [corepackStatus, setCorepackStatus] =
-    React.useState<CorepackStatus | null>(null);
-  const [pnpmHomeConflict, setPnpmHomeConflict] =
-    React.useState<PnpmHomeConflict | null>(null);
+  const [corepackStatus, setCorepackStatus] = React.useState<CorepackStatus | null>(null);
+  const [pnpmHomeConflict, setPnpmHomeConflict] = React.useState<PnpmHomeConflict | null>(null);
   const [isEnablingCorepack, setIsEnablingCorepack] = React.useState(false);
   const [isFixingConflict, setIsFixingConflict] = React.useState(false);
-  const [operationMessage, setOperationMessage] = React.useState<string | null>(
-    null
-  );
+  const [operationMessage, setOperationMessage] = React.useState<string | null>(null);
 
   const hasVolta = availableTools.includes('volta');
   const hasCorepack = availableTools.includes('corepack');
@@ -130,9 +121,7 @@ export function VersionWarningDialog({
         setOperationMessage(result.error || 'Failed to enable corepack');
       }
     } catch (error) {
-      setOperationMessage(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      );
+      setOperationMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsEnablingCorepack(false);
     }
@@ -143,22 +132,17 @@ export function VersionWarningDialog({
     setIsFixingConflict(true);
     setOperationMessage(null);
     try {
-      const result =
-        await invoke<CorepackOperationResponse>('fix_pnpm_home_conflict');
+      const result = await invoke<CorepackOperationResponse>('fix_pnpm_home_conflict');
       if (result.success) {
         setOperationMessage(result.message || 'Conflict fixed successfully');
         // Refresh conflict status
-        const conflict = await invoke<PnpmHomeConflict>(
-          'detect_pnpm_home_conflict_cmd'
-        );
+        const conflict = await invoke<PnpmHomeConflict>('detect_pnpm_home_conflict_cmd');
         setPnpmHomeConflict(conflict);
       } else {
         setOperationMessage(result.error || 'Failed to fix conflict');
       }
     } catch (error) {
-      setOperationMessage(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      );
+      setOperationMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsFixingConflict(false);
     }
@@ -238,9 +222,7 @@ export function VersionWarningDialog({
   if (!open) return null;
 
   return (
-    <div
-      className={cn('fixed inset-0 z-50', 'animate-in fade-in-0 duration-200')}
-    >
+    <div className={cn('fixed inset-0 z-50', 'animate-in fade-in-0 duration-200')}>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/70 backdrop-blur-sm"
@@ -316,14 +298,10 @@ export function VersionWarningDialog({
           {/* Content */}
           <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-4">
             {/* Description */}
-            <p
-              id="version-warning-description"
-              className="text-sm text-muted-foreground"
-            >
+            <p id="version-warning-description" className="text-sm text-muted-foreground">
               {recommendedAction === 'useVolta' && hasVolta ? (
                 <>
-                  The project requires different versions than your current
-                  environment.
+                  The project requires different versions than your current environment.
                   <span className="text-green-400 font-medium">
                     {' '}
                     Volta will automatically switch versions
@@ -336,8 +314,7 @@ export function VersionWarningDialog({
                 </>
               ) : (
                 <>
-                  The project requires different versions than your current
-                  environment. Running{' '}
+                  The project requires different versions than your current environment. Running{' '}
                   <code className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-xs">
                     {scriptName}
                   </code>{' '}
@@ -359,18 +336,13 @@ export function VersionWarningDialog({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={cn(
-                        'p-2 rounded-lg',
-                        'bg-amber-500/10 border border-amber-500/20'
-                      )}
+                      className={cn('p-2 rounded-lg', 'bg-amber-500/10 border border-amber-500/20')}
                     >
                       <Zap className="w-4 h-4 text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground">
-                          Node.js
-                        </span>
+                        <span className="text-sm font-medium text-foreground">Node.js</span>
                         {recommendedAction === 'useVolta' && hasVolta && (
                           <span className="px-2 py-0.5 text-[10px] font-medium bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
                             Volta will handle
@@ -379,12 +351,8 @@ export function VersionWarningDialog({
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                         <div className="p-2 rounded-lg bg-muted/50">
-                          <span className="text-muted-foreground">
-                            Required
-                          </span>
-                          <div className="font-mono text-amber-400 mt-0.5">
-                            {node.required}
-                          </div>
+                          <span className="text-muted-foreground">Required</span>
+                          <div className="font-mono text-amber-400 mt-0.5">{node.required}</div>
                         </div>
                         <div className="p-2 rounded-lg bg-muted/50">
                           <span className="text-muted-foreground">Current</span>
@@ -409,10 +377,7 @@ export function VersionWarningDialog({
                 >
                   <div className="flex items-start gap-3">
                     <div
-                      className={cn(
-                        'p-2 rounded-lg',
-                        'bg-amber-500/10 border border-amber-500/20'
-                      )}
+                      className={cn('p-2 rounded-lg', 'bg-amber-500/10 border border-amber-500/20')}
                     >
                       <Package className="w-4 h-4 text-amber-400" />
                     </div>
@@ -439,9 +404,7 @@ export function VersionWarningDialog({
                       </div>
                       <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                         <div className="p-2 rounded-lg bg-muted/50">
-                          <span className="text-muted-foreground">
-                            Required
-                          </span>
+                          <span className="text-muted-foreground">Required</span>
                           <div className="font-mono text-amber-400 mt-0.5">
                             {packageManager.required}
                           </div>
@@ -461,26 +424,17 @@ export function VersionWarningDialog({
 
             {/* Volta/Corepack Conflict Warning */}
             {hasConflict && voltaCorepackConflict && (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-red-500/5 border border-red-500/30'
-                )}
-              >
+              <div className={cn('p-4 rounded-xl', 'bg-red-500/5 border border-red-500/30')}>
                 <div className="flex items-center gap-2 text-sm text-red-400">
                   <AlertOctagon className="w-4 h-4" />
-                  <span className="font-semibold">
-                    Volta/Corepack Conflict Detected
-                  </span>
+                  <span className="font-semibold">Volta/Corepack Conflict Detected</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
                   {voltaCorepackConflict.description}
                 </p>
                 {voltaCorepackConflict.fixCommand && (
                   <div className="mt-3">
-                    <div className="text-xs text-foreground font-medium mb-2">
-                      Run this to fix:
-                    </div>
+                    <div className="text-xs text-foreground font-medium mb-2">Run this to fix:</div>
                     <div className="flex items-start gap-2">
                       <code
                         className={cn(
@@ -513,21 +467,12 @@ export function VersionWarningDialog({
 
             {/* PNPM HOME Conflict Warning */}
             {hasPnpmHomeConflict && pnpmHomeConflict && (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-orange-500/5 border border-orange-500/30'
-                )}
-              >
+              <div className={cn('p-4 rounded-xl', 'bg-orange-500/5 border border-orange-500/30')}>
                 <div className="flex items-center gap-2 text-sm text-orange-400">
                   <Wrench className="w-4 h-4" />
-                  <span className="font-semibold">
-                    PNPM Path Conflict Detected
-                  </span>
+                  <span className="font-semibold">PNPM Path Conflict Detected</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {pnpmHomeConflict.description}
-                </p>
+                <p className="text-xs text-muted-foreground mt-2">{pnpmHomeConflict.description}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button
                     variant="warning"
@@ -565,18 +510,15 @@ export function VersionWarningDialog({
               corepackStatus &&
               !isCorepackEnabled && (
                 <div
-                  className={cn(
-                    'p-4 rounded-xl',
-                    'bg-purple-500/5 border border-purple-500/30'
-                  )}
+                  className={cn('p-4 rounded-xl', 'bg-purple-500/5 border border-purple-500/30')}
                 >
                   <div className="flex items-center gap-2 text-sm text-purple-400">
                     <Settings className="w-4 h-4" />
                     <span className="font-semibold">Corepack Not Enabled</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Corepack is installed but not enabled. Enable it to
-                    automatically manage package manager versions.
+                    Corepack is installed but not enabled. Enable it to automatically manage package
+                    manager versions.
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Button
@@ -618,20 +560,13 @@ export function VersionWarningDialog({
                     : 'bg-green-500/10 border border-green-500/30 text-green-400'
                 )}
               >
-                <pre className="whitespace-pre-wrap font-mono">
-                  {operationMessage}
-                </pre>
+                <pre className="whitespace-pre-wrap font-mono">{operationMessage}</pre>
               </div>
             )}
 
             {/* Recommended Action */}
             {recommendedAction === 'useVolta' && hasVolta && !hasConflict ? (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-green-500/5 border border-green-500/20'
-                )}
-              >
+              <div className={cn('p-4 rounded-xl', 'bg-green-500/5 border border-green-500/20')}>
                 <div className="flex items-center gap-2 text-sm text-green-400">
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="font-semibold">Auto Version Switching</span>
@@ -645,12 +580,7 @@ export function VersionWarningDialog({
                 </p>
               </div>
             ) : recommendedAction === 'useCorepack' && hasCorepack ? (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-blue-500/5 border border-blue-500/20'
-                )}
-              >
+              <div className={cn('p-4 rounded-xl', 'bg-blue-500/5 border border-blue-500/20')}>
                 <div className="flex items-center gap-2 text-sm text-blue-400">
                   <CheckCircle2 className="w-4 h-4" />
                   <span className="font-semibold">Recommendation</span>
@@ -659,24 +589,16 @@ export function VersionWarningDialog({
                   Use Corepack to manage the package manager version.
                 </p>
               </div>
-            ) : recommendedAction === 'warnAndAsk' &&
-              !packageManager.isCompatible ? (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-amber-500/5 border border-amber-500/20'
-                )}
-              >
+            ) : recommendedAction === 'warnAndAsk' && !packageManager.isCompatible ? (
+              <div className={cn('p-4 rounded-xl', 'bg-amber-500/5 border border-amber-500/20')}>
                 <div className="flex items-center gap-2 text-sm text-amber-400">
                   <AlertTriangle className="w-4 h-4" />
                   <span className="font-semibold">Manual Action Required</span>
                 </div>
                 <div className="text-xs text-muted-foreground mt-3 space-y-3">
                   <div>
-                    <span className="text-foreground font-medium">
-                      Option 1:
-                    </span>{' '}
-                    Install the required version globally
+                    <span className="text-foreground font-medium">Option 1:</span> Install the
+                    required version globally
                     <code
                       className={cn(
                         'block mt-2 px-3 py-2 rounded-lg',
@@ -689,10 +611,7 @@ export function VersionWarningDialog({
                     </code>
                   </div>
                   <div>
-                    <span className="text-foreground font-medium">
-                      Option 2:
-                    </span>{' '}
-                    Add{' '}
+                    <span className="text-foreground font-medium">Option 2:</span> Add{' '}
                     <code className="px-1.5 py-0.5 bg-muted rounded text-cyan-400 text-[11px]">
                       packageManager
                     </code>{' '}
@@ -705,9 +624,7 @@ export function VersionWarningDialog({
                       )}
                     >
                       "packageManager": "{packageManager.name || 'pnpm'}@
-                      {packageManager.required?.replace(/[\^~>=<]/g, '') ||
-                        '10.0.0'}
-                      "
+                      {packageManager.required?.replace(/[\^~>=<]/g, '') || '10.0.0'}"
                     </code>
                   </div>
                 </div>
@@ -715,19 +632,13 @@ export function VersionWarningDialog({
             ) : recommendedAction === 'warnAndAsk' &&
               packageManager.isCompatible &&
               !node.isCompatible ? (
-              <div
-                className={cn(
-                  'p-4 rounded-xl',
-                  'bg-amber-500/5 border border-amber-500/20'
-                )}
-              >
+              <div className={cn('p-4 rounded-xl', 'bg-amber-500/5 border border-amber-500/20')}>
                 <div className="flex items-center gap-2 text-sm text-amber-400">
                   <AlertTriangle className="w-4 h-4" />
                   <span className="font-semibold">Warning</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  You can continue anyway, but the script may not work as
-                  expected.
+                  You can continue anyway, but the script may not work as expected.
                 </p>
               </div>
             ) : null}
@@ -768,13 +679,11 @@ export function VersionWarningDialog({
               ) : (
                 <>
                   {/* Corepack button */}
-                  {recommendedAction === 'useCorepack' &&
-                    hasCorepack &&
-                    onUseCorepack && (
-                      <Button variant="info" onClick={handleUseCorepack}>
-                        Use Corepack
-                      </Button>
-                    )}
+                  {recommendedAction === 'useCorepack' && hasCorepack && onUseCorepack && (
+                    <Button variant="info" onClick={handleUseCorepack}>
+                      Use Corepack
+                    </Button>
+                  )}
 
                   {/* Continue button */}
                   <Button

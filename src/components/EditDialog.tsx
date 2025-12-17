@@ -11,7 +11,10 @@ interface EditDialogProps {
   data: ModalData | null;
   signingIdentities: SigningIdentity[];
   onClose: () => void;
-  onSave: (newValue: string, signingIdentity: string | null) => Promise<{ success: boolean; error?: string }>;
+  onSave: (
+    newValue: string,
+    signingIdentity: string | null
+  ) => Promise<{ success: boolean; error?: string }>;
   onDelete?: () => void;
 }
 

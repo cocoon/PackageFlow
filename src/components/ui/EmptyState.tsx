@@ -173,11 +173,7 @@ function IconBadge({
         <Icon className={cn(sizes.icon, config.iconColor)} />
         {DecorativeIcon && (
           <DecorativeIcon
-            className={cn(
-              sizes.decorative,
-              'absolute',
-              'text-blue-500 dark:text-blue-400'
-            )}
+            className={cn(sizes.decorative, 'absolute', 'text-blue-500 dark:text-blue-400')}
           />
         )}
       </div>
@@ -249,9 +245,7 @@ export function EmptyState({
         <h2 className="text-xl font-semibold text-foreground mb-2">{title}</h2>
 
         {/* Description */}
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-          {description}
-        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-6">{description}</p>
 
         {/* Custom children content */}
         {children}
@@ -260,10 +254,7 @@ export function EmptyState({
         {(action || secondaryAction) && (
           <div className="flex items-center gap-3 mb-6">
             {action && (
-              <Button
-                variant={action.variant || 'default'}
-                onClick={action.onClick}
-              >
+              <Button variant={action.variant || 'default'} onClick={action.onClick}>
                 {action.icon && <action.icon className="w-4 h-4 mr-2" />}
                 {action.label}
               </Button>
@@ -273,9 +264,7 @@ export function EmptyState({
                 variant={secondaryAction.variant || 'outline'}
                 onClick={secondaryAction.onClick}
               >
-                {secondaryAction.icon && (
-                  <secondaryAction.icon className="w-4 h-4 mr-2" />
-                )}
+                {secondaryAction.icon && <secondaryAction.icon className="w-4 h-4 mr-2" />}
                 {secondaryAction.label}
               </Button>
             )}

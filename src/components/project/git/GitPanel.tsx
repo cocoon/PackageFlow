@@ -65,32 +65,35 @@ export function GitPanel({
   // Diff viewer state
   const [selectedFileForDiff, setSelectedFileForDiff] = useState<GitFile | null>(null);
   // Load Git status (with loading indicator)
-  const loadStatus = useCallback(async (silent = false) => {
-    if (!projectPath) return;
+  const loadStatus = useCallback(
+    async (silent = false) => {
+      if (!projectPath) return;
 
-    if (!silent) {
-      setIsLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await gitAPI.getStatus(projectPath);
-      if (response.success && response.status) {
-        setStatus(response.status);
-      } else if (response.error === 'NOT_GIT_REPO') {
-        setError('This directory is not a Git repository');
-      } else {
-        setError(response.error || 'Failed to load Git status');
-      }
-    } catch (err) {
-      setError('Failed to connect to Git');
-      console.error('Git status error:', err);
-    } finally {
       if (!silent) {
-        setIsLoading(false);
+        setIsLoading(true);
       }
-    }
-  }, [projectPath]);
+      setError(null);
+
+      try {
+        const response = await gitAPI.getStatus(projectPath);
+        if (response.success && response.status) {
+          setStatus(response.status);
+        } else if (response.error === 'NOT_GIT_REPO') {
+          setError('This directory is not a Git repository');
+        } else {
+          setError(response.error || 'Failed to load Git status');
+        }
+      } catch (err) {
+        setError('Failed to connect to Git');
+        console.error('Git status error:', err);
+      } finally {
+        if (!silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [projectPath]
+  );
 
   // Load status on mount and when project changes
   useEffect(() => {
@@ -287,10 +290,7 @@ export function GitPanel({
           <div className="text-center space-y-4">
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto" />
             <p className="text-muted-foreground">{error}</p>
-            <Button
-              variant="secondary"
-              onClick={() => loadStatus()}
-            >
+            <Button variant="secondary" onClick={() => loadStatus()}>
               Retry
             </Button>
           </div>
@@ -311,7 +311,9 @@ export function GitPanel({
   }
 
   // Get change count for badge
-  const changeCount = status ? status.stagedCount + status.modifiedCount + status.untrackedCount : 0;
+  const changeCount = status
+    ? status.stagedCount + status.modifiedCount + status.untrackedCount
+    : 0;
 
   return (
     <div className={cn('flex h-full', className)}>
@@ -379,9 +381,9 @@ export function GitPanel({
               {/* Scrollable File List */}
               <div className="flex-1 overflow-y-auto min-h-0 py-4">
                 <GitFileList
-                  stagedFiles={status.files.filter(f => f.staged)}
-                  changedFiles={status.files.filter(f => !f.staged && f.status !== 'untracked')}
-                  untrackedFiles={status.files.filter(f => f.status === 'untracked')}
+                  stagedFiles={status.files.filter((f) => f.staged)}
+                  changedFiles={status.files.filter((f) => !f.staged && f.status !== 'untracked')}
+                  untrackedFiles={status.files.filter((f) => f.status === 'untracked')}
                   onStageFile={handleStageFile}
                   onUnstageFile={handleUnstageFile}
                   onStageAll={handleStageAll}
@@ -409,10 +411,7 @@ export function GitPanel({
 
         {/* Branches Tab */}
         <div className={cn('flex-1 overflow-y-auto', activeTab !== 'branches' && 'hidden')}>
-          <GitBranchList
-            projectPath={projectPath}
-            onBranchChange={loadStatus}
-          />
+          <GitBranchList projectPath={projectPath} onBranchChange={loadStatus} />
         </div>
 
         {/* History Tab */}
@@ -422,10 +421,7 @@ export function GitPanel({
 
         {/* Stash Tab */}
         <div className={cn('flex-1 overflow-y-auto', activeTab !== 'stash' && 'hidden')}>
-          <GitStashList
-            projectPath={projectPath}
-            onStashChange={loadStatus}
-          />
+          <GitStashList projectPath={projectPath} onStashChange={loadStatus} />
         </div>
 
         {/* Worktrees Tab */}
@@ -441,10 +437,7 @@ export function GitPanel({
 
         {/* Settings Tab */}
         <div className={cn('flex-1 overflow-y-auto', activeTab !== 'settings' && 'hidden')}>
-          <GitSettingsPanel
-            projectPath={projectPath}
-            onRemotesChange={loadStatus}
-          />
+          <GitSettingsPanel projectPath={projectPath} onRemotesChange={loadStatus} />
         </div>
       </div>
 
@@ -457,7 +450,6 @@ export function GitPanel({
         initialDiffType={selectedFileForDiff?.staged ? 'staged' : 'unstaged'}
         onStagingChange={handleStagingChange}
       />
-
     </div>
   );
 }

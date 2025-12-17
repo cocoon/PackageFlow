@@ -48,13 +48,16 @@ import { cn } from '../../../lib/utils';
 // ============================================================================
 
 // Category color schemes for visual distinction
-const CATEGORY_COLOR_SCHEMES: Record<TemplateCategory, {
-  bg: string;
-  border: string;
-  text: string;
-  iconBg: string;
-  badge: string;
-}> = {
+const CATEGORY_COLOR_SCHEMES: Record<
+  TemplateCategory,
+  {
+    bg: string;
+    border: string;
+    text: string;
+    iconBg: string;
+    badge: string;
+  }
+> = {
   git_commit: {
     bg: 'bg-orange-500/5',
     border: 'border-orange-500/20',
@@ -228,9 +231,7 @@ const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ messag
   <div className="flex flex-col items-center justify-center py-12 text-center">
     <AlertCircle className="w-12 h-12 text-destructive mb-4" />
     <p className="text-sm text-muted-foreground mb-4">{message}</p>
-    <Button onClick={onRetry}>
-      Retry
-    </Button>
+    <Button onClick={onRetry}>Retry</Button>
   </div>
 );
 
@@ -314,66 +315,66 @@ const TemplateStatusCard: React.FC<TemplateStatusCardProps> = ({
           )}
         </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground">Prompt Templates</span>
-          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-            {totalTemplates} total
-          </span>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">Prompt Templates</span>
+            <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+              {totalTemplates} total
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {defaultCount} categories with default templates configured
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {defaultCount} categories with default templates configured
-        </p>
-      </div>
 
-      {/* Status & Stats */}
-      <div className="flex items-center gap-4 shrink-0">
-        {/* Stats badges */}
-        <div className="hidden sm:flex items-center gap-2">
+        {/* Status & Stats */}
+        <div className="flex items-center gap-4 shrink-0">
+          {/* Stats badges */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              )}
+            >
+              <Layers className="w-3 h-3" />
+              <span>{builtinCount} Built-in</span>
+            </div>
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                'bg-pink-500/10 text-pink-600 dark:text-pink-400'
+              )}
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>{customCount} Custom</span>
+            </div>
+          </div>
+
+          {/* Status badge */}
           <div
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-              'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              'transition-all duration-300',
+              hasTemplates
+                ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                : 'bg-muted text-muted-foreground'
             )}
           >
-            <Layers className="w-3 h-3" />
-            <span>{builtinCount} Built-in</span>
-          </div>
-          <div
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-              'bg-pink-500/10 text-pink-600 dark:text-pink-400'
+            {hasTemplates ? (
+              <>
+                <CheckCircle2 className="w-3 h-3" />
+                <span>Ready</span>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-3 h-3" />
+                <span>No Templates</span>
+              </>
             )}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>{customCount} Custom</span>
           </div>
         </div>
-
-        {/* Status badge */}
-        <div
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-            'transition-all duration-300',
-            hasTemplates
-              ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          {hasTemplates ? (
-            <>
-              <CheckCircle2 className="w-3 h-3" />
-              <span>Ready</span>
-            </>
-          ) : (
-            <>
-              <XCircle className="w-3 h-3" />
-              <span>No Templates</span>
-            </>
-          )}
-        </div>
-      </div>
       </div>
     </div>
   );
@@ -476,9 +477,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
       className={cn(
         'p-4 rounded-xl border-2 transition-all duration-200',
         'hover:shadow-sm',
-        template.isDefault
-          ? `${colorScheme.border} ${colorScheme.bg}`
-          : 'border-border bg-card/50'
+        template.isDefault ? `${colorScheme.border} ${colorScheme.bg}` : 'border-border bg-card/50'
       )}
     >
       <div className="flex items-start justify-between">
@@ -656,9 +655,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <h4 className="text-sm font-medium text-foreground">About Prompt Templates</h4>
             <p className="text-xs text-muted-foreground mt-1">
-              Prompt templates customize how AI generates content for different tasks.
-              Each category has its own set of variables like {'{diff}'}, {'{commits}'}, or {'{code}'}.
-              Set a default template for each category to streamline your workflow.
+              Prompt templates customize how AI generates content for different tasks. Each category
+              has its own set of variables like {'{diff}'}, {'{commits}'}, or {'{code}'}. Set a
+              default template for each category to streamline your workflow.
             </p>
           </div>
         </div>
@@ -832,11 +831,7 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
             </p>
           </div>
           {editingTemplate && (
-            <Button
-              variant="link"
-              onClick={onCancel}
-              className="h-auto p-0 text-xs"
-            >
+            <Button variant="link" onClick={onCancel} className="h-auto p-0 text-xs">
               Cancel editing
             </Button>
           )}
@@ -931,7 +926,9 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
                 <span
                   className={cn(
                     'flex items-center gap-1 text-xs',
-                    hasRequiredVariable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    hasRequiredVariable
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-red-600 dark:text-red-400'
                   )}
                 >
                   {hasRequiredVariable ? (
@@ -996,17 +993,11 @@ const AddTemplateTab: React.FC<AddTemplateTabProps> = ({
       <div className="shrink-0 pt-4 mt-4 border-t border-border bg-background sticky bottom-0">
         <div className="flex justify-end gap-2">
           {editingTemplate && (
-            <Button
-              variant="ghost"
-              onClick={onCancel}
-            >
+            <Button variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
           )}
-          <Button
-            onClick={onSubmit}
-            disabled={isSubmitting || !hasRequiredVariable}
-          >
+          <Button onClick={onSubmit} disabled={isSubmitting || !hasRequiredVariable}>
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
             {editingTemplate ? 'Update Template' : 'Add Template'}
           </Button>
@@ -1199,16 +1190,19 @@ export function PromptTemplatePanel() {
   }, [resetForm]);
 
   // Validate template content
-  const validateTemplate = useCallback((content: string, category: TemplateCategory): string | null => {
-    const categoryInfo = getCategoryInfo(category);
-    if (!categoryInfo) return null;
+  const validateTemplate = useCallback(
+    (content: string, category: TemplateCategory): string | null => {
+      const categoryInfo = getCategoryInfo(category);
+      if (!categoryInfo) return null;
 
-    const hasVariable = categoryInfo.variables.some((v) => content.includes(`{${v}}`));
-    if (!hasVariable && categoryInfo.variables.length > 0) {
-      return `Template must contain at least one of: ${categoryInfo.variables.map((v) => `{${v}}`).join(', ')}`;
-    }
-    return null;
-  }, []);
+      const hasVariable = categoryInfo.variables.some((v) => content.includes(`{${v}}`));
+      if (!hasVariable && categoryInfo.variables.length > 0) {
+        return `Template must contain at least one of: ${categoryInfo.variables.map((v) => `{${v}}`).join(', ')}`;
+      }
+      return null;
+    },
+    []
+  );
 
   // Submit form (add or update)
   const handleSubmit = useCallback(async () => {
@@ -1285,9 +1279,7 @@ export function PromptTemplatePanel() {
   if (isLoadingTemplates && templates.length === 0) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 overflow-y-auto min-h-0">
           <LoadingSkeleton />
         </div>
@@ -1298,9 +1290,7 @@ export function PromptTemplatePanel() {
   if (templatesError) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 overflow-y-auto min-h-0">
           <ErrorState message={templatesError} onRetry={loadTemplates} />
         </div>
@@ -1311,9 +1301,7 @@ export function PromptTemplatePanel() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Header - Fixed */}
-      <div className="shrink-0 pb-4">
-        {renderHeader()}
-      </div>
+      <div className="shrink-0 pb-4">{renderHeader()}</div>
 
       {/* Status Card - Fixed */}
       <div className="shrink-0 pb-4">

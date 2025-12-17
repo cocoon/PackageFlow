@@ -90,13 +90,16 @@ export function ConversationHistoryItem({
   }, [conversation.id, conversation.title, editTitle, onRename]);
 
   // Handle keyboard events in edit mode
-  const handleEditKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleEditSubmit();
-    } else if (e.key === 'Escape') {
-      setIsEditing(false);
-    }
-  }, [handleEditSubmit]);
+  const handleEditKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleEditSubmit();
+      } else if (e.key === 'Escape') {
+        setIsEditing(false);
+      }
+    },
+    [handleEditSubmit]
+  );
 
   // Handle rename from menu
   const handleRenameClick = useCallback(() => {
@@ -139,10 +142,7 @@ export function ConversationHistoryItem({
           )}
         >
           <MessageSquare
-            className={cn(
-              'w-3.5 h-3.5',
-              isSelected ? 'text-primary' : 'text-muted-foreground'
-            )}
+            className={cn('w-3.5 h-3.5', isSelected ? 'text-primary' : 'text-muted-foreground')}
           />
         </div>
 
@@ -165,9 +165,7 @@ export function ConversationHistoryItem({
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
-            <p className="text-sm font-medium text-foreground truncate">
-              {displayTitle}
-            </p>
+            <p className="text-sm font-medium text-foreground truncate">{displayTitle}</p>
           )}
 
           {/* Preview and date */}
@@ -177,9 +175,7 @@ export function ConversationHistoryItem({
                 {conversation.lastMessagePreview}
               </p>
             )}
-            <span className="text-xs text-muted-foreground/60 flex-shrink-0">
-              {formattedDate}
-            </span>
+            <span className="text-xs text-muted-foreground/60 flex-shrink-0">{formattedDate}</span>
           </div>
         </div>
 
@@ -209,10 +205,7 @@ export function ConversationHistoryItem({
             align="right"
           >
             <DropdownSection>
-              <DropdownItem
-                icon={<Pencil className="w-4 h-4" />}
-                onClick={handleRenameClick}
-              >
+              <DropdownItem icon={<Pencil className="w-4 h-4" />} onClick={handleRenameClick}>
                 Rename
               </DropdownItem>
               <DropdownItem

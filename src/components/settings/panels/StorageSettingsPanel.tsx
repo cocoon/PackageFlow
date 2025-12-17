@@ -96,165 +96,156 @@ export const StorageSettingsPanel: React.FC = () => {
           <HardDrive className="w-5 h-5 pr-1" />
           Storage
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          View where PackageFlow stores its data
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">View where PackageFlow stores its data</p>
       </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pt-4 space-y-6">
-      {/* Storage Location Section */}
-      <SettingSection
-        title="Database Location"
-        description="Your data is stored in a local SQLite database"
-        icon={<Database className="w-4 h-4" />}
-      >
-        {isLoading ? (
-          <StorageLocationSkeleton />
-        ) : (
-          <div className="space-y-3">
-            {/* Path Display Card */}
-            <div
-              className={cn(
-                'group relative p-4 rounded-lg',
-                'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
-                'border border-blue-500/20',
-                'transition-colors hover:border-blue-500/40'
-              )}
-            >
-              <div className="flex items-start gap-3">
-                {/* Database Icon */}
-                <div
-                  className={cn(
-                    'flex-shrink-0 p-2.5 rounded-lg',
-                    'bg-blue-500/10 text-blue-500'
-                  )}
-                >
-                  <Database className="w-5 h-5" />
-                </div>
-
-                {/* Path Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">
-                      {fileName || 'packageflow.db'}
-                    </span>
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
-                        'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                      )}
-                    >
-                      <CheckCircle2 className="w-3 h-3" />
-                      WAL Mode
-                    </span>
+        {/* Storage Location Section */}
+        <SettingSection
+          title="Database Location"
+          description="Your data is stored in a local SQLite database"
+          icon={<Database className="w-4 h-4" />}
+        >
+          {isLoading ? (
+            <StorageLocationSkeleton />
+          ) : (
+            <div className="space-y-3">
+              {/* Path Display Card */}
+              <div
+                className={cn(
+                  'group relative p-4 rounded-lg',
+                  'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
+                  'border border-blue-500/20',
+                  'transition-colors hover:border-blue-500/40'
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Database Icon */}
+                  <div
+                    className={cn('flex-shrink-0 p-2.5 rounded-lg', 'bg-blue-500/10 text-blue-500')}
+                  >
+                    <Database className="w-5 h-5" />
                   </div>
-                  <code
-                    className="block mt-1 text-xs text-muted-foreground font-mono truncate"
-                    title={storePathInfo?.currentPath}
-                  >
-                    {displayPath || 'Not configured'}
-                  </code>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleCopyPath}
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    title="Copy full path"
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleOpenLocation}
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    title="Open in Finder"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                  </Button>
+                  {/* Path Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        {fileName || 'packageflow.db'}
+                      </span>
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                          'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                        )}
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        WAL Mode
+                      </span>
+                    </div>
+                    <code
+                      className="block mt-1 text-xs text-muted-foreground font-mono truncate"
+                      title={storePathInfo?.currentPath}
+                    >
+                      {displayPath || 'Not configured'}
+                    </code>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleCopyPath}
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      title="Copy full path"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleOpenLocation}
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      title="Open in Finder"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
+
+              {/* Open in Finder Button */}
+              <Button variant="outline" onClick={handleOpenLocation} className="w-full">
+                <FolderOpen className="w-4 h-4 pr-1" />
+                Reveal in Finder
+              </Button>
             </div>
+          )}
+        </SettingSection>
 
-            {/* Open in Finder Button */}
-            <Button
-              variant="outline"
-              onClick={handleOpenLocation}
-              className="w-full"
-            >
-              <FolderOpen className="w-4 h-4 pr-1" />
-              Reveal in Finder
-            </Button>
+        {/* Database Features Section */}
+        <SettingSection
+          title="Database Features"
+          description="SQLite provides reliable, high-performance local storage"
+          icon={<Shield className="w-4 h-4" />}
+        >
+          <div className="grid gap-3">
+            <FeatureCard
+              icon={<CheckCircle2 className="w-4 h-4" />}
+              title="Write-Ahead Logging (WAL)"
+              description="Enables concurrent reads while writing, preventing data corruption"
+              variant="success"
+            />
+            <FeatureCard
+              icon={<Shield className="w-4 h-4" />}
+              title="ACID Compliance"
+              description="Atomic transactions ensure data integrity even during crashes"
+              variant="info"
+            />
+            <FeatureCard
+              icon={<Database className="w-4 h-4" />}
+              title="Local Storage"
+              description="All data stays on your device - no cloud sync or external servers"
+              variant="default"
+            />
           </div>
-        )}
-      </SettingSection>
+        </SettingSection>
 
-      {/* Database Features Section */}
-      <SettingSection
-        title="Database Features"
-        description="SQLite provides reliable, high-performance local storage"
-        icon={<Shield className="w-4 h-4" />}
-      >
-        <div className="grid gap-3">
-          <FeatureCard
-            icon={<CheckCircle2 className="w-4 h-4" />}
-            title="Write-Ahead Logging (WAL)"
-            description="Enables concurrent reads while writing, preventing data corruption"
-            variant="success"
-          />
-          <FeatureCard
-            icon={<Shield className="w-4 h-4" />}
-            title="ACID Compliance"
-            description="Atomic transactions ensure data integrity even during crashes"
-            variant="info"
-          />
-          <FeatureCard
-            icon={<Database className="w-4 h-4" />}
-            title="Local Storage"
-            description="All data stays on your device - no cloud sync or external servers"
-            variant="default"
-          />
-        </div>
-      </SettingSection>
-
-      {/* Data Management Tips */}
-      <SettingInfoBox title="Data Management" variant="info">
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>The database location is fixed for WAL mode compatibility</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Use <strong>Import/Export</strong> in the Data section to backup or
-              transfer your data between devices
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              <code className="px-1 py-0.5 rounded bg-muted text-foreground text-xs">
-                .db-wal
-              </code>{' '}
-              and{' '}
-              <code className="px-1 py-0.5 rounded bg-muted text-foreground text-xs">
-                .db-shm
-              </code>{' '}
-              files are part of WAL mode - do not delete them separately
-            </span>
-          </li>
-        </ul>
-      </SettingInfoBox>
+        {/* Data Management Tips */}
+        <SettingInfoBox title="Data Management" variant="info">
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>The database location is fixed for WAL mode compatibility</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                Use <strong>Import/Export</strong> in the Data section to backup or transfer your
+                data between devices
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                <code className="px-1 py-0.5 rounded bg-muted text-foreground text-xs">
+                  .db-wal
+                </code>{' '}
+                and{' '}
+                <code className="px-1 py-0.5 rounded bg-muted text-foreground text-xs">
+                  .db-shm
+                </code>{' '}
+                files are part of WAL mode - do not delete them separately
+              </span>
+            </li>
+          </ul>
+        </SettingInfoBox>
       </div>
     </div>
   );
@@ -316,16 +307,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   const styles = variantStyles[variant];
 
   return (
-    <div
-      className={cn(
-        'flex items-start gap-3 p-3 rounded-lg',
-        'border bg-card',
-        styles.border
-      )}
-    >
-      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>
-        {icon}
-      </div>
+    <div className={cn('flex items-start gap-3 p-3 rounded-lg', 'border bg-card', styles.border)}>
+      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>{icon}</div>
       <div className="min-w-0">
         <h4 className="text-sm font-medium text-foreground">{title}</h4>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>

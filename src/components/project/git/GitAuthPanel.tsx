@@ -131,12 +131,7 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
           <AlertTriangle className="w-5 h-5" />
           <span className="text-sm">{loadError}</span>
         </div>
-        <Button
-          onClick={loadAuthStatus}
-          variant="ghost"
-          size="sm"
-          className="h-auto"
-        >
+        <Button onClick={loadAuthStatus} variant="ghost" size="sm" className="h-auto">
           <RefreshCw className="w-4 h-4 mr-1.5" />
           Retry
         </Button>
@@ -155,11 +150,15 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
         <div className="pl-6 space-y-1 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <User className="w-3.5 h-3.5" />
-            <span>{authStatus?.userName || <span className="text-yellow-400">Not configured</span>}</span>
+            <span>
+              {authStatus?.userName || <span className="text-yellow-400">Not configured</span>}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <Mail className="w-3.5 h-3.5" />
-            <span>{authStatus?.userEmail || <span className="text-yellow-400">Not configured</span>}</span>
+            <span>
+              {authStatus?.userEmail || <span className="text-yellow-400">Not configured</span>}
+            </span>
           </div>
         </div>
       </div>
@@ -260,18 +259,21 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
                     <span className="text-xs text-muted-foreground truncate">{remote.url}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {result && !isTesting && (
-                      result.success ? (
+                    {result &&
+                      !isTesting &&
+                      (result.success ? (
                         <Check className="w-4 h-4 text-green-400" />
                       ) : (
                         <span className="text-xs text-red-400" title={result.error}>
-                          {result.error === 'AUTH_FAILED' ? 'Auth failed' :
-                           result.error === 'NETWORK_ERROR' ? 'Network error' :
-                           result.error === 'TIMEOUT' ? 'Timeout' :
-                           'Failed'}
+                          {result.error === 'AUTH_FAILED'
+                            ? 'Auth failed'
+                            : result.error === 'NETWORK_ERROR'
+                              ? 'Network error'
+                              : result.error === 'TIMEOUT'
+                                ? 'Timeout'
+                                : 'Failed'}
                         </span>
-                      )
-                    )}
+                      ))}
                     <Button
                       onClick={() => testConnection(remote.name)}
                       disabled={isTesting}
@@ -300,14 +302,20 @@ export function GitAuthPanel({ projectPath, remotes }: GitAuthPanelProps) {
           <p className="text-xs text-muted-foreground mb-2">SSH Setup Guides</p>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => openUrl('https://docs.github.com/en/authentication/connecting-to-github-with-ssh')}
+              onClick={() =>
+                openUrl('https://docs.github.com/en/authentication/connecting-to-github-with-ssh')
+              }
               className="flex items-center gap-1.5 px-2 py-1 text-xs bg-card hover:bg-accent text-foreground rounded transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               GitHub
             </button>
             <button
-              onClick={() => openUrl('https://support.atlassian.com/bitbucket-cloud/docs/configure-ssh-and-two-step-verification/')}
+              onClick={() =>
+                openUrl(
+                  'https://support.atlassian.com/bitbucket-cloud/docs/configure-ssh-and-two-step-verification/'
+                )
+              }
               className="flex items-center gap-1.5 px-2 py-1 text-xs bg-card hover:bg-accent text-foreground rounded transition-colors"
             >
               <ExternalLink className="w-3 h-3" />

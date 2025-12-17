@@ -104,11 +104,16 @@ export function ResponseStatusIndicator({
         'text-sm',
         'transition-all duration-300',
         // Phase-specific backgrounds
-        status.phase === 'thinking' && 'bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400',
-        status.phase === 'generating' && 'bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400',
-        status.phase === 'tool' && 'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400',
-        status.phase === 'complete' && 'bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400',
-        status.phase === 'error' && 'bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400',
+        status.phase === 'thinking' &&
+          'bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400',
+        status.phase === 'generating' &&
+          'bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400',
+        status.phase === 'tool' &&
+          'bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400',
+        status.phase === 'complete' &&
+          'bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400',
+        status.phase === 'error' &&
+          'bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400',
         fadeOut && 'opacity-0 translate-y-1',
         className
       )}
@@ -116,14 +121,16 @@ export function ResponseStatusIndicator({
       aria-live="polite"
     >
       {/* Animated icon with glow effect */}
-      <div className={cn(
-        'flex-shrink-0 p-1 rounded-lg',
-        status.phase === 'thinking' && 'bg-purple-500/20',
-        status.phase === 'generating' && 'bg-blue-500/20',
-        status.phase === 'tool' && 'bg-amber-500/20',
-        status.phase === 'complete' && 'bg-green-500/20',
-        status.phase === 'error' && 'bg-red-500/20',
-      )}>
+      <div
+        className={cn(
+          'flex-shrink-0 p-1 rounded-lg',
+          status.phase === 'thinking' && 'bg-purple-500/20',
+          status.phase === 'generating' && 'bg-blue-500/20',
+          status.phase === 'tool' && 'bg-amber-500/20',
+          status.phase === 'complete' && 'bg-green-500/20',
+          status.phase === 'error' && 'bg-red-500/20'
+        )}
+      >
         {phaseConfig.icon}
       </div>
 
@@ -296,12 +303,7 @@ export function TimingBreakdown({ timing, model, className }: TimingBreakdownPro
   };
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-1 text-xs text-muted-foreground',
-        className
-      )}
-    >
+    <div className={cn('flex flex-col gap-1 text-xs text-muted-foreground', className)}>
       {model && (
         <div className="flex items-center justify-between gap-4">
           <span>Model:</span>

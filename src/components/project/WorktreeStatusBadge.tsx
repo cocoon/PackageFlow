@@ -109,7 +109,9 @@ export function WorktreeStatusBadge({
           title={`${uncommittedCount} uncommitted change${uncommittedCount > 1 ? 's' : ''}`}
         >
           <FileEdit className="w-3 h-3" />
-          <span>{uncommittedCount} change{uncommittedCount > 1 ? 's' : ''}</span>
+          <span>
+            {uncommittedCount} change{uncommittedCount > 1 ? 's' : ''}
+          </span>
         </span>
       )}
 
@@ -157,10 +159,7 @@ interface WorktreeStatusIndicatorsProps {
   className?: string;
 }
 
-export function WorktreeStatusIndicators({
-  status,
-  className,
-}: WorktreeStatusIndicatorsProps) {
+export function WorktreeStatusIndicators({ status, className }: WorktreeStatusIndicatorsProps) {
   if (!status) return null;
 
   const { uncommittedCount, ahead, behind, hasTrackingBranch } = status;

@@ -6,7 +6,12 @@
 
 import { useEffect, useState } from 'react';
 import { Zap, Package, CheckCircle2, AlertTriangle } from 'lucide-react';
-import type { VersionRequirement, VersionCompatibility, VersionSource, SystemEnvironment } from '../../types/version';
+import type {
+  VersionRequirement,
+  VersionCompatibility,
+  VersionSource,
+  SystemEnvironment,
+} from '../../types/version';
 import { useVersionCheck } from '../../hooks/useVersionCheck';
 import { VoltaInstallPrompt } from './VoltaInstallPrompt';
 
@@ -27,7 +32,12 @@ const sourceLabels: Record<VersionSource, string> = {
   none: '',
 };
 
-export function VersionBadge({ projectPath, compact = false, showVoltaPrompt = false, refreshKey = 0 }: VersionBadgeProps) {
+export function VersionBadge({
+  projectPath,
+  compact = false,
+  showVoltaPrompt = false,
+  refreshKey = 0,
+}: VersionBadgeProps) {
   const { loadVersionRequirement, checkCompatibility, loadSystemEnvironment } = useVersionCheck();
   const [requirement, setRequirement] = useState<VersionRequirement | null>(null);
   const [compatibility, setCompatibility] = useState<VersionCompatibility | null>(null);
@@ -84,7 +94,8 @@ export function VersionBadge({ projectPath, compact = false, showVoltaPrompt = f
   }
 
   // Check if we should show Volta install prompt
-  const needsVoltaPrompt = showVoltaPrompt &&
+  const needsVoltaPrompt =
+    showVoltaPrompt &&
     !voltaPromptDismissed &&
     requirement.source === 'volta' &&
     systemEnv &&
@@ -92,13 +103,12 @@ export function VersionBadge({ projectPath, compact = false, showVoltaPrompt = f
 
   // Show Volta install prompt if needed (before other content)
   if (needsVoltaPrompt) {
-    return (
-      <VoltaInstallPrompt onDismiss={() => setVoltaPromptDismissed(true)} />
-    );
+    return <VoltaInstallPrompt onDismiss={() => setVoltaPromptDismissed(true)} />;
   }
 
   const hasNodeRequirement = requirement.node !== null;
-  const hasPmRequirement = requirement.packageManagerName !== null && requirement.packageManagerVersion !== null;
+  const hasPmRequirement =
+    requirement.packageManagerName !== null && requirement.packageManagerVersion !== null;
 
   // If no actual requirements, don't show anything
   if (!hasNodeRequirement && !hasPmRequirement) {
@@ -114,9 +124,7 @@ export function VersionBadge({ projectPath, compact = false, showVoltaPrompt = f
     return (
       <div
         className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${
-          isFullyCompatible
-            ? 'bg-green-500/10 text-green-400'
-            : 'bg-yellow-500/10 text-yellow-400'
+          isFullyCompatible ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'
         }`}
         title={getTooltipText(requirement, compatibility)}
       >

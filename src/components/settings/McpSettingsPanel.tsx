@@ -38,13 +38,7 @@ import {
   type McpLogsResponse,
 } from '../../lib/tauri-api';
 import { cn } from '../../lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../ui/Dialog';
 import { Skeleton } from '../ui/Skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/Tabs';
 import { Collapsible, CollapsibleCard } from '../ui/Collapsible';
@@ -85,10 +79,7 @@ const CLIENT_CONFIGS: ClientConfig[] = [
     name: 'Claude Code',
     icon: <Terminal className="w-4 h-4" />,
     configFormat: 'json',
-    steps: [
-      'Run the command below in your terminal',
-      'Restart Claude Code to apply changes',
-    ],
+    steps: ['Run the command below in your terminal', 'Restart Claude Code to apply changes'],
   },
   {
     id: 'vscode',
@@ -172,7 +163,10 @@ const PERMISSION_MODE_CONFIGS: PermissionModeConfig[] = [
 ];
 
 /** Tool category display configuration */
-const TOOL_CATEGORY_CONFIGS: Record<McpToolCategory, { name: string; icon: React.ReactNode; badgeClass: string }> = {
+const TOOL_CATEGORY_CONFIGS: Record<
+  McpToolCategory,
+  { name: string; icon: React.ReactNode; badgeClass: string }
+> = {
   read: {
     name: 'Read',
     icon: <Eye className="w-3.5 h-3.5" />,
@@ -199,9 +193,7 @@ const StatusBadge: React.FC<{ isAvailable: boolean }> = ({ isAvailable }) => (
   <span
     className={cn(
       'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium',
-      isAvailable
-        ? 'bg-green-500/10 text-green-500'
-        : 'bg-red-500/10 text-red-500'
+      isAvailable ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
     )}
   >
     {isAvailable ? (
@@ -314,9 +306,7 @@ const CommandLine: React.FC<{
   label?: string;
 }> = ({ command, label }) => (
   <div className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-lg">
-    <code className="flex-1 text-xs font-mono text-foreground truncate">
-      $ {command}
-    </code>
+    <code className="flex-1 text-xs font-mono text-foreground truncate">$ {command}</code>
     <CopyButton text={command} label={label || 'Copy command'} />
   </div>
 );
@@ -328,17 +318,16 @@ const ClientSetupCard: React.FC<{
   isExpanded: boolean;
   onToggle: () => void;
 }> = ({ client, serverInfo, isExpanded, onToggle }) => {
-  const command = client.id === 'claude-code'
-    ? `claude mcp add packageflow ${serverInfo.binary_path}`
-    : client.id === 'codex'
-    ? `codex mcp add packageflow ${serverInfo.binary_path}`
-    : client.id === 'gemini'
-    ? `gemini mcp add packageflow ${serverInfo.binary_path}`
-    : undefined;
+  const command =
+    client.id === 'claude-code'
+      ? `claude mcp add packageflow ${serverInfo.binary_path}`
+      : client.id === 'codex'
+        ? `codex mcp add packageflow ${serverInfo.binary_path}`
+        : client.id === 'gemini'
+          ? `gemini mcp add packageflow ${serverInfo.binary_path}`
+          : undefined;
 
-  const config = client.configFormat === 'json'
-    ? serverInfo.config_json
-    : serverInfo.config_toml;
+  const config = client.configFormat === 'json' ? serverInfo.config_json : serverInfo.config_toml;
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -351,9 +340,7 @@ const ClientSetupCard: React.FC<{
         )}
       >
         <span className="text-muted-foreground">{client.icon}</span>
-        <span className="flex-1 text-left font-medium text-foreground">
-          {client.name}
-        </span>
+        <span className="flex-1 text-left font-medium text-foreground">{client.name}</span>
         <ChevronDown
           className={cn(
             'w-4 h-4 text-muted-foreground transition-transform duration-200',
@@ -418,14 +405,9 @@ const ToolCategoryGroup: React.FC<{
     contentClassName="pl-4 space-y-1"
   >
     {tools.map((tool) => (
-      <div
-        key={tool.name}
-        className="py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors"
-      >
+      <div key={tool.name} className="py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
         <code className="text-xs font-mono text-primary">{tool.name}</code>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-          {tool.description}
-        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tool.description}</p>
       </div>
     ))}
   </Collapsible>
@@ -448,10 +430,7 @@ const LoadingSkeleton: React.FC = () => (
 );
 
 /** Error state */
-const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({
-  message,
-  onRetry,
-}) => (
+const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
   <div className="flex flex-col items-center justify-center py-8 text-center">
     <AlertCircle className="w-10 h-10 text-destructive mb-3" />
     <p className="text-sm text-muted-foreground mb-4">{message}</p>
@@ -498,13 +477,9 @@ const PermissionModeCard: React.FC<{
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground">{mode.name}</span>
-          {isSelected && (
-            <CheckCircle2 className={cn('w-4 h-4', mode.checkClass)} />
-          )}
+          {isSelected && <CheckCircle2 className={cn('w-4 h-4', mode.checkClass)} />}
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-          {mode.description}
-        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{mode.description}</p>
       </div>
     </div>
   </button>
@@ -557,9 +532,7 @@ const ToolPermissionItem: React.FC<{
             {categoryConfig.name}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-          {tool.description}
-        </p>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tool.description}</p>
       </div>
     </div>
   );
@@ -598,9 +571,7 @@ const ToolCategorySection: React.FC<{
           key={tool.name}
           tool={tool}
           isCustomMode={isCustomMode}
-          isChecked={
-            isCustomMode ? customAllowedTools.includes(tool.name) : tool.isAllowed
-          }
+          isChecked={isCustomMode ? customAllowedTools.includes(tool.name) : tool.isAllowed}
           onToggle={onToggleTool}
           disabled={disabled}
         />
@@ -700,72 +671,81 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
   }, [isOpen, loadData]);
 
   // Handle permission mode change
-  const handlePermissionModeChange = useCallback(async (mode: McpPermissionMode) => {
-    if (!config || isSaving) return;
+  const handlePermissionModeChange = useCallback(
+    async (mode: McpPermissionMode) => {
+      if (!config || isSaving) return;
 
-    setIsSaving(true);
-    try {
-      const updatedConfig = await mcpAPI.updateConfig({
-        permissionMode: mode,
-        allowedTools: [], // Clear custom tools when changing mode
-      });
-      setConfig(updatedConfig);
-      setUseCustomTools(false);
-      // Refresh tools with permissions
-      const toolsPerms = await mcpAPI.getToolsWithPermissions();
-      setToolsWithPermissions(toolsPerms);
-      setCustomAllowedTools(toolsPerms.filter((t) => t.isAllowed).map((t) => t.name));
-    } catch (err) {
-      console.error('Failed to update permission mode:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving]);
+      setIsSaving(true);
+      try {
+        const updatedConfig = await mcpAPI.updateConfig({
+          permissionMode: mode,
+          allowedTools: [], // Clear custom tools when changing mode
+        });
+        setConfig(updatedConfig);
+        setUseCustomTools(false);
+        // Refresh tools with permissions
+        const toolsPerms = await mcpAPI.getToolsWithPermissions();
+        setToolsWithPermissions(toolsPerms);
+        setCustomAllowedTools(toolsPerms.filter((t) => t.isAllowed).map((t) => t.name));
+      } catch (err) {
+        console.error('Failed to update permission mode:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [config, isSaving]
+  );
 
   // Handle server enable/disable toggle
-  const handleToggleEnabled = useCallback(async (enabled: boolean) => {
-    if (!config || isSaving) return;
+  const handleToggleEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!config || isSaving) return;
 
-    setIsSaving(true);
-    try {
-      const updatedConfig = await mcpAPI.updateConfig({ isEnabled: enabled });
-      setConfig(updatedConfig);
-      // Refresh tools with permissions
-      const toolsPerms = await mcpAPI.getToolsWithPermissions();
-      setToolsWithPermissions(toolsPerms);
-    } catch (err) {
-      console.error('Failed to toggle MCP server:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving]);
+      setIsSaving(true);
+      try {
+        const updatedConfig = await mcpAPI.updateConfig({ isEnabled: enabled });
+        setConfig(updatedConfig);
+        // Refresh tools with permissions
+        const toolsPerms = await mcpAPI.getToolsWithPermissions();
+        setToolsWithPermissions(toolsPerms);
+      } catch (err) {
+        console.error('Failed to toggle MCP server:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [config, isSaving]
+  );
 
   // Handle individual tool permission toggle (custom mode)
-  const handleToggleTool = useCallback(async (toolName: string, checked: boolean) => {
-    if (!config || isSaving) return;
+  const handleToggleTool = useCallback(
+    async (toolName: string, checked: boolean) => {
+      if (!config || isSaving) return;
 
-    const newAllowedTools = checked
-      ? [...customAllowedTools, toolName]
-      : customAllowedTools.filter((t) => t !== toolName);
+      const newAllowedTools = checked
+        ? [...customAllowedTools, toolName]
+        : customAllowedTools.filter((t) => t !== toolName);
 
-    setCustomAllowedTools(newAllowedTools);
-    setUseCustomTools(true);
+      setCustomAllowedTools(newAllowedTools);
+      setUseCustomTools(true);
 
-    setIsSaving(true);
-    try {
-      const updatedConfig = await mcpAPI.updateConfig({ allowedTools: newAllowedTools });
-      setConfig(updatedConfig);
-      // Refresh tools with permissions
-      const toolsPerms = await mcpAPI.getToolsWithPermissions();
-      setToolsWithPermissions(toolsPerms);
-    } catch (err) {
-      console.error('Failed to update tool permissions:', err);
-      // Revert on error
-      setCustomAllowedTools(customAllowedTools);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving, customAllowedTools]);
+      setIsSaving(true);
+      try {
+        const updatedConfig = await mcpAPI.updateConfig({ allowedTools: newAllowedTools });
+        setConfig(updatedConfig);
+        // Refresh tools with permissions
+        const toolsPerms = await mcpAPI.getToolsWithPermissions();
+        setToolsWithPermissions(toolsPerms);
+      } catch (err) {
+        console.error('Failed to update tool permissions:', err);
+        // Revert on error
+        setCustomAllowedTools(customAllowedTools);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [config, isSaving, customAllowedTools]
+  );
 
   // Reset to permission mode defaults
   const handleResetToDefaults = useCallback(async () => {
@@ -805,7 +785,7 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
   const handleClearLogs = useCallback(async () => {
     try {
       await mcpAPI.clearLogs();
-      setLogsResponse((prev) => prev ? { ...prev, entries: [], totalCount: 0 } : null);
+      setLogsResponse((prev) => (prev ? { ...prev, entries: [], totalCount: 0 } : null));
     } catch (err) {
       console.error('Failed to clear logs:', err);
     }
@@ -879,21 +859,11 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
           ) : serverInfo ? (
             <Tabs defaultValue="setup" className="space-y-4">
               <TabsList className="w-full grid grid-cols-5">
-                <TabsTrigger value="setup">
-                  Setup
-                </TabsTrigger>
-                <TabsTrigger value="settings">
-                  Settings
-                </TabsTrigger>
-                <TabsTrigger value="actions">
-                  Actions
-                </TabsTrigger>
-                <TabsTrigger value="history">
-                  History
-                </TabsTrigger>
-                <TabsTrigger value="details">
-                  Details
-                </TabsTrigger>
+                <TabsTrigger value="setup">Setup</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="actions">Actions</TabsTrigger>
+                <TabsTrigger value="history">History</TabsTrigger>
+                <TabsTrigger value="details">Details</TabsTrigger>
               </TabsList>
 
               {/* Quick Setup Tab */}
@@ -905,12 +875,8 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">
-                        {serverInfo.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        v{serverInfo.version}
-                      </span>
+                      <span className="font-medium text-foreground">{serverInfo.name}</span>
+                      <span className="text-xs text-muted-foreground">v{serverInfo.version}</span>
                     </div>
                     <p
                       className="text-xs text-muted-foreground truncate"
@@ -924,23 +890,23 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
 
                 {/* Client Setup Cards */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-foreground">
-                    Choose your AI assistant
-                  </h4>
+                  <h4 className="text-sm font-medium text-foreground">Choose your AI assistant</h4>
                   <div className="space-y-2">
-                  {CLIENT_CONFIGS.map((client) => (
-                    <ClientSetupCard
-                      key={client.id}
-                      client={client}
-                      serverInfo={serverInfo}
-                      isExpanded={expandedClient === client.id}
-                      onToggle={() =>
-                        setExpandedClient(
-                          expandedClient === client.id ? (null as unknown as ClientType) : client.id
-                        )
-                      }
-                    />
-                  ))}
+                    {CLIENT_CONFIGS.map((client) => (
+                      <ClientSetupCard
+                        key={client.id}
+                        client={client}
+                        serverInfo={serverInfo}
+                        isExpanded={expandedClient === client.id}
+                        onToggle={() =>
+                          setExpandedClient(
+                            expandedClient === client.id
+                              ? (null as unknown as ClientType)
+                              : client.id
+                          )
+                        }
+                      />
+                    ))}
                   </div>
                 </div>
               </TabsContent>
@@ -974,7 +940,12 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                     </div>
 
                     {/* Permission Mode Selection */}
-                    <div className={cn('space-y-3', !config.isEnabled && 'opacity-50 pointer-events-none')}>
+                    <div
+                      className={cn(
+                        'space-y-3',
+                        !config.isEnabled && 'opacity-50 pointer-events-none'
+                      )}
+                    >
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium text-foreground">Permission Mode</h4>
                         {useCustomTools && (
@@ -1005,7 +976,8 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                       {useCustomTools && (
                         <div className="px-3 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                           <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                            Custom permissions are in use. Click &quot;Reset to defaults&quot; to return to a preset mode.
+                            Custom permissions are in use. Click &quot;Reset to defaults&quot; to
+                            return to a preset mode.
                           </p>
                         </div>
                       )}
@@ -1018,14 +990,22 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                       subtitle={useCustomTools ? 'Custom' : config.permissionMode.replace('_', ' ')}
                       badge={
                         <span className="px-1.5 py-0.5 text-xs bg-muted rounded-full text-muted-foreground">
-                          {toolsWithPermissions.filter((t) =>
-                            useCustomTools ? customAllowedTools.includes(t.name) : t.isAllowed
-                          ).length}/{toolsWithPermissions.length}
+                          {
+                            toolsWithPermissions.filter((t) =>
+                              useCustomTools ? customAllowedTools.includes(t.name) : t.isAllowed
+                            ).length
+                          }
+                          /{toolsWithPermissions.length}
                         </span>
                       }
                       defaultOpen={false}
                     >
-                      <div className={cn('mt-2 space-y-2', !config.isEnabled && 'opacity-50 pointer-events-none')}>
+                      <div
+                        className={cn(
+                          'mt-2 space-y-2',
+                          !config.isEnabled && 'opacity-50 pointer-events-none'
+                        )}
+                      >
                         <p className="text-xs text-muted-foreground mb-3">
                           {useCustomTools
                             ? 'Customize which tools AI can access. Changes are saved automatically.'
@@ -1050,7 +1030,12 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                     </CollapsibleCard>
 
                     {/* Request Logs */}
-                    <div className={cn('space-y-3', !config.isEnabled && 'opacity-50 pointer-events-none')}>
+                    <div
+                      className={cn(
+                        'space-y-3',
+                        !config.isEnabled && 'opacity-50 pointer-events-none'
+                      )}
+                    >
                       <h4 className="text-sm font-medium text-foreground">Request Logs</h4>
                       <div className="p-3 border border-border rounded-lg space-y-3">
                         {/* View Logs Button */}
@@ -1087,7 +1072,8 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                           <div className="pt-2 border-t border-border space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground">
-                                Showing {logsResponse.entries.length} of {logsResponse.totalCount} entries
+                                Showing {logsResponse.entries.length} of {logsResponse.totalCount}{' '}
+                                entries
                               </span>
                               <button
                                 onClick={handleClearLogs}
@@ -1115,8 +1101,8 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                                       entry.result === 'success'
                                         ? 'bg-green-500/5 border border-green-500/20'
                                         : entry.result === 'permission_denied'
-                                        ? 'bg-yellow-500/5 border border-yellow-500/20'
-                                        : 'bg-red-500/5 border border-red-500/20'
+                                          ? 'bg-yellow-500/5 border border-yellow-500/20'
+                                          : 'bg-red-500/5 border border-red-500/20'
                                     )}
                                   >
                                     <div className="flex items-center justify-between gap-2">
@@ -1132,7 +1118,10 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                                       </div>
                                     </div>
                                     {entry.error && (
-                                      <p className="mt-1 text-destructive truncate" title={entry.error}>
+                                      <p
+                                        className="mt-1 text-destructive truncate"
+                                        title={entry.error}
+                                      >
                                         {entry.error}
                                       </p>
                                     )}
@@ -1140,7 +1129,6 @@ export function McpSettingsPanel({ isOpen, onClose }: McpSettingsPanelProps) {
                                 ))}
                               </div>
                             )}
-
                           </div>
                         )}
                       </div>

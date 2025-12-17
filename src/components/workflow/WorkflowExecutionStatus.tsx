@@ -31,8 +31,16 @@ export function WorkflowExecutionStatus({
   compact = false,
   className,
 }: WorkflowExecutionStatusProps) {
-  const { status, currentNode, progress, completedNodes, totalNodes, error, startedAt, finishedAt } =
-    state;
+  const {
+    status,
+    currentNode,
+    progress,
+    completedNodes,
+    totalNodes,
+    error,
+    startedAt,
+    finishedAt,
+  } = state;
 
   // Don't render if idle
   if (status === 'idle') {
@@ -85,17 +93,11 @@ export function WorkflowExecutionStatus({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <ExecutionStatusIcon status={status} />
-          <span className="text-sm font-medium text-foreground">
-            {getStatusText(status)}
-          </span>
-          {workflowName && (
-            <span className="text-xs text-muted-foreground">- {workflowName}</span>
-          )}
+          <span className="text-sm font-medium text-foreground">{getStatusText(status)}</span>
+          {workflowName && <span className="text-xs text-muted-foreground">- {workflowName}</span>}
         </div>
         <div className="flex items-center gap-1">
-          {duration && (
-            <span className="text-xs text-muted-foreground mr-2">{duration}</span>
-          )}
+          {duration && <span className="text-xs text-muted-foreground mr-2">{duration}</span>}
           {onViewOutput && state.output.length > 0 && (
             <Button
               variant="ghost"
@@ -137,9 +139,7 @@ export function WorkflowExecutionStatus({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
               Step {completedNodes + 1} of {totalNodes}
-              {currentNode && (
-                <span className="text-foreground ml-1.5">- {currentNode.name}</span>
-              )}
+              {currentNode && <span className="text-foreground ml-1.5">- {currentNode.name}</span>}
             </span>
             <span>{progress}%</span>
           </div>
@@ -158,9 +158,7 @@ export function WorkflowExecutionStatus({
 
       {/* Error message */}
       {status === 'failed' && error && (
-        <div className="mt-2 p-2 bg-red-500/10 rounded text-xs text-red-400 font-mono">
-          {error}
-        </div>
+        <div className="mt-2 p-2 bg-red-500/10 rounded text-xs text-red-400 font-mono">{error}</div>
       )}
 
       {/* Success summary */}
@@ -182,31 +180,19 @@ interface ExecutionStatusIconProps {
   className?: string;
 }
 
-export function ExecutionStatusIcon({
-  status,
-  size = 'md',
-  className,
-}: ExecutionStatusIconProps) {
+export function ExecutionStatusIcon({ status, size = 'md', className }: ExecutionStatusIconProps) {
   const sizeClass = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
 
   switch (status) {
     case 'starting':
     case 'running':
-      return (
-        <Loader2
-          className={cn(sizeClass, 'text-blue-400 animate-spin', className)}
-        />
-      );
+      return <Loader2 className={cn(sizeClass, 'text-blue-400 animate-spin', className)} />;
     case 'completed':
-      return (
-        <CheckCircle2 className={cn(sizeClass, 'text-green-400', className)} />
-      );
+      return <CheckCircle2 className={cn(sizeClass, 'text-green-400', className)} />;
     case 'failed':
       return <XCircle className={cn(sizeClass, 'text-red-400', className)} />;
     case 'cancelled':
-      return (
-        <StopCircle className={cn(sizeClass, 'text-muted-foreground', className)} />
-      );
+      return <StopCircle className={cn(sizeClass, 'text-muted-foreground', className)} />;
     default:
       return null;
   }
@@ -237,11 +223,7 @@ export function ExecuteButton({
         onClick();
       }}
       disabled={disabled || isExecuting}
-      className={cn(
-        'h-auto w-auto p-1.5',
-        isExecuting && 'bg-blue-500/20 cursor-wait',
-        className
-      )}
+      className={cn('h-auto w-auto p-1.5', isExecuting && 'bg-blue-500/20 cursor-wait', className)}
       title={isExecuting ? 'Running...' : disabled ? 'No steps to run' : 'Run workflow'}
     >
       {isExecuting ? (

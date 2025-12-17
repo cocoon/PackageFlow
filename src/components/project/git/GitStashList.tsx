@@ -4,15 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Archive,
-  Plus,
-  Play,
-  Trash2,
-  RefreshCw,
-  Calendar,
-  Loader2,
-} from 'lucide-react';
+import { Archive, Plus, Play, Trash2, RefreshCw, Calendar, Loader2 } from 'lucide-react';
 import { gitAPI } from '../../../lib/tauri-api';
 import type { Stash } from '../../../types/git';
 import { Button } from '../../ui/Button';
@@ -34,29 +26,32 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
   const [operatingStash, setOperatingStash] = useState<number | null>(null);
 
   // Load stashes (silent refresh when data exists)
-  const loadStashes = useCallback(async (silent = false) => {
-    if (!projectPath) return;
+  const loadStashes = useCallback(
+    async (silent = false) => {
+      if (!projectPath) return;
 
-    // Only show loading spinner on initial load (no existing data)
-    if (!silent && stashes.length === 0) {
-      setIsLoading(true);
-    }
-    setOperationError(null);
-
-    try {
-      const response = await gitAPI.listStashes(projectPath);
-      if (response.success && response.stashes) {
-        setStashes(response.stashes);
-      } else {
-        setOperationError(response.error || 'Failed to load stashes');
+      // Only show loading spinner on initial load (no existing data)
+      if (!silent && stashes.length === 0) {
+        setIsLoading(true);
       }
-    } catch (err) {
-      setOperationError('Failed to connect to Git');
-      console.error('Git stash error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectPath, stashes.length]);
+      setOperationError(null);
+
+      try {
+        const response = await gitAPI.listStashes(projectPath);
+        if (response.success && response.stashes) {
+          setStashes(response.stashes);
+        } else {
+          setOperationError(response.error || 'Failed to load stashes');
+        }
+      } catch (err) {
+        setOperationError('Failed to connect to Git');
+        console.error('Git stash error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [projectPath, stashes.length]
+  );
 
   // Initial load
   useEffect(() => {
@@ -218,7 +213,9 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
             className="h-auto w-auto p-1.5"
             title="Refresh stashes"
           >
-            <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`}
+            />
           </Button>
           <Button
             variant="default"
@@ -234,9 +231,7 @@ export function GitStashList({ projectPath, onStashChange }: GitStashListProps) 
 
       {/* Error Message */}
       {operationError && (
-        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">
-          {operationError}
-        </div>
+        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">{operationError}</div>
       )}
 
       {/* Create Stash Input */}

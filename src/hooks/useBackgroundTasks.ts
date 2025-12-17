@@ -68,8 +68,8 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
 
   // Helper to add or update a task
   const upsertTask = useCallback((taskId: string, updates: Partial<BackgroundTask>) => {
-    setTasks(prev => {
-      const existingIndex = prev.findIndex(t => t.id === taskId);
+    setTasks((prev) => {
+      const existingIndex = prev.findIndex((t) => t.id === taskId);
       if (existingIndex >= 0) {
         // Update existing
         const updated = [...prev];
@@ -77,120 +77,149 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
         return updated;
       } else {
         // Add new
-        return [...prev, {
-          id: taskId,
-          type: updates.type || 'workflow',
-          name: updates.name || 'Unknown Task',
-          status: updates.status || 'running',
-          startedAt: updates.startedAt || new Date(),
-          ...updates,
-        } as BackgroundTask];
+        return [
+          ...prev,
+          {
+            id: taskId,
+            type: updates.type || 'workflow',
+            name: updates.name || 'Unknown Task',
+            status: updates.status || 'running',
+            startedAt: updates.startedAt || new Date(),
+            ...updates,
+          } as BackgroundTask,
+        ];
       }
     });
   }, []);
 
   // Helper to remove a task
   const removeTask = useCallback((taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
   }, []);
 
   // Auto-remove completed tasks after delay, ensuring minimum visible time
-  const scheduleRemoval = useCallback((taskId: string) => {
-    setTasks(prev => {
-      const task = prev.find(t => t.id === taskId);
-      if (!task) return prev;
+  const scheduleRemoval = useCallback(
+    (taskId: string) => {
+      setTasks((prev) => {
+        const task = prev.find((t) => t.id === taskId);
+        if (!task) return prev;
 
-      const now = Date.now();
-      const elapsed = now - task.startedAt.getTime();
-      const remainingMinTime = Math.max(0, MIN_VISIBLE_TIME - elapsed);
-      const totalDelay = remainingMinTime + COMPLETION_DISPLAY_TIME;
+        const now = Date.now();
+        const elapsed = now - task.startedAt.getTime();
+        const remainingMinTime = Math.max(0, MIN_VISIBLE_TIME - elapsed);
+        const totalDelay = remainingMinTime + COMPLETION_DISPLAY_TIME;
 
-      setTimeout(() => {
-        removeTask(taskId);
-      }, totalDelay);
+        setTimeout(() => {
+          removeTask(taskId);
+        }, totalDelay);
 
-      // Update completedAt
-      return prev.map(t =>
-        t.id === taskId ? { ...t, completedAt: new Date() } : t
-      );
-    });
-  }, [removeTask]);
+        // Update completedAt
+        return prev.map((t) => (t.id === taskId ? { ...t, completedAt: new Date() } : t));
+      });
+    },
+    [removeTask]
+  );
 
   // Setup event listeners
   useEffect(() => {
     const setupListeners = async () => {
       // Workflow events
-      const unlistenWorkflowStart = await listen<NodeStartedPayload>('execution_node_started', (event) => {
-        const { executionId, nodeName, targetWorkflowName } = event.payload as NodeStartedPayload & { executionId?: string };
-        if (executionId) {
-          upsertTask(executionId, {
-            type: 'workflow',
-            name: targetWorkflowName || nodeName || 'Workflow',
-            status: 'running',
-            currentStep: nodeName,
-          });
+      const unlistenWorkflowStart = await listen<NodeStartedPayload>(
+        'execution_node_started',
+        (event) => {
+          const { executionId, nodeName, targetWorkflowName } =
+            event.payload as NodeStartedPayload & { executionId?: string };
+          if (executionId) {
+            upsertTask(executionId, {
+              type: 'workflow',
+              name: targetWorkflowName || nodeName || 'Workflow',
+              status: 'running',
+              currentStep: nodeName,
+            });
+          }
         }
-      });
+      );
 
-      const unlistenWorkflowComplete = await listen<ExecutionCompletedPayload>('execution_completed', (event) => {
-        const { executionId, status } = event.payload as ExecutionCompletedPayload & { executionId?: string };
-        if (executionId) {
-          upsertTask(executionId, {
-            status: status === 'completed' ? 'completed' : 'failed',
-          });
-          scheduleRemoval(executionId);
+      const unlistenWorkflowComplete = await listen<ExecutionCompletedPayload>(
+        'execution_completed',
+        (event) => {
+          const { executionId, status } = event.payload as ExecutionCompletedPayload & {
+            executionId?: string;
+          };
+          if (executionId) {
+            upsertTask(executionId, {
+              status: status === 'completed' ? 'completed' : 'failed',
+            });
+            scheduleRemoval(executionId);
+          }
         }
-      });
+      );
 
       // Security scan events
-      const unlistenScanProgress = await listen<SecurityScanProgressPayload>('security_scan_progress', (event) => {
-        const { projectId, stage, message } = event.payload;
-        upsertTask(`scan-${projectId}`, {
-          type: 'security_scan',
-          name: 'Security Scan',
-          status: 'running',
-          currentStep: message || stage,
-          metadata: { projectId },
-        });
-      });
+      const unlistenScanProgress = await listen<SecurityScanProgressPayload>(
+        'security_scan_progress',
+        (event) => {
+          const { projectId, stage, message } = event.payload;
+          upsertTask(`scan-${projectId}`, {
+            type: 'security_scan',
+            name: 'Security Scan',
+            status: 'running',
+            currentStep: message || stage,
+            metadata: { projectId },
+          });
+        }
+      );
 
-      const unlistenScanComplete = await listen<SecurityScanCompletedPayload>('security_scan_completed', (event) => {
-        const { projectId, success } = event.payload;
-        upsertTask(`scan-${projectId}`, {
-          status: success ? 'completed' : 'failed',
-        });
-        scheduleRemoval(`scan-${projectId}`);
-      });
+      const unlistenScanComplete = await listen<SecurityScanCompletedPayload>(
+        'security_scan_completed',
+        (event) => {
+          const { projectId, success } = event.payload;
+          upsertTask(`scan-${projectId}`, {
+            status: success ? 'completed' : 'failed',
+          });
+          scheduleRemoval(`scan-${projectId}`);
+        }
+      );
 
       // Deployment events
-      const unlistenDeployStatus = await listen<DeploymentStatusPayload>('deployment:status', (event) => {
-        const { deploymentId, status } = event.payload;
-        const isRunning = status === 'queued' || status === 'building' || status === 'deploying';
-        const taskStatus: BackgroundTaskStatus = isRunning ? 'running' : (status === 'ready' ? 'completed' : 'failed');
+      const unlistenDeployStatus = await listen<DeploymentStatusPayload>(
+        'deployment:status',
+        (event) => {
+          const { deploymentId, status } = event.payload;
+          const isRunning = status === 'queued' || status === 'building' || status === 'deploying';
+          const taskStatus: BackgroundTaskStatus = isRunning
+            ? 'running'
+            : status === 'ready'
+              ? 'completed'
+              : 'failed';
 
-        if (isRunning) {
+          if (isRunning) {
+            upsertTask(deploymentId, {
+              type: 'deployment',
+              name: 'Deployment',
+              status: taskStatus,
+              currentStep: status.charAt(0).toUpperCase() + status.slice(1),
+            });
+          } else {
+            upsertTask(deploymentId, { status: taskStatus });
+            scheduleRemoval(deploymentId);
+          }
+        }
+      );
+
+      const unlistenDeployProgress = await listen<DeploymentProgressPayload>(
+        'deployment:progress',
+        (event) => {
+          const { deploymentId, currentStep, progress } = event.payload;
           upsertTask(deploymentId, {
             type: 'deployment',
             name: 'Deployment',
-            status: taskStatus,
-            currentStep: status.charAt(0).toUpperCase() + status.slice(1),
+            status: 'running',
+            currentStep,
+            progress,
           });
-        } else {
-          upsertTask(deploymentId, { status: taskStatus });
-          scheduleRemoval(deploymentId);
         }
-      });
-
-      const unlistenDeployProgress = await listen<DeploymentProgressPayload>('deployment:progress', (event) => {
-        const { deploymentId, currentStep, progress } = event.payload;
-        upsertTask(deploymentId, {
-          type: 'deployment',
-          name: 'Deployment',
-          status: 'running',
-          currentStep,
-          progress,
-        });
-      });
+      );
 
       unlistenRefs.current = [
         unlistenWorkflowStart,
@@ -205,13 +234,13 @@ export function useBackgroundTasks(): UseBackgroundTasksReturn {
     setupListeners();
 
     return () => {
-      unlistenRefs.current.forEach(unlisten => unlisten());
+      unlistenRefs.current.forEach((unlisten) => unlisten());
       unlistenRefs.current = [];
     };
   }, [upsertTask, scheduleRemoval]);
 
   // Computed values
-  const runningTasks = tasks.filter(t => t.status === 'running' || t.status === 'pending');
+  const runningTasks = tasks.filter((t) => t.status === 'running' || t.status === 'pending');
   const runningCount = runningTasks.length;
   const isAnyRunning = runningCount > 0;
 

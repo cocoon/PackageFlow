@@ -38,4 +38,3 @@ export function unregisterModal(modalId: string) {
 export function isTopModal(modalId: string): boolean {
   return openModalIds[openModalIds.length - 1] === modalId;
 }
-

@@ -25,11 +25,7 @@ import {
 import { cn } from '../../../lib/utils';
 import { Select } from '../../ui/Select';
 import { useActionHistory } from '../../../hooks/useMCPActions';
-import type {
-  MCPActionExecution,
-  MCPActionType,
-  ExecutionStatus,
-} from '../../../types/mcp-action';
+import type { MCPActionExecution, MCPActionType, ExecutionStatus } from '../../../types/mcp-action';
 
 // ============================================================================
 // Types
@@ -403,7 +399,9 @@ export const MCPActionHistory: React.FC<MCPActionHistoryProps> = ({
             className="p-1.5 rounded-md hover:bg-muted/50 transition-colors"
             title="Refresh"
           >
-            <RefreshCw className={cn('w-4 h-4 text-muted-foreground', isLoading && 'animate-spin')} />
+            <RefreshCw
+              className={cn('w-4 h-4 text-muted-foreground', isLoading && 'animate-spin')}
+            />
           </button>
         </div>
       </div>
@@ -417,18 +415,13 @@ export const MCPActionHistory: React.FC<MCPActionHistoryProps> = ({
       />
 
       {/* Execution list */}
-      <div
-        className="space-y-2 overflow-y-auto pr-1"
-        style={{ maxHeight }}
-      >
+      <div className="space-y-2 overflow-y-auto pr-1" style={{ maxHeight }}>
         {executions.length === 0 ? (
           <div className="py-8 text-center text-sm text-muted-foreground">
             No execution history found
           </div>
         ) : (
-          executions.map((execution) => (
-            <ExecutionRow key={execution.id} execution={execution} />
-          ))
+          executions.map((execution) => <ExecutionRow key={execution.id} execution={execution} />)
         )}
       </div>
     </div>

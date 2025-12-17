@@ -7,7 +7,16 @@
  */
 
 import { useRef, useEffect, useState } from 'react';
-import { X, Terminal, Copy, Check, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import {
+  X,
+  Terminal,
+  Copy,
+  Check,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+} from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 
@@ -140,9 +149,7 @@ export function ExecutionOutputPanel({
               {taskName}
             </h2>
             <StatusIcon status={status} />
-            <span className="text-xs text-muted-foreground">
-              {getStatusText(status, exitCode)}
-            </span>
+            <span className="text-xs text-muted-foreground">{getStatusText(status, exitCode)}</span>
             {cached && (
               <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
                 CACHED
@@ -159,11 +166,7 @@ export function ExecutionOutputPanel({
               className="h-auto w-auto p-2 rounded-lg"
               title="Copy output"
             >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
+              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
             </Button>
             {/* Close button */}
             <Button
@@ -191,13 +194,9 @@ export function ExecutionOutputPanel({
             </div>
           ) : (
             <div className="space-y-0.5">
-              <pre className="whitespace-pre-wrap break-all text-foreground/90">
-                {output}
-              </pre>
+              <pre className="whitespace-pre-wrap break-all text-foreground/90">{output}</pre>
               {/* Cursor indicator when running */}
-              {isActive && (
-                <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse" />
-              )}
+              {isActive && <span className="inline-block w-2 h-4 bg-purple-400 animate-pulse" />}
             </div>
           )}
         </div>
@@ -213,7 +212,9 @@ export function ExecutionOutputPanel({
             )}
           >
             {status === 'completed' ? (
-              <span>Task completed successfully{exitCode !== undefined && ` with exit code ${exitCode}`}</span>
+              <span>
+                Task completed successfully{exitCode !== undefined && ` with exit code ${exitCode}`}
+              </span>
             ) : status === 'cancelled' ? (
               <span>Task was cancelled</span>
             ) : (

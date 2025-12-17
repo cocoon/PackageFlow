@@ -5,7 +5,15 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ChevronDown, ChevronRight, Terminal, Workflow, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Terminal,
+  Workflow,
+  CheckCircle2,
+  XCircle,
+  Clock,
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import type { OutputLine } from '../../hooks/useWorkflowExecution';
@@ -80,7 +88,11 @@ export function groupOutputByNode(output: OutputLine[]): NodeOutputGroup[] {
 /**
  * Single node output group with collapsible content
  */
-export function OutputNodeGroup({ group, isLatest = false, defaultExpanded = true }: OutputNodeGroupProps) {
+export function OutputNodeGroup({
+  group,
+  isLatest = false,
+  defaultExpanded = true,
+}: OutputNodeGroupProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const isTriggerWorkflow = group.nodeType === 'trigger-workflow';
@@ -134,25 +146,12 @@ export function OutputNodeGroup({ group, isLatest = false, defaultExpanded = tru
       >
         {/* Expand/Collapse indicator */}
         <span className="text-muted-foreground shrink-0">
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </span>
 
         {/* Node type icon */}
-        <span
-          className={cn(
-            'shrink-0',
-            isTriggerWorkflow ? 'text-purple-400' : 'text-blue-400'
-          )}
-        >
-          {isTriggerWorkflow ? (
-            <Workflow className="w-4 h-4" />
-          ) : (
-            <Terminal className="w-4 h-4" />
-          )}
+        <span className={cn('shrink-0', isTriggerWorkflow ? 'text-purple-400' : 'text-blue-400')}>
+          {isTriggerWorkflow ? <Workflow className="w-4 h-4" /> : <Terminal className="w-4 h-4" />}
         </span>
 
         {/* Node name */}
@@ -189,9 +188,7 @@ export function OutputNodeGroup({ group, isLatest = false, defaultExpanded = tru
 
         {/* Duration */}
         {duration && (
-          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-            {duration}
-          </span>
+          <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{duration}</span>
         )}
 
         {/* Line count */}

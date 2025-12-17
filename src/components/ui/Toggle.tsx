@@ -59,9 +59,7 @@ export const Toggle: React.FC<ToggleProps> = ({
         'transition-colors duration-200 ease-in-out',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         sizes.track,
-        checked
-          ? 'bg-primary'
-          : 'bg-muted-foreground/30',
+        checked ? 'bg-primary' : 'bg-muted-foreground/30',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >

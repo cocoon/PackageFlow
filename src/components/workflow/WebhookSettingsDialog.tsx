@@ -30,7 +30,10 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { isTopModal, registerModal, unregisterModal } from '../ui/modalStack';
 import type { WebhookConfig, WebhookTrigger, WebhookTestResult } from '../../types/webhook';
-import type { IncomingWebhookConfig, IncomingWebhookServerStatus } from '../../types/incoming-webhook';
+import type {
+  IncomingWebhookConfig,
+  IncomingWebhookServerStatus,
+} from '../../types/incoming-webhook';
 import { DEFAULT_PAYLOAD_TEMPLATE, SUPPORTED_VARIABLES } from '../../types/webhook';
 import { generateWebhookUrl, DEFAULT_INCOMING_WEBHOOK_PORT } from '../../types/incoming-webhook';
 import { webhookAPI, incomingWebhookAPI, type PortStatus } from '../../lib/tauri-api';
@@ -59,7 +62,10 @@ interface WebhookSettingsDialogProps {
   config: WebhookConfig | undefined;
   incomingConfig: IncomingWebhookConfig | undefined;
   onClose: () => void;
-  onSave: (config: WebhookConfig | undefined, incomingConfig: IncomingWebhookConfig | undefined) => void;
+  onSave: (
+    config: WebhookConfig | undefined,
+    incomingConfig: IncomingWebhookConfig | undefined
+  ) => void;
 }
 
 /**
@@ -116,7 +122,8 @@ export function WebhookSettingsDialog({
   const detectFormat = (template: string): PayloadFormat => {
     const normalized = template.replace(/\s/g, '');
     if (normalized.includes('"content":')) return 'discord';
-    if (normalized.includes('"chat_id":') && normalized.includes('"parse_mode":')) return 'telegram';
+    if (normalized.includes('"chat_id":') && normalized.includes('"parse_mode":'))
+      return 'telegram';
     if (normalized.includes('"text":')) return 'slack';
     return 'custom';
   };
@@ -230,7 +237,9 @@ export function WebhookSettingsDialog({
         const template = config.payloadTemplate || '';
         setPayloadTemplate(template);
         setPayloadFormat(template ? detectFormat(template) : 'custom');
-        setShowAdvanced(!!(config.headers && Object.keys(config.headers).length > 0) || !!config.payloadTemplate);
+        setShowAdvanced(
+          !!(config.headers && Object.keys(config.headers).length > 0) || !!config.payloadTemplate
+        );
       } else {
         setEnabled(false);
         setUrl('');
@@ -457,7 +466,7 @@ export function WebhookSettingsDialog({
   // Get this workflow's server status
   const getWorkflowServerStatus = () => {
     if (!serverStatus) return null;
-    return serverStatus.runningServers.find(s => s.workflowId === workflowId);
+    return serverStatus.runningServers.find((s) => s.workflowId === workflowId);
   };
 
   // Save configuration
@@ -794,7 +803,9 @@ export function WebhookSettingsDialog({
                     {/* Custom Headers */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-foreground">Custom Headers</label>
+                        <label className="text-sm font-medium text-foreground">
+                          Custom Headers
+                        </label>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -847,7 +858,9 @@ export function WebhookSettingsDialog({
                         </div>
                       ))}
                       {headers.length === 0 && (
-                        <p className="text-xs text-muted-foreground">No custom headers configured.</p>
+                        <p className="text-xs text-muted-foreground">
+                          No custom headers configured.
+                        </p>
                       )}
                     </div>
 
@@ -953,7 +966,9 @@ export function WebhookSettingsDialog({
                       <span
                         className={cn(
                           'text-sm font-medium',
-                          testResult.success ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                          testResult.success
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-red-600 dark:text-red-400'
                         )}
                       >
                         {testResult.success ? 'Test Successful' : 'Test Failed'}
@@ -1034,13 +1049,16 @@ export function WebhookSettingsDialog({
                     <Input
                       type="number"
                       value={incomingPort}
-                      onChange={(e) => setIncomingPort(parseInt(e.target.value) || DEFAULT_INCOMING_WEBHOOK_PORT)}
+                      onChange={(e) =>
+                        setIncomingPort(parseInt(e.target.value) || DEFAULT_INCOMING_WEBHOOK_PORT)
+                      }
                       min={1024}
                       max={65535}
                       className={cn(
                         'bg-background border-border text-foreground flex-1',
                         'focus:border-purple-500 focus:ring-purple-500/20',
-                        isPortUsedByOther(portStatus) && 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        isPortUsedByOther(portStatus) &&
+                          'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                       )}
                     />
                     {isCheckingPort && (
@@ -1056,19 +1074,21 @@ export function WebhookSettingsDialog({
                       <AlertCircle className="w-4 h-4 text-red-500" />
                     )}
                   </div>
-                  <p className={cn(
-                    'text-xs',
-                    isPortUsedByOther(portStatus)
-                      ? 'text-red-500 dark:text-red-400'
-                      : isPortUsedByOtherWorkflow(portStatus)
-                        ? 'text-yellow-600 dark:text-yellow-400'
-                        : 'text-muted-foreground'
-                  )}>
+                  <p
+                    className={cn(
+                      'text-xs',
+                      isPortUsedByOther(portStatus)
+                        ? 'text-red-500 dark:text-red-400'
+                        : isPortUsedByOtherWorkflow(portStatus)
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : 'text-muted-foreground'
+                    )}
+                  >
                     {isPortUsedByOther(portStatus)
                       ? 'This port is in use by another service. Choose a different port.'
                       : isPortUsedByOtherWorkflow(portStatus)
                         ? `This port is used by workflow "${getPortStatusWorkflowName(portStatus!)}". Choose a different port.`
-                        : 'Port number for this workflow\'s webhook server (1024-65535).'}
+                        : "Port number for this workflow's webhook server (1024-65535)."}
                   </p>
                 </div>
 
@@ -1091,7 +1111,9 @@ export function WebhookSettingsDialog({
                     >
                       <Bell className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <span className="text-sm font-medium text-foreground">Enable Incoming Webhook</span>
+                    <span className="text-sm font-medium text-foreground">
+                      Enable Incoming Webhook
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -1247,17 +1269,14 @@ export function WebhookSettingsDialog({
 
             {/* Right side - Action buttons */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={onClose}
-              >
+              <Button variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={
                   // Outgoing validation: if enabled, must have valid URL and JSON
-                  (enabled && (!url || !!urlError || !!jsonError))
+                  enabled && (!url || !!urlError || !!jsonError)
                   // Note: Port conflicts for incoming webhook are just warnings, not blockers
                   // The server will fail to start but the config can still be saved
                 }

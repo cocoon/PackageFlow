@@ -24,11 +24,7 @@ import { MCPActionEditor } from './MCPActionEditor';
 import { cn } from '../../../lib/utils';
 import { Collapsible } from '../../ui/Collapsible';
 import { useMCPActions } from '../../../hooks/useMCPActions';
-import type {
-  MCPAction,
-  MCPActionType,
-  PermissionLevel,
-} from '../../../types/mcp-action';
+import type { MCPAction, MCPActionType, PermissionLevel } from '../../../types/mcp-action';
 
 // ============================================================================
 // Types
@@ -69,7 +65,12 @@ const ACTION_TYPE_CONFIG: Record<
   },
 };
 
-const PERMISSION_LEVELS: { value: PermissionLevel; label: string; description: string; color: string }[] = [
+const PERMISSION_LEVELS: {
+  value: PermissionLevel;
+  label: string;
+  description: string;
+  color: string;
+}[] = [
   {
     value: 'require_confirm',
     label: 'Require Confirmation',
@@ -109,7 +110,11 @@ const PermissionDropdown: React.FC<PermissionDropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; openUpward: boolean } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    openUpward: boolean;
+  } | null>(null);
   const currentLevel = PERMISSION_LEVELS.find((l) => l.value === value) || PERMISSION_LEVELS[0];
 
   // Calculate dropdown position with smart positioning
@@ -163,51 +168,58 @@ const PermissionDropdown: React.FC<PermissionDropdownProps> = ({
         )}
       >
         <span className={cn('font-medium', currentLevel.color)}>{currentLevel.label}</span>
-        <ChevronDown className={cn('w-3 h-3 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
+        <ChevronDown
+          className={cn(
+            'w-3 h-3 text-muted-foreground transition-transform',
+            isOpen && 'rotate-180'
+          )}
+        />
       </button>
 
-      {isOpen && dropdownPosition && createPortal(
-        <>
-          <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
-          <div
-            className={cn(
-              'fixed z-[9999] min-w-[200px] rounded-md border border-border shadow-lg',
-              'animate-in fade-in-0 zoom-in-95 duration-150',
-              dropdownPosition.openUpward ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'
-            )}
-            style={{
-              top: dropdownPosition.openUpward ? undefined : dropdownPosition.top,
-              bottom: dropdownPosition.openUpward
-                ? window.innerHeight - dropdownPosition.top
-                : undefined,
-              left: dropdownPosition.left,
-              backgroundColor: 'hsl(var(--card))',
-            }}
-          >
-            {PERMISSION_LEVELS.map((level) => (
-              <button
-                key={level.value}
-                onClick={() => {
-                  onChange(level.value);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  'flex items-center justify-between w-full px-3 py-2 text-left',
-                  'hover:bg-muted/50 transition-colors',
-                  level.value === value && 'bg-muted/30'
-                )}
-              >
-                <div>
-                  <div className={cn('text-sm font-medium', level.color)}>{level.label}</div>
-                  <div className="text-xs text-muted-foreground">{level.description}</div>
-                </div>
-                {level.value === value && <Check className="w-4 h-4 text-primary" />}
-              </button>
-            ))}
-          </div>
-        </>,
-        document.body
-      )}
+      {isOpen &&
+        dropdownPosition &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
+            <div
+              className={cn(
+                'fixed z-[9999] min-w-[200px] rounded-md border border-border shadow-lg',
+                'animate-in fade-in-0 zoom-in-95 duration-150',
+                dropdownPosition.openUpward ? 'slide-in-from-bottom-2' : 'slide-in-from-top-2'
+              )}
+              style={{
+                top: dropdownPosition.openUpward ? undefined : dropdownPosition.top,
+                bottom: dropdownPosition.openUpward
+                  ? window.innerHeight - dropdownPosition.top
+                  : undefined,
+                left: dropdownPosition.left,
+                backgroundColor: 'hsl(var(--card))',
+              }}
+            >
+              {PERMISSION_LEVELS.map((level) => (
+                <button
+                  key={level.value}
+                  onClick={() => {
+                    onChange(level.value);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    'flex items-center justify-between w-full px-3 py-2 text-left',
+                    'hover:bg-muted/50 transition-colors',
+                    level.value === value && 'bg-muted/30'
+                  )}
+                >
+                  <div>
+                    <div className={cn('text-sm font-medium', level.color)}>{level.label}</div>
+                    <div className="text-xs text-muted-foreground">{level.description}</div>
+                  </div>
+                  {level.value === value && <Check className="w-4 h-4 text-primary" />}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   );
 };
@@ -246,9 +258,7 @@ const ActionRow: React.FC<ActionRowProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm text-foreground truncate">{action.name}</span>
-          {!action.isEnabled && (
-            <span className="text-xs text-muted-foreground">(disabled)</span>
-          )}
+          {!action.isEnabled && <span className="text-xs text-muted-foreground">(disabled)</span>}
         </div>
         {action.description && (
           <p className="text-xs text-muted-foreground mt-0.5 truncate">{action.description}</p>
@@ -382,7 +392,9 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
             </span>
             <span className="flex-1 text-left">
               <span className="font-medium text-foreground">{config.name} Actions</span>
-              <span className="ml-2 text-xs text-muted-foreground">({actions.length} configured)</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                ({actions.length} configured)
+              </span>
             </span>
           </div>
         }
@@ -591,12 +603,7 @@ export const MCPActionSettings: React.FC<MCPActionSettingsProps> = ({ className 
         });
       } else {
         // Create new action
-        await createAction(
-          data.actionType!,
-          data.name!,
-          data.description || null,
-          configRecord
-        );
+        await createAction(data.actionType!, data.name!, data.description || null, configRecord);
       }
     },
     [editingAction, createAction, updateAction]
@@ -620,10 +627,7 @@ export const MCPActionSettings: React.FC<MCPActionSettingsProps> = ({ className 
           <AlertCircle className="w-4 h-4" />
           {error}
         </div>
-        <button
-          onClick={handleRefresh}
-          className="text-sm text-primary hover:underline"
-        >
+        <button onClick={handleRefresh} className="text-sm text-primary hover:underline">
           Try again
         </button>
       </div>
@@ -649,8 +653,8 @@ export const MCPActionSettings: React.FC<MCPActionSettingsProps> = ({ className 
 
       {/* Description */}
       <p className="text-xs text-muted-foreground">
-        Control how AI CLI tools can execute actions via MCP protocol.
-        Set default permissions per type or configure individual actions.
+        Control how AI CLI tools can execute actions via MCP protocol. Set default permissions per
+        type or configure individual actions.
       </p>
 
       {/* Category groups - scrollable */}

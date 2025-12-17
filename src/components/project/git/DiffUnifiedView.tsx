@@ -75,7 +75,9 @@ export function DiffUnifiedView({
       <div className="flex items-center justify-center h-full p-8">
         <div className="text-center text-muted-foreground">
           <p className="text-lg font-medium">No changes</p>
-          <p className="text-sm mt-1">This file has no {diff.status === 'added' ? 'content' : 'changes'} to display</p>
+          <p className="text-sm mt-1">
+            This file has no {diff.status === 'added' ? 'content' : 'changes'} to display
+          </p>
         </div>
       </div>
     );

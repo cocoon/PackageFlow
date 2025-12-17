@@ -132,7 +132,13 @@ const ToolPermissionRow: React.FC<ToolPermissionRowProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <code className="text-sm font-mono font-medium text-foreground">{entry.name}</code>
-          <span className={cn('inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium', categoryConfig.bg, categoryConfig.color)}>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+              categoryConfig.bg,
+              categoryConfig.color
+            )}
+          >
             {categoryConfig.icon}
             <span className="hidden sm:inline">{entry.category}</span>
           </span>
@@ -218,20 +224,24 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary" />
           )}
 
-          <div className={cn(
-            'w-10 h-10 rounded-lg flex items-center justify-center',
-            value === 'mcp_managed'
-              ? 'bg-primary/15 text-primary'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              value === 'mcp_managed'
+                ? 'bg-primary/15 text-primary'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Sparkles className="w-5 h-5" />
           </div>
 
           <div>
-            <span className={cn(
-              'text-sm font-semibold',
-              value === 'mcp_managed' ? 'text-primary' : 'text-foreground'
-            )}>
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                value === 'mcp_managed' ? 'text-primary' : 'text-foreground'
+              )}
+            >
               MCP Managed
             </span>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -239,12 +249,14 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             </p>
           </div>
 
-          <div className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
-            value === 'mcp_managed'
-              ? 'bg-primary/10 text-primary'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
+              value === 'mcp_managed'
+                ? 'bg-primary/10 text-primary'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Zap className="w-3 h-3" />
             Default
           </div>
@@ -270,20 +282,26 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-500" />
           )}
 
-          <div className={cn(
-            'w-10 h-10 rounded-lg flex items-center justify-center',
-            value === 'ui_integrated'
-              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              value === 'ui_integrated'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Eye className="w-5 h-5" />
           </div>
 
           <div>
-            <span className={cn(
-              'text-sm font-semibold',
-              value === 'ui_integrated' ? 'text-emerald-600 dark:text-emerald-400' : 'text-foreground'
-            )}>
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                value === 'ui_integrated'
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-foreground'
+              )}
+            >
               UI Integrated
             </span>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -291,12 +309,14 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             </p>
           </div>
 
-          <div className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
-            value === 'ui_integrated'
-              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
+              value === 'ui_integrated'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Server className="w-3 h-3" />
             Recommended
           </div>
@@ -322,20 +342,26 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500" />
           )}
 
-          <div className={cn(
-            'w-10 h-10 rounded-lg flex items-center justify-center',
-            value === 'reject_with_hint'
-              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              value === 'reject_with_hint'
+                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Lock className="w-5 h-5" />
           </div>
 
           <div>
-            <span className={cn(
-              'text-sm font-semibold',
-              value === 'reject_with_hint' ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
-            )}>
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                value === 'reject_with_hint'
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-foreground'
+              )}
+            >
               Reject with Hint
             </span>
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -343,12 +369,14 @@ const DevServerModeSelector: React.FC<DevServerModeSelectorProps> = ({
             </p>
           </div>
 
-          <div className={cn(
-            'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
-            value === 'reject_with_hint'
-              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-              : 'bg-muted text-muted-foreground'
-          )}>
+          <div
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium mt-1',
+              value === 'reject_with_hint'
+                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
             <Shield className="w-3 h-3" />
             Manual Only
           </div>
@@ -381,9 +409,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   enabledToolCount,
   totalToolCount,
 }) => {
-  const readToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(t => t.category === 'read').length;
-  const executeToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(t => t.category === 'execute').length;
-  const writeToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(t => t.category === 'write').length;
+  const readToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(
+    (t) => t.category === 'read'
+  ).length;
+  const executeToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(
+    (t) => t.category === 'execute'
+  ).length;
+  const writeToolCount = TOOL_DEFINITIONS_WITH_PERMISSIONS.filter(
+    (t) => t.category === 'write'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -473,8 +507,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border">
           <Info className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Fine-tune individual tool permissions in the <span className="font-medium text-foreground">Permissions</span> tab.
-            Custom changes will switch the mode to "Custom".
+            Fine-tune individual tool permissions in the{' '}
+            <span className="font-medium text-foreground">Permissions</span> tab. Custom changes
+            will switch the mode to "Custom".
           </p>
         </div>
       </section>
@@ -498,7 +533,9 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
   isSaving,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['read', 'execute', 'write']));
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(['read', 'execute', 'write'])
+  );
 
   // Filter tools by search
   const filteredEntries = useMemo(() => {
@@ -506,8 +543,7 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
     const query = searchQuery.toLowerCase();
     return toolEntries.filter(
       (entry) =>
-        entry.name.toLowerCase().includes(query) ||
-        entry.description.toLowerCase().includes(query)
+        entry.name.toLowerCase().includes(query) || entry.description.toLowerCase().includes(query)
     );
   }, [toolEntries, searchQuery]);
 
@@ -584,7 +620,12 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
           >
             <span className="sr-only">Clear search</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -597,15 +638,21 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
         </span>
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400">R</span>
+            <span className="w-5 h-5 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400">
+              R
+            </span>
             <span className="text-muted-foreground hidden sm:inline">Read</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400">E</span>
+            <span className="w-5 h-5 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[10px] font-bold text-amber-600 dark:text-amber-400">
+              E
+            </span>
             <span className="text-muted-foreground hidden sm:inline">Execute</span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-[10px] font-bold text-rose-600 dark:text-rose-400">W</span>
+            <span className="w-5 h-5 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-[10px] font-bold text-rose-600 dark:text-rose-400">
+              W
+            </span>
             <span className="text-muted-foreground hidden sm:inline">Write</span>
           </span>
         </div>
@@ -623,11 +670,7 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
           return (
             <div
               key={category}
-              className={cn(
-                'border rounded-lg overflow-hidden',
-                config.borderColor,
-                'bg-card/30'
-              )}
+              className={cn('border rounded-lg overflow-hidden', config.borderColor, 'bg-card/30')}
             >
               {/* Category Header */}
               <button
@@ -639,7 +682,12 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
                 )}
               >
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', config.bgColor)}>
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-lg flex items-center justify-center',
+                    config.bgColor
+                  )}
+                >
                   <span className={config.color}>{config.icon}</span>
                 </div>
                 <div className="flex-1 text-left">
@@ -664,7 +712,9 @@ const PermissionsTab: React.FC<PermissionsTabProps> = ({
                     <ToolPermissionRow
                       key={entry.name}
                       entry={entry}
-                      onPermissionChange={(type, value) => onPermissionChange(entry.name, type, value)}
+                      onPermissionChange={(type, value) =>
+                        onPermissionChange(entry.name, type, value)
+                      }
                       disabled={isSaving}
                     />
                   ))}
@@ -700,17 +750,17 @@ interface SetupTabProps {
 const CATEGORY_ICON_MAP: Record<string, { icon: React.ReactNode; iconColor: string }> = {
   'Project Management': { icon: <FolderGit2 className="w-4 h-4" />, iconColor: 'text-blue-500' },
   'Git Worktree': { icon: <GitBranch className="w-4 h-4" />, iconColor: 'text-emerald-500' },
-  'Workflows': { icon: <Workflow className="w-4 h-4" />, iconColor: 'text-purple-500' },
-  'Templates': { icon: <FileCode className="w-4 h-4" />, iconColor: 'text-cyan-500' },
+  Workflows: { icon: <Workflow className="w-4 h-4" />, iconColor: 'text-purple-500' },
+  Templates: { icon: <FileCode className="w-4 h-4" />, iconColor: 'text-cyan-500' },
   'NPM/Package Scripts': { icon: <Package className="w-4 h-4" />, iconColor: 'text-orange-500' },
   'Background Processes': { icon: <Zap className="w-4 h-4" />, iconColor: 'text-yellow-500' },
   'MCP Actions': { icon: <Target className="w-4 h-4" />, iconColor: 'text-amber-500' },
   'AI Assistant': { icon: <Settings2 className="w-4 h-4" />, iconColor: 'text-violet-500' },
-  'Notifications': { icon: <AlertCircle className="w-4 h-4" />, iconColor: 'text-pink-500' },
-  'Security': { icon: <Shield className="w-4 h-4" />, iconColor: 'text-red-500' },
-  'Deployments': { icon: <Server className="w-4 h-4" />, iconColor: 'text-green-500' },
+  Notifications: { icon: <AlertCircle className="w-4 h-4" />, iconColor: 'text-pink-500' },
+  Security: { icon: <Shield className="w-4 h-4" />, iconColor: 'text-red-500' },
+  Deployments: { icon: <Server className="w-4 h-4" />, iconColor: 'text-green-500' },
   'File Operations': { icon: <FileText className="w-4 h-4" />, iconColor: 'text-slate-500' },
-  'System': { icon: <Wrench className="w-4 h-4" />, iconColor: 'text-gray-500' },
+  System: { icon: <Wrench className="w-4 h-4" />, iconColor: 'text-gray-500' },
 };
 
 /** Default icon for unknown categories */
@@ -777,7 +827,8 @@ const AvailableToolsSection: React.FC<AvailableToolsSectionProps> = ({ tools }) 
 
       {/* Tip */}
       <p className="text-xs text-muted-foreground">
-        Run <code className="px-1.5 py-0.5 bg-muted rounded font-mono">packageflow-mcp --help</code> for detailed documentation
+        Run <code className="px-1.5 py-0.5 bg-muted rounded font-mono">packageflow-mcp --help</code>{' '}
+        for detailed documentation
       </p>
 
       {/* Categories */}
@@ -785,7 +836,10 @@ const AvailableToolsSection: React.FC<AvailableToolsSectionProps> = ({ tools }) 
         {categories.map((category) => {
           const iconData = CATEGORY_ICON_MAP[category.name] || DEFAULT_CATEGORY_ICON;
           return (
-            <div key={category.name} className="border border-border rounded-lg overflow-hidden bg-card/50">
+            <div
+              key={category.name}
+              className="border border-border rounded-lg overflow-hidden bg-card/50"
+            >
               <button
                 type="button"
                 onClick={() =>
@@ -801,9 +855,7 @@ const AvailableToolsSection: React.FC<AvailableToolsSectionProps> = ({ tools }) 
                 <span className="flex-1 text-left font-medium text-foreground text-sm">
                   {category.name}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {category.tools.length} tools
-                </span>
+                <span className="text-xs text-muted-foreground">{category.tools.length} tools</span>
                 <ChevronDown
                   className={cn(
                     'w-4 h-4 text-muted-foreground transition-transform duration-200',
@@ -978,7 +1030,9 @@ const ServerLogsPanel: React.FC<{
         ) : (
           <div className="max-h-[350px] overflow-y-auto">
             {logsResponse.entries.map((entry, idx) => {
-              const statusConfig = LOG_STATUS_CONFIG[entry.result as keyof typeof LOG_STATUS_CONFIG] || LOG_STATUS_CONFIG.error;
+              const statusConfig =
+                LOG_STATUS_CONFIG[entry.result as keyof typeof LOG_STATUS_CONFIG] ||
+                LOG_STATUS_CONFIG.error;
               return (
                 <div
                   key={idx}
@@ -992,10 +1046,7 @@ const ServerLogsPanel: React.FC<{
                     {/* Left: Status indicator + Tool name */}
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span
-                        className={cn(
-                          'w-2 h-2 rounded-full flex-shrink-0',
-                          statusConfig.dotColor
-                        )}
+                        className={cn('w-2 h-2 rounded-full flex-shrink-0', statusConfig.dotColor)}
                         title={statusConfig.label}
                       />
                       <code className="text-xs font-mono font-medium text-foreground truncate">
@@ -1018,10 +1069,7 @@ const ServerLogsPanel: React.FC<{
                   {/* Error message if present */}
                   {entry.error && (
                     <div className="mt-1.5 ml-4.5 pl-2 border-l-2 border-destructive/30">
-                      <p
-                        className="text-xs text-destructive truncate"
-                        title={entry.error}
-                      >
+                      <p className="text-xs text-destructive truncate" title={entry.error}>
                         {entry.error}
                       </p>
                     </div>
@@ -1038,15 +1086,20 @@ const ServerLogsPanel: React.FC<{
         <div className="flex items-center justify-center gap-4 py-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className={cn('w-1.5 h-1.5 rounded-full', LOG_STATUS_CONFIG.success.dotColor)} />
-            {logsResponse.entries.filter(e => e.result === 'success').length} success
+            {logsResponse.entries.filter((e) => e.result === 'success').length} success
           </span>
           <span className="flex items-center gap-1.5">
-            <span className={cn('w-1.5 h-1.5 rounded-full', LOG_STATUS_CONFIG.permission_denied.dotColor)} />
-            {logsResponse.entries.filter(e => e.result === 'permission_denied').length} denied
+            <span
+              className={cn(
+                'w-1.5 h-1.5 rounded-full',
+                LOG_STATUS_CONFIG.permission_denied.dotColor
+              )}
+            />
+            {logsResponse.entries.filter((e) => e.result === 'permission_denied').length} denied
           </span>
           <span className="flex items-center gap-1.5">
             <span className={cn('w-1.5 h-1.5 rounded-full', LOG_STATUS_CONFIG.error.dotColor)} />
-            {logsResponse.entries.filter(e => e.result === 'error').length} errors
+            {logsResponse.entries.filter((e) => e.result === 'error').length} errors
           </span>
         </div>
       )}
@@ -1063,12 +1116,15 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
   const [hasLoadedLogs, setHasLoadedLogs] = useState(false);
 
   // Handle tab change - auto-load logs when logs tab is first selected
-  const handleTabChange = useCallback((value: string) => {
-    if (value === 'logs' && !hasLoadedLogs && !isLoadingLogs) {
-      setHasLoadedLogs(true);
-      onLoadLogs();
-    }
-  }, [hasLoadedLogs, isLoadingLogs, onLoadLogs]);
+  const handleTabChange = useCallback(
+    (value: string) => {
+      if (value === 'logs' && !hasLoadedLogs && !isLoadingLogs) {
+        setHasLoadedLogs(true);
+        onLoadLogs();
+      }
+    },
+    [hasLoadedLogs, isLoadingLogs, onLoadLogs]
+  );
 
   return (
     <div className="space-y-4">
@@ -1173,13 +1229,16 @@ export function McpSettingsFullPanel() {
       setDevServerMode(serverConfig.devServerMode || 'mcp_managed');
 
       // Initialize permission matrix from config using dynamic tools
-      const toolsToUse = toolsList.length > 0 ? toolsList : TOOL_DEFINITIONS_WITH_PERMISSIONS.map(t => ({
-        name: t.name,
-        description: t.description,
-        category: '',
-        permissionCategory: t.category as 'read' | 'execute' | 'write',
-        applicablePermissions: t.applicablePermissions as ('read' | 'execute' | 'write')[],
-      }));
+      const toolsToUse =
+        toolsList.length > 0
+          ? toolsList
+          : TOOL_DEFINITIONS_WITH_PERMISSIONS.map((t) => ({
+              name: t.name,
+              description: t.description,
+              category: '',
+              permissionCategory: t.category as 'read' | 'execute' | 'write',
+              applicablePermissions: t.applicablePermissions as ('read' | 'execute' | 'write')[],
+            }));
 
       if (serverConfig.allowedTools.length === 0) {
         let mode: PermissionQuickMode = 'read_only';
@@ -1236,95 +1295,108 @@ export function McpSettingsFullPanel() {
   }, [loadData]);
 
   // Handle server enable/disable
-  const handleToggleEnabled = useCallback(async (enabled: boolean) => {
-    if (!config || isSaving) return;
-
-    setIsSaving(true);
-    try {
-      const updatedConfig = await mcpAPI.updateConfig({ isEnabled: enabled });
-      setConfig(updatedConfig);
-    } catch (err) {
-      console.error('Failed to toggle MCP server:', err);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving]);
-
-  // Handle quick mode change
-  const handleQuickModeChange = useCallback(async (mode: PermissionQuickMode) => {
-    if (!config || isSaving) return;
-
-    setQuickMode(mode);
-
-    if (mode !== 'custom') {
-      const newMatrix = getDefaultPermissionMatrix(mode);
-      setPermissionMatrix(newMatrix);
+  const handleToggleEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (!config || isSaving) return;
 
       setIsSaving(true);
       try {
-        const oldMode = mode === 'standard' ? 'execute_with_confirm' : mode === 'full_access' ? 'full_access' : 'read_only';
-        await mcpAPI.updateConfig({
-          permissionMode: oldMode,
-          allowedTools: [],
-        });
+        const updatedConfig = await mcpAPI.updateConfig({ isEnabled: enabled });
+        setConfig(updatedConfig);
       } catch (err) {
-        console.error('Failed to update permission mode:', err);
+        console.error('Failed to toggle MCP server:', err);
       } finally {
         setIsSaving(false);
       }
-    }
-  }, [config, isSaving]);
+    },
+    [config, isSaving]
+  );
+
+  // Handle quick mode change
+  const handleQuickModeChange = useCallback(
+    async (mode: PermissionQuickMode) => {
+      if (!config || isSaving) return;
+
+      setQuickMode(mode);
+
+      if (mode !== 'custom') {
+        const newMatrix = getDefaultPermissionMatrix(mode);
+        setPermissionMatrix(newMatrix);
+
+        setIsSaving(true);
+        try {
+          const oldMode =
+            mode === 'standard'
+              ? 'execute_with_confirm'
+              : mode === 'full_access'
+                ? 'full_access'
+                : 'read_only';
+          await mcpAPI.updateConfig({
+            permissionMode: oldMode,
+            allowedTools: [],
+          });
+        } catch (err) {
+          console.error('Failed to update permission mode:', err);
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    },
+    [config, isSaving]
+  );
 
   // Handle dev server mode change
-  const handleDevServerModeChange = useCallback(async (mode: DevServerMode) => {
-    if (!config || isSaving) return;
+  const handleDevServerModeChange = useCallback(
+    async (mode: DevServerMode) => {
+      if (!config || isSaving) return;
 
-    setDevServerMode(mode);
-    setIsSaving(true);
+      setDevServerMode(mode);
+      setIsSaving(true);
 
-    try {
-      const updatedConfig = await mcpAPI.updateConfig({ devServerMode: mode });
-      setConfig(updatedConfig);
-    } catch (err) {
-      console.error('Failed to update dev server mode:', err);
-      // Revert on error
-      setDevServerMode(config.devServerMode || 'mcp_managed');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving]);
+      try {
+        const updatedConfig = await mcpAPI.updateConfig({ devServerMode: mode });
+        setConfig(updatedConfig);
+      } catch (err) {
+        console.error('Failed to update dev server mode:', err);
+        // Revert on error
+        setDevServerMode(config.devServerMode || 'mcp_managed');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [config, isSaving]
+  );
 
   // Handle individual permission change
-  const handlePermissionChange = useCallback(async (
-    toolName: string,
-    permissionType: PermissionType,
-    value: boolean
-  ) => {
-    if (!config || isSaving) return;
+  const handlePermissionChange = useCallback(
+    async (toolName: string, permissionType: PermissionType, value: boolean) => {
+      if (!config || isSaving) return;
 
-    const newMatrix = {
-      ...permissionMatrix,
-      [toolName]: {
-        ...permissionMatrix[toolName],
-        [permissionType]: value,
-      },
-    };
-    setPermissionMatrix(newMatrix);
+      const newMatrix = {
+        ...permissionMatrix,
+        [toolName]: {
+          ...permissionMatrix[toolName],
+          [permissionType]: value,
+        },
+      };
+      setPermissionMatrix(newMatrix);
 
-    const detectedMode = detectQuickMode(newMatrix);
-    setQuickMode(detectedMode);
+      const detectedMode = detectQuickMode(newMatrix);
+      setQuickMode(detectedMode);
 
-    setIsSaving(true);
-    try {
-      const allowedTools = matrixToAllowedTools(newMatrix);
-      await mcpAPI.updateConfig({ allowedTools });
-    } catch (err) {
-      console.error('Failed to update tool permissions:', err);
-      setPermissionMatrix(permissionMatrix);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [config, isSaving, permissionMatrix]);
+      setIsSaving(true);
+      try {
+        const allowedTools = matrixToAllowedTools(newMatrix);
+        await mcpAPI.updateConfig({ allowedTools });
+      } catch (err) {
+        console.error('Failed to update tool permissions:', err);
+        setPermissionMatrix(permissionMatrix);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [config, isSaving, permissionMatrix]
+  );
 
   // Load logs
   const handleLoadLogs = useCallback(async () => {
@@ -1343,7 +1415,7 @@ export function McpSettingsFullPanel() {
   const handleClearLogs = useCallback(async () => {
     try {
       await mcpAPI.clearLogs();
-      setLogsResponse((prev) => prev ? { ...prev, entries: [], totalCount: 0 } : null);
+      setLogsResponse((prev) => (prev ? { ...prev, entries: [], totalCount: 0 } : null));
     } catch (err) {
       console.error('Failed to clear logs:', err);
     }
@@ -1399,9 +1471,7 @@ export function McpSettingsFullPanel() {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LoadingSkeleton />
         </div>
@@ -1412,9 +1482,7 @@ export function McpSettingsFullPanel() {
   if (error) {
     return (
       <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 pb-4">
-          {renderHeader()}
-        </div>
+        <div className="shrink-0 pb-4">{renderHeader()}</div>
         <div className="flex-1 min-h-0 overflow-y-auto">
           <ErrorState message={error} onRetry={loadData} />
         </div>

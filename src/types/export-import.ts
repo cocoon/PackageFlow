@@ -4,7 +4,12 @@
  */
 
 import type { Project, Workflow, AppSettings } from './index';
-import type { WorktreeTemplate, CustomStepTemplate, McpServerConfig, DeploymentConfig } from '../lib/tauri-api';
+import type {
+  WorktreeTemplate,
+  CustomStepTemplate,
+  McpServerConfig,
+  DeploymentConfig,
+} from '../lib/tauri-api';
 import type { AIProviderConfig, PromptTemplate, CLIToolConfig } from './ai';
 import type { MCPAction, MCPActionPermission } from './mcp-action';
 

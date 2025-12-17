@@ -41,7 +41,7 @@ export function KeyboardShortcutsHint({
 
   // Transform shortcuts with effective keys from context
   const effectiveShortcuts = useMemo(() => {
-    return shortcuts.map(shortcut => ({
+    return shortcuts.map((shortcut) => ({
       ...shortcut,
       key: getEffectiveKey(shortcut.id, shortcut.key),
       enabled: isShortcutEnabled(shortcut.id),
@@ -252,7 +252,11 @@ export function KeyboardShortcutsHint({
                   {groupedShortcuts.uncategorized.length > 0 && (
                     <div className="space-y-1">
                       {groupedShortcuts.uncategorized.map((shortcut) => (
-                        <ShortcutRow key={shortcut.id} shortcut={shortcut} searchQuery={searchQuery} />
+                        <ShortcutRow
+                          key={shortcut.id}
+                          shortcut={shortcut}
+                          searchQuery={searchQuery}
+                        />
                       ))}
                     </div>
                   )}
@@ -265,7 +269,11 @@ export function KeyboardShortcutsHint({
                       </h3>
                       <div className="space-y-1">
                         {categoryShortcuts.map((shortcut) => (
-                          <ShortcutRow key={shortcut.id} shortcut={shortcut} searchQuery={searchQuery} />
+                          <ShortcutRow
+                            key={shortcut.id}
+                            shortcut={shortcut}
+                            searchQuery={searchQuery}
+                          />
                         ))}
                       </div>
                     </div>
@@ -277,7 +285,8 @@ export function KeyboardShortcutsHint({
             {/* Footer */}
             <div className="px-4 py-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Press <kbd className="px-1.5 py-0.5 bg-card rounded text-muted-foreground">Esc</kbd> to close
+                Press <kbd className="px-1.5 py-0.5 bg-card rounded text-muted-foreground">Esc</kbd>{' '}
+                to close
               </span>
               <span className="text-muted-foreground">
                 {filteredShortcuts.length} shortcut{filteredShortcuts.length !== 1 ? 's' : ''}

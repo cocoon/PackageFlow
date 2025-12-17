@@ -4,7 +4,15 @@
  * @see specs/005-package-security-audit/spec.md
  */
 
-import { Shield, ShieldCheck, ShieldAlert, Clock, RefreshCw, AlertCircle, Folder } from 'lucide-react';
+import {
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  Clock,
+  RefreshCw,
+  AlertCircle,
+  Folder,
+} from 'lucide-react';
 import type { VulnScanResult, VulnSummary } from '../../types/security';
 import { SeveritySummaryBar, RiskLevelIndicator } from './SeverityBadge';
 import { cn } from '../../lib/utils';
@@ -142,12 +150,7 @@ export function SecurityScanCard({
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-medium text-foreground truncate">{projectName}</h4>
           {scanResult?.summary && scanResult.summary.total > 0 ? (
-            <SeveritySummaryBar
-              {...scanResult.summary}
-              hideZero
-              compact
-              className="mt-1"
-            />
+            <SeveritySummaryBar {...scanResult.summary} hideZero compact className="mt-1" />
           ) : (
             <p className={cn('text-xs', status.colorClass)}>{status.label}</p>
           )}
@@ -220,10 +223,7 @@ export function SecurityScanCard({
                 critical={scanResult.summary.critical}
                 high={scanResult.summary.high}
               />
-              <SeveritySummaryBar
-                {...scanResult.summary}
-                hideZero
-              />
+              <SeveritySummaryBar {...scanResult.summary} hideZero />
             </div>
           ) : (
             <div className="flex items-center gap-2 p-3 bg-green-500/10 rounded-lg">
@@ -238,9 +238,7 @@ export function SecurityScanCard({
               <Clock className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Last scanned {formatRelativeTime(scanResult.scannedAt)}</span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {scanResult.packageManager}
-            </span>
+            <span className="text-xs text-muted-foreground">{scanResult.packageManager}</span>
           </div>
 
           {/* Error State */}
@@ -251,7 +249,9 @@ export function SecurityScanCard({
                 <div>
                   <p className="text-sm text-red-400">{scanResult.error.message}</p>
                   {scanResult.error.suggestion && (
-                    <p className="text-xs text-muted-foreground mt-1">{scanResult.error.suggestion}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {scanResult.error.suggestion}
+                    </p>
                   )}
                 </div>
               </div>
@@ -307,7 +307,9 @@ export function SecurityScanGrid({
       <div className={cn('flex flex-col items-center justify-center py-12 text-center', className)}>
         <Folder className="w-12 h-12 text-muted-foreground mb-4" aria-hidden="true" />
         <h3 className="text-lg font-medium text-foreground mb-2">No Projects</h3>
-        <p className="text-sm text-muted-foreground">Add projects to monitor their security status</p>
+        <p className="text-sm text-muted-foreground">
+          Add projects to monitor their security status
+        </p>
       </div>
     );
   }
@@ -356,11 +358,7 @@ export function SecurityStatusBar({
     <div className={cn('flex items-center gap-2', className)}>
       <StatusIcon className={cn('w-4 h-4', status.colorClass)} aria-hidden="true" />
       {scanResult?.summary && scanResult.summary.total > 0 ? (
-        <SeveritySummaryBar
-          {...scanResult.summary}
-          hideZero
-          compact
-        />
+        <SeveritySummaryBar {...scanResult.summary} hideZero compact />
       ) : (
         <span className={cn('text-xs', status.colorClass)}>{status.label}</span>
       )}
@@ -373,7 +371,10 @@ export function SecurityStatusBar({
           className="h-auto w-auto p-1"
           title={isScanning ? 'Scanning...' : 'Run security scan'}
         >
-          <RefreshCw className={cn('w-3.5 h-3.5', isScanning && 'animate-spin')} aria-hidden="true" />
+          <RefreshCw
+            className={cn('w-3.5 h-3.5', isScanning && 'animate-spin')}
+            aria-hidden="true"
+          />
         </Button>
       )}
     </div>

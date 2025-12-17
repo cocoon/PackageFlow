@@ -51,7 +51,7 @@ function extractPortFromOutput(output: string): number | undefined {
   // Low priority patterns - may match "port in use" messages
   const fallbackPatterns = [
     // Next.js: "started server on 0.0.0.0:3000"
-    /started\s+server\s+on\s+[\d\.]+:(\d{4,5})/gi,
+    /started\s+server\s+on\s+[\d.]+:(\d{4,5})/gi,
     // "listening on port 3000" style
     /(?:listening|running|started|server|ready)\s+(?:on|at)\s+(?:port\s+)?(\d{4,5})/gi,
     // "port 3000" or ":3000" standalone with context
@@ -155,47 +155,50 @@ export function useScriptExecution(): UseScriptExecutionReturn {
 
   const cleanupFns = useRef<UnlistenFn[]>([]);
 
-  const executeScript = useCallback(async (params: ExecuteScriptParams & { projectName?: string }): Promise<string | null> => {
-    try {
-      const { projectName, ...invokeParams } = params;
-      const response = await scriptAPI.executeScript(invokeParams);
+  const executeScript = useCallback(
+    async (params: ExecuteScriptParams & { projectName?: string }): Promise<string | null> => {
+      try {
+        const { projectName, ...invokeParams } = params;
+        const response = await scriptAPI.executeScript(invokeParams);
 
-      if (response.success && response.executionId) {
-        const newScript: RunningScript = {
-          executionId: response.executionId,
-          scriptName: params.scriptName,
-          projectName,
-          projectPath: params.projectPath,
-          status: 'running',
-          output: '',
-          startedAt: new Date().toISOString(),
-        };
+        if (response.success && response.executionId) {
+          const newScript: RunningScript = {
+            executionId: response.executionId,
+            scriptName: params.scriptName,
+            projectName,
+            projectPath: params.projectPath,
+            status: 'running',
+            output: '',
+            startedAt: new Date().toISOString(),
+          };
 
-        setRunningScripts(prev => {
-          const newMap = new Map(prev);
-          newMap.set(response.executionId!, newScript);
-          return newMap;
-        });
+          setRunningScripts((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(response.executionId!, newScript);
+            return newMap;
+          });
 
-        setActiveExecutionId(response.executionId);
+          setActiveExecutionId(response.executionId);
 
-        return response.executionId;
+          return response.executionId;
+        }
+
+        console.error('Failed to execute script:', response.error);
+        return null;
+      } catch (err) {
+        console.error('Error executing script:', err);
+        return null;
       }
-
-      console.error('Failed to execute script:', response.error);
-      return null;
-    } catch (err) {
-      console.error('Error executing script:', err);
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   const cancelScript = useCallback(async (executionId: string): Promise<boolean> => {
     try {
       const response = await scriptAPI.cancelScript(executionId);
 
       if (response.success) {
-        setRunningScripts(prev => {
+        setRunningScripts((prev) => {
           const newMap = new Map(prev);
           const script = newMap.get(executionId);
           if (script) {
@@ -221,28 +224,26 @@ export function useScriptExecution(): UseScriptExecutionReturn {
     setActiveExecutionId(executionId);
   }, []);
 
-  const registerExternalExecution = useCallback((
-    executionId: string,
-    scriptName: string,
-    projectPath: string,
-    projectName?: string
-  ) => {
-    setRunningScripts(prev => {
-      if (prev.has(executionId)) return prev;
-      const next = new Map(prev);
-      next.set(executionId, {
-        executionId,
-        scriptName,
-        projectName,
-        projectPath,
-        status: 'running',
-        output: '',
-        startedAt: new Date().toISOString(),
+  const registerExternalExecution = useCallback(
+    (executionId: string, scriptName: string, projectPath: string, projectName?: string) => {
+      setRunningScripts((prev) => {
+        if (prev.has(executionId)) return prev;
+        const next = new Map(prev);
+        next.set(executionId, {
+          executionId,
+          scriptName,
+          projectName,
+          projectPath,
+          status: 'running',
+          output: '',
+          startedAt: new Date().toISOString(),
+        });
+        return next;
       });
-      return next;
-    });
-    setActiveExecutionId(executionId);
-  }, []);
+      setActiveExecutionId(executionId);
+    },
+    []
+  );
 
   const clearOutput = useCallback(async (executionId: string) => {
     try {
@@ -252,11 +253,11 @@ export function useScriptExecution(): UseScriptExecutionReturn {
       console.log('clearOutput: cancelScript error (may already be terminated):', e);
     }
 
-    setRunningScripts(prev => {
+    setRunningScripts((prev) => {
       const newMap = new Map(prev);
       newMap.delete(executionId);
 
-      setActiveExecutionId(currentActiveId => {
+      setActiveExecutionId((currentActiveId) => {
         if (currentActiveId === executionId) {
           const remainingIds = Array.from(newMap.keys());
           return remainingIds.length > 0 ? remainingIds[remainingIds.length - 1] : null;
@@ -269,7 +270,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
   }, []);
 
   const clearAllOutputs = useCallback(() => {
-    setRunningScripts(prev => {
+    setRunningScripts((prev) => {
       const newMap = new Map(prev);
       for (const [id, script] of newMap) {
         newMap.set(id, { ...script, output: '' });
@@ -278,9 +279,12 @@ export function useScriptExecution(): UseScriptExecutionReturn {
     });
   }, []);
 
-  const getScriptOutput = useCallback((executionId: string): string => {
-    return runningScripts.get(executionId)?.output || '';
-  }, [runningScripts]);
+  const getScriptOutput = useCallback(
+    (executionId: string): string => {
+      return runningScripts.get(executionId)?.output || '';
+    },
+    [runningScripts]
+  );
 
   const getActiveOutput = useCallback((): string => {
     if (!activeExecutionId) return '';
@@ -309,38 +313,39 @@ export function useScriptExecution(): UseScriptExecutionReturn {
   }, []);
 
   // Feature 008: Send Ctrl+C (SIGINT) to a running script
-  const sendInterrupt = useCallback(async (executionId: string): Promise<boolean> => {
-    // ETX (End of Text) = Ctrl+C = ASCII 0x03
-    return writeToStdin(executionId, '\x03');
-  }, [writeToStdin]);
+  const sendInterrupt = useCallback(
+    async (executionId: string): Promise<boolean> => {
+      // ETX (End of Text) = Ctrl+C = ASCII 0x03
+      return writeToStdin(executionId, '\x03');
+    },
+    [writeToStdin]
+  );
 
   // Feature 008: PTY integration - register PTY sessions to track icon state and port detection
-  const registerPtyExecution = useCallback((
-    sessionId: string,
-    scriptName: string,
-    projectPath: string,
-    projectName?: string
-  ) => {
-    setRunningScripts(prev => {
-      if (prev.has(sessionId)) return prev;
-      const next = new Map(prev);
-      next.set(sessionId, {
-        executionId: sessionId,
-        scriptName,
-        projectName,
-        projectPath,
-        status: 'running',
-        output: '',
-        startedAt: new Date().toISOString(),
+  const registerPtyExecution = useCallback(
+    (sessionId: string, scriptName: string, projectPath: string, projectName?: string) => {
+      setRunningScripts((prev) => {
+        if (prev.has(sessionId)) return prev;
+        const next = new Map(prev);
+        next.set(sessionId, {
+          executionId: sessionId,
+          scriptName,
+          projectName,
+          projectPath,
+          status: 'running',
+          output: '',
+          startedAt: new Date().toISOString(),
+        });
+        return next;
       });
-      return next;
-    });
-    setActiveExecutionId(sessionId);
-  }, []);
+      setActiveExecutionId(sessionId);
+    },
+    []
+  );
 
   // Feature 008: Update PTY session output for port detection
   const updatePtyOutput = useCallback((sessionId: string, output: string) => {
-    setRunningScripts(prev => {
+    setRunningScripts((prev) => {
       const script = prev.get(sessionId);
       if (!script) return prev;
 
@@ -362,33 +367,32 @@ export function useScriptExecution(): UseScriptExecutionReturn {
   }, []);
 
   // Feature 008: Update PTY session status when exited
-  const updatePtyStatus = useCallback((
-    sessionId: string,
-    status: 'running' | 'completed' | 'failed',
-    exitCode?: number
-  ) => {
-    setRunningScripts(prev => {
-      const script = prev.get(sessionId);
-      if (!script) return prev;
+  const updatePtyStatus = useCallback(
+    (sessionId: string, status: 'running' | 'completed' | 'failed', exitCode?: number) => {
+      setRunningScripts((prev) => {
+        const script = prev.get(sessionId);
+        if (!script) return prev;
 
-      const next = new Map(prev);
-      next.set(sessionId, {
-        ...script,
-        status,
-        exitCode,
-        finishedAt: status !== 'running' ? new Date().toISOString() : undefined,
+        const next = new Map(prev);
+        next.set(sessionId, {
+          ...script,
+          status,
+          exitCode,
+          finishedAt: status !== 'running' ? new Date().toISOString() : undefined,
+        });
+        return next;
       });
-      return next;
-    });
-  }, []);
+    },
+    []
+  );
 
   // Feature 008: Remove PTY session from tracking
   const removePtyExecution = useCallback((sessionId: string) => {
-    setRunningScripts(prev => {
+    setRunningScripts((prev) => {
       const next = new Map(prev);
       next.delete(sessionId);
 
-      setActiveExecutionId(currentActiveId => {
+      setActiveExecutionId((currentActiveId) => {
         if (currentActiveId === sessionId) {
           const remainingIds = Array.from(next.keys());
           return remainingIds.length > 0 ? remainingIds[remainingIds.length - 1] : null;
@@ -401,7 +405,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
   }, []);
 
   const triggerKillAllPty = useCallback(() => {
-    setKillAllPtySignal(prev => prev + 1);
+    setKillAllPtySignal((prev) => prev + 1);
   }, []);
 
   const registerKillAllPtyFn = useCallback((fn: () => void) => {
@@ -428,7 +432,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
                 if (outputResponse.truncated) {
                   console.info(
                     `[useScriptExecution] Output for ${script.executionId} was truncated. ` +
-                    `Buffer size: ${outputResponse.bufferSize} bytes`
+                      `Buffer size: ${outputResponse.bufferSize} bytes`
                   );
                 }
               }
@@ -451,7 +455,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
 
           setRunningScripts(newMap);
 
-          const firstRunning = runningList.find(s => s.status === 'running');
+          const firstRunning = runningList.find((s) => s.status === 'running');
           if (firstRunning) {
             setActiveExecutionId(firstRunning.executionId);
           } else if (runningList.length > 0) {
@@ -482,7 +486,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
 
       const outputUnsub = await tauriEvents.onScriptOutput((event: ScriptOutputPayload) => {
         if (isCancelled) return;
-        setRunningScripts(prev => {
+        setRunningScripts((prev) => {
           const newMap = new Map(prev);
           const script = newMap.get(event.executionId);
           if (script) {
@@ -505,22 +509,24 @@ export function useScriptExecution(): UseScriptExecutionReturn {
       }
       unlistenOutput = outputUnsub;
 
-      const completedUnsub = await tauriEvents.onScriptCompleted((event: ScriptCompletedPayload) => {
-        if (isCancelled) return;
-        setRunningScripts(prev => {
-          const newMap = new Map(prev);
-          const script = newMap.get(event.executionId);
-          if (script) {
-            newMap.set(event.executionId, {
-              ...script,
-              status: event.exitCode === 0 ? 'completed' : 'failed',
-              exitCode: event.exitCode,
-              finishedAt: new Date().toISOString(),
-            });
-          }
-          return newMap;
-        });
-      });
+      const completedUnsub = await tauriEvents.onScriptCompleted(
+        (event: ScriptCompletedPayload) => {
+          if (isCancelled) return;
+          setRunningScripts((prev) => {
+            const newMap = new Map(prev);
+            const script = newMap.get(event.executionId);
+            if (script) {
+              newMap.set(event.executionId, {
+                ...script,
+                status: event.exitCode === 0 ? 'completed' : 'failed',
+                exitCode: event.exitCode,
+                finishedAt: new Date().toISOString(),
+              });
+            }
+            return newMap;
+          });
+        }
+      );
 
       if (isCancelled) {
         outputUnsub();
@@ -530,7 +536,9 @@ export function useScriptExecution(): UseScriptExecutionReturn {
       }
       unlistenCompleted = completedUnsub;
 
-      cleanupFns.current = [unlistenOutput, unlistenCompleted].filter((fn): fn is UnlistenFn => fn !== undefined);
+      cleanupFns.current = [unlistenOutput, unlistenCompleted].filter(
+        (fn): fn is UnlistenFn => fn !== undefined
+      );
     };
 
     setup();
@@ -539,7 +547,7 @@ export function useScriptExecution(): UseScriptExecutionReturn {
       isCancelled = true;
       unlistenOutput?.();
       unlistenCompleted?.();
-      cleanupFns.current.forEach(fn => fn?.());
+      cleanupFns.current.forEach((fn) => fn?.());
       cleanupFns.current = [];
       isSubscribedRef.current = false;
     };

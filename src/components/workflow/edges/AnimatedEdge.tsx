@@ -3,12 +3,7 @@
  * A visual connection between nodes with status-based styling
  */
 
-import {
-  BaseEdge,
-  getBezierPath,
-  Position,
-  type Edge,
-} from '@xyflow/react';
+import { BaseEdge, getBezierPath, Position, type Edge } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
 import type { NodeStatus } from '../../../types/workflow';
 
@@ -139,10 +134,7 @@ export function AnimatedEdge({
           strokeWidth: style.strokeWidth,
           strokeLinecap: 'round',
         }}
-        className={cn(
-          style.animated && 'animated-edge',
-          selected && 'edge-selected'
-        )}
+        className={cn(style.animated && 'animated-edge', selected && 'edge-selected')}
       />
     </>
   );

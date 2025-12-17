@@ -138,17 +138,12 @@ const FormField: React.FC<FormFieldProps> = ({
 }) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
-      <label
-        htmlFor={htmlFor}
-        className="text-sm font-medium text-foreground"
-      >
+      <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
     </div>
-    {description && (
-      <p className="text-xs text-muted-foreground">{description}</p>
-    )}
+    {description && <p className="text-xs text-muted-foreground">{description}</p>}
     {children}
     {error && (
       <p className="text-xs text-red-500 flex items-center gap-1.5">
@@ -225,9 +220,7 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
     workflowId: '',
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>(
-    {}
-  );
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
@@ -278,14 +271,11 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
         const scriptConfig = config as ScriptConfig;
         scriptCommand = scriptConfig.command || '';
         scriptWorkingDir = scriptConfig.cwd || '';
-        scriptTimeout = scriptConfig.timeoutMs
-          ? Math.floor(scriptConfig.timeoutMs / 1000)
-          : 30;
+        scriptTimeout = scriptConfig.timeoutMs ? Math.floor(scriptConfig.timeoutMs / 1000) : 30;
       } else if (action.actionType === 'webhook' && config) {
         const webhookConfig = config as MCPWebhookConfig;
         webhookUrl = webhookConfig.url || '';
-        webhookMethod =
-          (webhookConfig.method as typeof webhookMethod) || 'POST';
+        webhookMethod = (webhookConfig.method as typeof webhookMethod) || 'POST';
         webhookHeaders = webhookConfig.headers
           ? JSON.stringify(webhookConfig.headers, null, 2)
           : '{}';
@@ -383,7 +373,10 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
           updateField('webhookUrl', url);
           updateField('webhookMethod', 'POST');
           // Set default headers for JSON
-          updateField('webhookHeaders', JSON.stringify({ 'Content-Type': 'application/json' }, null, 2));
+          updateField(
+            'webhookHeaders',
+            JSON.stringify({ 'Content-Type': 'application/json' }, null, 2)
+          );
         }
       }
     },
@@ -480,9 +473,7 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
   };
 
   // Get current action type config
-  const currentActionType = ACTION_TYPES.find(
-    (t) => t.value === formData.actionType
-  );
+  const currentActionType = ACTION_TYPES.find((t) => t.value === formData.actionType);
 
   // Stable onOpenChange handler
   const handleOpenChange = useCallback(
@@ -549,10 +540,7 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                   {isEditMode ? 'Edit Action' : 'Create Action'}
                 </DialogTitle>
               </DialogHeader>
-              <p
-                id={descriptionId}
-                className="mt-1 text-sm text-muted-foreground"
-              >
+              <p id={descriptionId} className="mt-1 text-sm text-muted-foreground">
                 {isEditMode
                   ? 'Modify the action configuration'
                   : 'Configure a new action for AI to execute'}
@@ -588,8 +576,11 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                   <div>
                     <p className="font-medium text-foreground">Script</p>
                     <p className="text-muted-foreground mt-0.5">
-                      Execute shell commands or scripts. Supports working directory and timeout settings.
-                      Example: <code className="px-1 py-0.5 bg-muted rounded text-[11px]">npm run build</code>
+                      Execute shell commands or scripts. Supports working directory and timeout
+                      settings. Example:{' '}
+                      <code className="px-1 py-0.5 bg-muted rounded text-[11px]">
+                        npm run build
+                      </code>
                     </p>
                   </div>
                 </div>
@@ -602,8 +593,9 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                   <div>
                     <p className="font-medium text-foreground">Webhook</p>
                     <p className="text-muted-foreground mt-0.5">
-                      Send HTTP requests to external services or trigger workflows with incoming webhooks enabled.
-                      Select a workflow to auto-fill URL, or enter a custom endpoint.
+                      Send HTTP requests to external services or trigger workflows with incoming
+                      webhooks enabled. Select a workflow to auto-fill URL, or enter a custom
+                      endpoint.
                     </p>
                   </div>
                 </div>
@@ -616,7 +608,8 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                   <div>
                     <p className="font-medium text-foreground">Workflow</p>
                     <p className="text-muted-foreground mt-0.5">
-                      Trigger a PackageFlow workflow by its UUID. The workflow will execute with its configured steps.
+                      Trigger a PackageFlow workflow by its UUID. The workflow will execute with its
+                      configured steps.
                     </p>
                   </div>
                 </div>
@@ -662,26 +655,20 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                     <span
                       className={cn(
                         'p-2 rounded-md',
-                        type.color === 'emerald' &&
-                          'bg-emerald-500/10 text-emerald-500',
+                        type.color === 'emerald' && 'bg-emerald-500/10 text-emerald-500',
                         type.color === 'blue' && 'bg-blue-500/10 text-blue-500',
-                        type.color === 'purple' &&
-                          'bg-purple-500/10 text-purple-500'
+                        type.color === 'purple' && 'bg-purple-500/10 text-purple-500'
                       )}
                     >
                       {type.icon}
                     </span>
-                    <span className="text-sm font-medium text-foreground">
-                      {type.label}
-                    </span>
+                    <span className="text-sm font-medium text-foreground">{type.label}</span>
                   </button>
                 );
               })}
             </div>
             {currentActionType && (
-              <p className="text-xs text-muted-foreground mt-2">
-                {currentActionType.description}
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{currentActionType.description}</p>
             )}
           </FormField>
 
@@ -746,9 +733,7 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                   id="script-timeout"
                   type="number"
                   value={formData.scriptTimeout}
-                  onChange={(e) =>
-                    updateField('scriptTimeout', parseInt(e.target.value, 10) || 30)
-                  }
+                  onChange={(e) => updateField('scriptTimeout', parseInt(e.target.value, 10) || 30)}
                   min={1}
                   max={3600}
                 />
@@ -797,7 +782,9 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
                 required
                 error={errors.webhookUrl}
                 htmlFor="webhook-url"
-                description={selectedWebhookWorkflowId ? 'Auto-filled from selected workflow' : undefined}
+                description={
+                  selectedWebhookWorkflowId ? 'Auto-filled from selected workflow' : undefined
+                }
               >
                 <Input
                   id="webhook-url"
@@ -907,9 +894,7 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
               >
                 Enabled
               </label>
-              <p className="text-xs text-muted-foreground">
-                Allow AI to execute this action
-              </p>
+              <p className="text-xs text-muted-foreground">Allow AI to execute this action</p>
             </div>
             <Toggle
               checked={formData.isEnabled}
@@ -921,18 +906,10 @@ export const MCPActionEditor: React.FC<MCPActionEditorProps> = ({
 
         {/* Footer */}
         <DialogFooter className="px-6 py-4 border-t border-border bg-card/50">
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            disabled={isSaving}
-          >
+          <Button variant="ghost" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button
-            variant="default"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
+          <Button variant="default" onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

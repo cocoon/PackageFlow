@@ -119,27 +119,30 @@ export function useKeyboardShortcuts(
   const shortcutsRef = useRef(shortcuts);
   shortcutsRef.current = shortcuts;
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!enabled) return;
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!enabled) return;
 
-    const isInInput = isInputElement(event.target);
+      const isInInput = isInputElement(event.target);
 
-    for (const shortcut of shortcutsRef.current) {
-      // Check if shortcut is enabled
-      if (shortcut.enabled === false) continue;
+      for (const shortcut of shortcutsRef.current) {
+        // Check if shortcut is enabled
+        if (shortcut.enabled === false) continue;
 
-      // Check if in input field
-      if (isInInput && !shortcut.enabledInInput) continue;
+        // Check if in input field
+        if (isInInput && !shortcut.enabledInInput) continue;
 
-      // Check if matches
-      if (matchesShortcut(event, shortcut)) {
-        event.preventDefault();
-        event.stopPropagation();
-        shortcut.action();
-        return;
+        // Check if matches
+        if (matchesShortcut(event, shortcut)) {
+          event.preventDefault();
+          event.stopPropagation();
+          shortcut.action();
+          return;
+        }
       }
-    }
-  }, [enabled]);
+    },
+    [enabled]
+  );
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown, true);

@@ -99,12 +99,7 @@ export interface NodeResult {
   childExecutionResult?: ChildExecutionResult;
 }
 
-export type NodeStatus =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'skipped';
+export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 
 export interface WorkflowStore {
   version: string;

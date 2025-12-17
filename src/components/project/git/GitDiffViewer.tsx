@@ -205,7 +205,10 @@ export function GitDiffViewer({
           <div className="flex items-center gap-3">
             {getFileIcon(diff?.status)}
             <div>
-              <h2 className="text-sm font-medium text-foreground truncate max-w-md" title={filePath}>
+              <h2
+                className="text-sm font-medium text-foreground truncate max-w-md"
+                title={filePath}
+              >
                 {filePath.split('/').pop()}
               </h2>
               <p className="text-xs text-muted-foreground truncate max-w-md" title={filePath}>
@@ -293,10 +296,12 @@ export function GitDiffViewer({
               title="AI Code Review (a)"
             >
               <span className="relative">
-                <FileSearch className={cn(
-                  'w-3.5 h-3.5 transition-transform duration-200',
-                  isReviewGenerating ? 'animate-scan-glow' : 'group-hover:scale-110'
-                )} />
+                <FileSearch
+                  className={cn(
+                    'w-3.5 h-3.5 transition-transform duration-200',
+                    isReviewGenerating ? 'animate-scan-glow' : 'group-hover:scale-110'
+                  )}
+                />
                 {/* Scan indicator when reviewing */}
                 {isReviewGenerating && (
                   <span className="absolute -right-1 top-1/2 -translate-y-1/2 w-0.5 h-2.5 bg-blue-200/70 rounded-full animate-scan-line" />
@@ -312,16 +317,22 @@ export function GitDiffViewer({
                 disabled={isLoading}
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  'h-auto w-auto p-2',
-                  isRefreshing && 'text-blue-400'
-                )}
-                title={lastRefreshed ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()} (R)` : 'Refresh (R)'}
+                className={cn('h-auto w-auto p-2', isRefreshing && 'text-blue-400')}
+                title={
+                  lastRefreshed
+                    ? `Last refreshed: ${lastRefreshed.toLocaleTimeString()} (R)`
+                    : 'Refresh (R)'
+                }
               >
-                <RefreshCw className={cn('w-4 h-4', (isLoading || isRefreshing) && 'animate-spin')} />
+                <RefreshCw
+                  className={cn('w-4 h-4', (isLoading || isRefreshing) && 'animate-spin')}
+                />
               </Button>
               {/* Auto-refresh indicator */}
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Auto-refreshing every 5s" />
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"
+                title="Auto-refreshing every 5s"
+              />
             </div>
 
             {/* Close Button */}
@@ -346,15 +357,11 @@ export function GitDiffViewer({
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <p className="text-red-400">{error}</p>
-              <Button onClick={handleRefresh}>
-                Retry
-              </Button>
+              <Button onClick={handleRefresh}>Retry</Button>
             </div>
           ) : !diff ? (
             <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">
-                No {diffType} changes for this file
-              </p>
+              <p className="text-muted-foreground">No {diffType} changes for this file</p>
             </div>
           ) : viewMode === 'unified' ? (
             <DiffUnifiedView
@@ -377,16 +384,20 @@ export function GitDiffViewer({
             <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">Esc</kbd> Close
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">Tab</kbd> Toggle Staged/Unstaged
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">Tab</kbd> Toggle
+            Staged/Unstaged
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">v</kbd> Toggle View Mode
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">v</kbd> Toggle
+            View Mode
           </span>
           <span>
             <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">a</kbd> AI Review
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">n</kbd> / <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">p</kbd> Navigate Hunks
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">n</kbd> /{' '}
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-muted-foreground">p</kbd> Navigate
+            Hunks
           </span>
         </div>
 
@@ -394,11 +405,7 @@ export function GitDiffViewer({
         {reviewError && (
           <div className="fixed bottom-4 right-4 bg-background border border-red-500/30 px-4 py-3 rounded-lg shadow-lg z-[60] flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-200">
             <span className="text-sm text-red-500 dark:text-red-400">{reviewError}</span>
-            <Button
-              onClick={clearReviewError}
-              variant="ghost"
-              className="h-auto text-sm px-2 py-1"
-            >
+            <Button onClick={clearReviewError} variant="ghost" className="h-auto text-sm px-2 py-1">
               Dismiss
             </Button>
           </div>

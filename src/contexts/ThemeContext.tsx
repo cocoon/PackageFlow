@@ -70,9 +70,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   });
 
   // Resolved theme based on mode
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    resolveTheme(themeMode)
-  );
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(themeMode));
 
   // Listen for system theme changes when in 'system' mode
   useEffect(() => {
@@ -119,20 +117,19 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeModeState(theme);
   }, []);
 
-  const value = useMemo<ThemeContextValue>(() => ({
-    themeMode,
-    resolvedTheme,
-    setThemeMode,
-    // Legacy API for backward compatibility
-    theme: resolvedTheme,
-    setTheme,
-  }), [themeMode, resolvedTheme, setThemeMode, setTheme]);
-
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      themeMode,
+      resolvedTheme,
+      setThemeMode,
+      // Legacy API for backward compatibility
+      theme: resolvedTheme,
+      setTheme,
+    }),
+    [themeMode, resolvedTheme, setThemeMode, setTheme]
   );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): ThemeContextValue {

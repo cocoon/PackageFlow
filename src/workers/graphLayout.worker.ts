@@ -76,8 +76,7 @@ function layoutNodes(
 
   nodes.forEach((node) => {
     const hasConnections =
-      (outEdges.get(node.id)?.length || 0) > 0 ||
-      (inEdges.get(node.id)?.length || 0) > 0;
+      (outEdges.get(node.id)?.length || 0) > 0 || (inEdges.get(node.id)?.length || 0) > 0;
     if (hasConnections) {
       connectedNodes.push(node.id);
     } else {
@@ -94,9 +93,7 @@ function layoutNodes(
   while (remaining.size > 0) {
     const layer: string[] = [];
     for (const nodeId of remaining) {
-      const deps = edges
-        .filter((e) => e.target === nodeId)
-        .map((e) => e.source);
+      const deps = edges.filter((e) => e.target === nodeId).map((e) => e.source);
       if (deps.every((d) => assigned.has(d) || !connectedNodes.includes(d))) {
         layer.push(nodeId);
       }

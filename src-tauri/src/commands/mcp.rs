@@ -55,15 +55,15 @@ pub fn get_mcp_server_info(app: AppHandle) -> Result<McpServerInfo, String> {
     let dev_debug_path = src_tauri_dir
         .map(|p| p.join("target").join("debug").join("packageflow-mcp"));
 
-    // Find the first available binary (production first, then dev)
+    // Find the first available binary (production first, then dev debug, then dev release)
     let (binary_path, is_available, env_type) = if bundled_path.exists() {
         (bundled_path.clone(), true, "production")
-    } else if let Some(ref path) = dev_release_path {
-        if path.exists() {
-            (path.clone(), true, "development (release)")
-        } else if let Some(ref debug_path) = dev_debug_path {
-            if debug_path.exists() {
-                (debug_path.clone(), true, "development (debug)")
+    } else if let Some(ref debug_path) = dev_debug_path {
+        if debug_path.exists() {
+            (debug_path.clone(), true, "development (debug)")
+        } else if let Some(ref path) = dev_release_path {
+            if path.exists() {
+                (path.clone(), true, "development (release)")
             } else {
                 (bundled_path.clone(), false, "not found")
             }

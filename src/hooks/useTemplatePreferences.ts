@@ -131,16 +131,19 @@ export function useTemplatePreferences() {
     [preferences.collapsedCategories]
   );
 
-  const toggleCategoryCollapse = useCallback(async (categoryId: TemplateCategory): Promise<void> => {
-    try {
-      const newPrefs = await invoke<TemplatePreferences>('toggle_template_category_collapse', {
-        categoryId,
-      });
-      setPreferences(newPrefs);
-    } catch (error) {
-      console.error('Failed to toggle category collapse:', error);
-    }
-  }, []);
+  const toggleCategoryCollapse = useCallback(
+    async (categoryId: TemplateCategory): Promise<void> => {
+      try {
+        const newPrefs = await invoke<TemplatePreferences>('toggle_template_category_collapse', {
+          categoryId,
+        });
+        setPreferences(newPrefs);
+      } catch (error) {
+        console.error('Failed to toggle category collapse:', error);
+      }
+    },
+    []
+  );
 
   const expandAllCategories = useCallback(async (): Promise<void> => {
     try {
@@ -151,16 +154,19 @@ export function useTemplatePreferences() {
     }
   }, []);
 
-  const collapseAllCategories = useCallback(async (categoryIds: TemplateCategory[]): Promise<void> => {
-    try {
-      const newPrefs = await invoke<TemplatePreferences>('collapse_template_categories', {
-        categoryIds,
-      });
-      setPreferences(newPrefs);
-    } catch (error) {
-      console.error('Failed to collapse categories:', error);
-    }
-  }, []);
+  const collapseAllCategories = useCallback(
+    async (categoryIds: TemplateCategory[]): Promise<void> => {
+      try {
+        const newPrefs = await invoke<TemplatePreferences>('collapse_template_categories', {
+          categoryIds,
+        });
+        setPreferences(newPrefs);
+      } catch (error) {
+        console.error('Failed to collapse categories:', error);
+      }
+    },
+    []
+  );
 
   // View mode management
   const setPreferredView = useCallback(async (view: TemplateViewMode): Promise<void> => {

@@ -5,11 +5,39 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Folder, Package, GitBranch, RefreshCw, ExternalLink, Workflow as WorkflowIcon, FileBox, Code2, Shield, Terminal, Zap, Box, Layers, GitCommit, Hexagon, ChevronDown, Rocket, Search, Copy, Check } from 'lucide-react';
+import {
+  Folder,
+  Package,
+  GitBranch,
+  RefreshCw,
+  ExternalLink,
+  Workflow as WorkflowIcon,
+  FileBox,
+  Code2,
+  Shield,
+  Terminal,
+  Zap,
+  Box,
+  Layers,
+  GitCommit,
+  Hexagon,
+  ChevronDown,
+  Rocket,
+  Search,
+  Copy,
+  Check,
+} from 'lucide-react';
 import type { Project, WorkspacePackage, PackageManager, MonorepoTool } from '../../types/project';
 import type { Workflow } from '../../types/workflow';
 import type { SettingsSection } from '../../types/settings';
-import { ipaAPI, apkAPI, worktreeAPI, tauriEvents, type Worktree, type EditorDefinition } from '../../lib/tauri-api';
+import {
+  ipaAPI,
+  apkAPI,
+  worktreeAPI,
+  tauriEvents,
+  type Worktree,
+  type EditorDefinition,
+} from '../../lib/tauri-api';
 import { TerminalSelector } from './TerminalSelector';
 import { ScriptCards } from './ScriptCards';
 import { MonorepoView } from './MonorepoView';
@@ -29,7 +57,11 @@ import { useWorktreeScripts } from '../../hooks/useWorktreeScripts';
 import { useWorktreeStatuses } from '../../hooks/useWorktreeStatuses';
 import { useSecurity } from '../../hooks/useSecurity';
 import { useScanReminder } from '../../hooks/useScanReminder';
-import { FRAMEWORK_CONFIG, UI_FRAMEWORK_CONFIG, shouldShowUIFrameworkBadge } from '../../lib/framework-detector';
+import {
+  FRAMEWORK_CONFIG,
+  UI_FRAMEWORK_CONFIG,
+  shouldShowUIFrameworkBadge,
+} from '../../lib/framework-detector';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useToolchainStrategy } from '../../hooks/useToolchainStrategy';
 import { ToolchainConflictDialog } from './ToolchainConflictDialog';
@@ -77,11 +109,14 @@ const packageManagerLabels: Record<PackageManager, string> = {
 };
 
 /** Monorepo tool badge config */
-const MONOREPO_TOOL_CONFIG: Record<NonNullable<Exclude<MonorepoTool, null>>, {
-  label: string;
-  color: string;
-  icon: typeof Zap
-}> = {
+const MONOREPO_TOOL_CONFIG: Record<
+  NonNullable<Exclude<MonorepoTool, null>>,
+  {
+    label: string;
+    color: string;
+    icon: typeof Zap;
+  }
+> = {
   turbo: { label: 'Turbo', color: 'bg-purple-500/20 text-purple-400', icon: Zap },
   nx: { label: 'Nx', color: 'bg-blue-500/20 text-blue-400', icon: Box },
   lerna: { label: 'Lerna', color: 'bg-amber-500/20 text-amber-400', icon: Layers },
@@ -146,7 +181,6 @@ export function ProjectExplorer({
     isDetecting: isDetectingToolchain,
   } = useToolchainStrategy();
 
-
   // Get all worktrees (prefer external if provided)
   const allWorktrees = useMemo(() => {
     return externalWorktrees.length > 0 ? externalWorktrees : worktrees;
@@ -155,9 +189,9 @@ export function ProjectExplorer({
   // Current worktree info
   const currentWorktree = useMemo(() => {
     if (!selectedWorktreePath) {
-      return allWorktrees.find(w => w.isMain) || null;
+      return allWorktrees.find((w) => w.isMain) || null;
     }
-    return allWorktrees.find(w => w.path === selectedWorktreePath) || null;
+    return allWorktrees.find((w) => w.path === selectedWorktreePath) || null;
   }, [allWorktrees, selectedWorktreePath]);
 
   // Display path (show selected worktree path if different from project path)
@@ -176,10 +210,7 @@ export function ProjectExplorer({
   const categorizedScripts = project ? getCategorizedScripts(project.scripts) : [];
 
   // Worktree statuses hook for the selector
-  const {
-    statuses: worktreeStatuses,
-    isLoading: isLoadingStatuses,
-  } = useWorktreeStatuses({
+  const { statuses: worktreeStatuses, isLoading: isLoadingStatuses } = useWorktreeStatuses({
     projectPath: project?.path || '',
     autoRefresh: true,
     refreshInterval: 30000,
@@ -228,8 +259,9 @@ export function ProjectExplorer({
         setApkCount(apkResponse.count);
       }
 
-      const hasAnyBuilds = (ipaResponse.success && ipaResponse.hasIpaFiles) ||
-                           (apkResponse.success && apkResponse.hasApkFiles);
+      const hasAnyBuilds =
+        (ipaResponse.success && ipaResponse.hasIpaFiles) ||
+        (apkResponse.success && apkResponse.hasApkFiles);
       if (!hasAnyBuilds && activeTab === 'builds') {
         setActiveTab('scripts');
       }
@@ -281,15 +313,18 @@ export function ProjectExplorer({
   }, [toolchainConflict, toolchainPreference, isDetectingToolchain]);
 
   // Handle toolchain strategy selection
-  const handleToolchainStrategySelect = useCallback(async (strategy: ToolchainStrategy, remember: boolean) => {
-    if (!project?.path) return;
-    try {
-      await setToolchainPreference(project.path, strategy, remember);
-      setShowToolchainConflictDialog(false);
-    } catch (err) {
-      console.error('Failed to save toolchain preference:', err);
-    }
-  }, [project?.path, setToolchainPreference]);
+  const handleToolchainStrategySelect = useCallback(
+    async (strategy: ToolchainStrategy, remember: boolean) => {
+      if (!project?.path) return;
+      try {
+        await setToolchainPreference(project.path, strategy, remember);
+        setShowToolchainConflictDialog(false);
+      } catch (err) {
+        console.error('Failed to save toolchain preference:', err);
+      }
+    },
+    [project?.path, setToolchainPreference]
+  );
 
   // Load worktrees for Quick Switcher
   const loadWorktrees = useCallback(async () => {
@@ -312,7 +347,7 @@ export function ProjectExplorer({
     try {
       const response = await worktreeAPI.getAvailableEditors();
       if (response.success && response.editors) {
-        setAvailableEditors(response.editors.filter(e => e.isAvailable));
+        setAvailableEditors(response.editors.filter((e) => e.isAvailable));
       }
     } catch (err) {
       console.error('Failed to load editors:', err);
@@ -341,18 +376,20 @@ export function ProjectExplorer({
 
     let unlistenFn: (() => void) | null = null;
 
-    tauriEvents.onPackageJsonChanged((payload) => {
-      // Check if the changed file belongs to current project or its worktrees
-      if (
-        payload.project_path === project.path ||
-        allWorktrees.some((w) => w.path === payload.project_path)
-      ) {
-        // Trigger version badge refresh
-        setVersionRefreshKey(prev => prev + 1);
-      }
-    }).then((unlisten) => {
-      unlistenFn = unlisten;
-    });
+    tauriEvents
+      .onPackageJsonChanged((payload) => {
+        // Check if the changed file belongs to current project or its worktrees
+        if (
+          payload.project_path === project.path ||
+          allWorktrees.some((w) => w.path === payload.project_path)
+        ) {
+          // Trigger version badge refresh
+          setVersionRefreshKey((prev) => prev + 1);
+        }
+      })
+      .then((unlisten) => {
+        unlistenFn = unlisten;
+      });
 
     return () => {
       unlistenFn?.();
@@ -364,7 +401,7 @@ export function ProjectExplorer({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setIsQuickSwitcherOpen(prev => !prev);
+        setIsQuickSwitcherOpen((prev) => !prev);
       }
     };
 
@@ -373,34 +410,48 @@ export function ProjectExplorer({
   }, []);
 
   // Handle open in editor from Quick Switcher
-  const handleQuickSwitcherOpenInEditor = useCallback(async (worktreePath: string, editorId?: string) => {
-    try {
-      await worktreeAPI.openInEditor(worktreePath, editorId);
-    } catch (err) {
-      console.error('Failed to open in editor:', err);
-    }
-  }, []);
+  const handleQuickSwitcherOpenInEditor = useCallback(
+    async (worktreePath: string, editorId?: string) => {
+      try {
+        await worktreeAPI.openInEditor(worktreePath, editorId);
+      } catch (err) {
+        console.error('Failed to open in editor:', err);
+      }
+    },
+    []
+  );
 
   // Handle open in editor from header dropdown
-  const handleOpenInEditor = useCallback(async (editorId: string) => {
-    if (!project) return;
-    try {
-      await worktreeAPI.openInEditor(project.path, editorId);
-      setIsEditorDropdownOpen(false);
-    } catch (err) {
-      console.error('Failed to open in editor:', err);
-    }
-  }, [project]);
+  const handleOpenInEditor = useCallback(
+    async (editorId: string) => {
+      if (!project) return;
+      try {
+        await worktreeAPI.openInEditor(project.path, editorId);
+        setIsEditorDropdownOpen(false);
+      } catch (err) {
+        console.error('Failed to open in editor:', err);
+      }
+    },
+    [project]
+  );
 
   // Handle run script from Quick Switcher
-  const handleQuickSwitcherRunScript = useCallback(async (worktreePath: string, scriptName: string) => {
-    if (!project) return;
-    try {
-      await executeScriptInWorktree(worktreePath, scriptName, project.packageManager, project.name);
-    } catch (err) {
-      console.error('Failed to run script:', err);
-    }
-  }, [project, executeScriptInWorktree]);
+  const handleQuickSwitcherRunScript = useCallback(
+    async (worktreePath: string, scriptName: string) => {
+      if (!project) return;
+      try {
+        await executeScriptInWorktree(
+          worktreePath,
+          scriptName,
+          project.packageManager,
+          project.name
+        );
+      } catch (err) {
+        console.error('Failed to run script:', err);
+      }
+    },
+    [project, executeScriptInWorktree]
+  );
 
   if (!project) {
     return (
@@ -438,14 +489,16 @@ export function ProjectExplorer({
                   <Copy className="w-4 h-4 opacity-0 group-hover:opacity-60 transition-opacity flex-shrink-0" />
                 )}
               </button>
-              {project.isMonorepo && (
+              {project.isMonorepo &&
                 (() => {
                   const tool = project.monorepoTool;
                   if (tool && MONOREPO_TOOL_CONFIG[tool]) {
                     const config = MONOREPO_TOOL_CONFIG[tool];
                     const Icon = config.icon;
                     return (
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${config.color}`}>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${config.color}`}
+                      >
                         <Icon className="w-3 h-3" />
                         {config.label}
                       </span>
@@ -456,54 +509,60 @@ export function ProjectExplorer({
                       Monorepo
                     </span>
                   );
-                })()
-              )}
-              {project.framework && FRAMEWORK_CONFIG[project.framework] ? (
-                (() => {
-                  const config = FRAMEWORK_CONFIG[project.framework];
-                  const FrameworkIcon = config.icon;
-                  return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${config.color}`}>
-                      <FrameworkIcon className="w-3 h-3" />
-                      {config.label}
+                })()}
+              {project.framework && FRAMEWORK_CONFIG[project.framework]
+                ? (() => {
+                    const config = FRAMEWORK_CONFIG[project.framework];
+                    const FrameworkIcon = config.icon;
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${config.color}`}
+                      >
+                        <FrameworkIcon className="w-3 h-3" />
+                        {config.label}
+                      </span>
+                    );
+                  })()
+                : /* Default to Node.js if no framework detected */
+                  !project.isMonorepo && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-[#339933]/20 text-[#339933]">
+                      <Hexagon className="w-3 h-3" />
+                      Node
                     </span>
-                  );
-                })()
-              ) : (
-                /* Default to Node.js if no framework detected */
-                !project.isMonorepo && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded bg-[#339933]/20 text-[#339933]">
-                    <Hexagon className="w-3 h-3" />
-                    Node
-                  </span>
-                )
-              )}
+                  )}
               {/* UI Framework Badge - for single projects */}
-              {!project.isMonorepo && project.uiFramework && shouldShowUIFrameworkBadge(project.framework ?? null, project.uiFramework) && UI_FRAMEWORK_CONFIG[project.uiFramework] && (
+              {!project.isMonorepo &&
+                project.uiFramework &&
+                shouldShowUIFrameworkBadge(project.framework ?? null, project.uiFramework) &&
+                UI_FRAMEWORK_CONFIG[project.uiFramework] &&
                 (() => {
                   const uiConfig = UI_FRAMEWORK_CONFIG[project.uiFramework!];
                   const UIIcon = uiConfig.icon;
                   return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${uiConfig.color}`}>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded ${uiConfig.color}`}
+                    >
                       <UIIcon className="w-3 h-3" />
                       {uiConfig.label}
                     </span>
                   );
-                })()
-              )}
+                })()}
               {/* UI Framework Badges - for monorepo, collect unique frameworks from all workspaces */}
-              {project.isMonorepo && workspaces.length > 0 && (
+              {project.isMonorepo &&
+                workspaces.length > 0 &&
                 (() => {
                   // Collect unique UI frameworks from all workspaces
-                  const uniqueFrameworks = [...new Set(
-                    workspaces
-                      .map(ws => ws.uiFramework)
-                      .filter((fw): fw is NonNullable<typeof fw> => fw != null)
-                  )];
+                  const uniqueFrameworks = [
+                    ...new Set(
+                      workspaces
+                        .map((ws) => ws.uiFramework)
+                        .filter((fw): fw is NonNullable<typeof fw> => fw != null)
+                    ),
+                  ];
 
                   if (uniqueFrameworks.length === 0) return null;
 
-                  return uniqueFrameworks.map(fw => {
+                  return uniqueFrameworks.map((fw) => {
                     const config = UI_FRAMEWORK_CONFIG[fw];
                     if (!config) return null;
                     const Icon = config.icon;
@@ -518,8 +577,7 @@ export function ProjectExplorer({
                       </span>
                     );
                   });
-                })()
-              )}
+                })()}
             </div>
             {/* Path and Worktree Indicator */}
             <div className="flex items-center gap-2 mt-1">
@@ -588,7 +646,7 @@ export function ProjectExplorer({
                     <div className="px-3 py-1.5 text-xs text-muted-foreground font-medium uppercase tracking-wide">
                       Open In
                     </div>
-                    {availableEditors.map(editor => (
+                    {availableEditors.map((editor) => (
                       <Button
                         key={editor.id}
                         variant="ghost"
@@ -599,8 +657,8 @@ export function ProjectExplorer({
                         {editor.name}
                       </Button>
                     ))}
-                    {availableEditors.length === 0 && (
-                      onOpenInVSCode ? (
+                    {availableEditors.length === 0 &&
+                      (onOpenInVSCode ? (
                         <Button
                           variant="ghost"
                           onClick={onOpenInVSCode}
@@ -613,36 +671,29 @@ export function ProjectExplorer({
                         <div className="px-3 py-1.5 text-sm text-muted-foreground">
                           No editors available
                         </div>
-                      )
-                    )}
+                      ))}
                   </div>
                 </>
               )}
             </div>
             {onOpenTerminal && (
-              <TerminalSelector
-                path={displayPath}
-                onOpenBuiltinTerminal={onOpenTerminal}
-              />
+              <TerminalSelector path={displayPath} onOpenBuiltinTerminal={onOpenTerminal} />
             )}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => {
                 onRefresh();
-                setVersionRefreshKey(prev => prev + 1);
+                setVersionRefreshKey((prev) => prev + 1);
               }}
               disabled={isLoading}
               title="Refresh"
             >
-              <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`}
+              />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenInFinder}
-              title="Open in Finder"
-            >
+            <Button variant="ghost" size="icon" onClick={onOpenInFinder} title="Open in Finder">
               <ExternalLink className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
@@ -754,11 +805,15 @@ export function ProjectExplorer({
             <Shield className="w-4 h-4" />
             Security
             {scanResult && scanResult.summary.total > 0 && (
-              <span className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
-                scanResult.summary.critical > 0 ? 'bg-red-500/20 text-red-400' :
-                scanResult.summary.high > 0 ? 'bg-orange-500/20 text-orange-400' :
-                'bg-yellow-500/20 text-yellow-400'
-              }`}>
+              <span
+                className={`ml-1 px-1.5 py-0.5 text-xs rounded-full ${
+                  scanResult.summary.critical > 0
+                    ? 'bg-red-500/20 text-red-400'
+                    : scanResult.summary.high > 0
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'bg-yellow-500/20 text-yellow-400'
+                }`}
+              >
                 {scanResult.summary.total}
               </span>
             )}
@@ -826,11 +881,7 @@ export function ProjectExplorer({
             onNavigateToWorkflow={onNavigateToWorkflow}
           />
         )}
-        {activeTab === 'builds' && (
-          <MobileBuildsInspector
-            projectPath={project.path}
-          />
-        )}
+        {activeTab === 'builds' && <MobileBuildsInspector projectPath={project.path} />}
         {activeTab === 'security' && (
           <>
             {/* Security Reminder Banner - only shown when scanned before but overdue */}

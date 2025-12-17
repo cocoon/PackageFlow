@@ -40,9 +40,7 @@ const ProcessItem: React.FC<ProcessItemProps> = ({ script }) => {
               {script.projectName}
             </span>
           )}
-          <span className="text-sm font-medium text-foreground truncate">
-            {script.scriptName}
-          </span>
+          <span className="text-sm font-medium text-foreground truncate">{script.scriptName}</span>
           {script.port && (
             <span className="text-xs text-yellow-400 ml-auto flex-shrink-0 font-mono">
               :{script.port}
@@ -164,10 +162,12 @@ export const StopProcessesButton: React.FC<StopProcessesButtonProps> = ({
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-sm text-foreground">Running Processes</h3>
               {hasRunningProcesses && (
-                <span className={cn(
-                  'text-xs px-1.5 py-0.5 rounded-full',
-                  'bg-green-500/20 text-green-400'
-                )}>
+                <span
+                  className={cn(
+                    'text-xs px-1.5 py-0.5 rounded-full',
+                    'bg-green-500/20 text-green-400'
+                  )}
+                >
                   {runningProcessInfo.count} active
                 </span>
               )}

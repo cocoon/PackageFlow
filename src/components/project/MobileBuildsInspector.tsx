@@ -4,7 +4,21 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { FileBox, RefreshCw, FolderOpen, CheckCircle, XCircle, Search, Copy, Check, X, ChevronRight, ChevronDown, GripVertical, Smartphone } from 'lucide-react';
+import {
+  FileBox,
+  RefreshCw,
+  FolderOpen,
+  CheckCircle,
+  XCircle,
+  Search,
+  Copy,
+  Check,
+  X,
+  ChevronRight,
+  ChevronDown,
+  GripVertical,
+  Smartphone,
+} from 'lucide-react';
 import { ipaAPI, apkAPI } from '../../lib/tauri-api';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { formatDate, formatFileSize } from '../../lib/utils';
@@ -114,7 +128,7 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
   }, [loadBuilds]);
 
   // Filter results
-  const filteredBuilds = builds.filter(build => {
+  const filteredBuilds = builds.filter((build) => {
     // Type filter
     if (filterType !== 'all' && build.type !== filterType) {
       return false;
@@ -170,11 +184,7 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
       <div className="p-8 text-center">
         <XCircle className="w-12 h-12 mx-auto mb-4 text-red-500 opacity-50" />
         <p className="text-red-400">{error}</p>
-        <Button
-          variant="ghost"
-          onClick={loadBuilds}
-          className="mt-4"
-        >
+        <Button variant="ghost" onClick={loadBuilds} className="mt-4">
           Retry
         </Button>
       </div>
@@ -187,19 +197,15 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
       <div className="p-8 text-center text-muted-foreground">
         <Smartphone className="w-12 h-12 mx-auto mb-4 opacity-50" />
         <p>No IPA or APK files in this project directory</p>
-        <Button
-          variant="ghost"
-          onClick={loadBuilds}
-          className="mt-4"
-        >
+        <Button variant="ghost" onClick={loadBuilds} className="mt-4">
           Scan again
         </Button>
       </div>
     );
   }
 
-  const ipaCount = builds.filter(b => b.type === 'ipa').length;
-  const apkCount = builds.filter(b => b.type === 'apk').length;
+  const ipaCount = builds.filter((b) => b.type === 'ipa').length;
+  const apkCount = builds.filter((b) => b.type === 'apk').length;
 
   return (
     <div className="flex h-full gap-4">
@@ -209,7 +215,8 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-medium text-muted-foreground">
-              Mobile Builds ({filteredBuilds.length}{searchQuery || filterType !== 'all' ? ` / ${builds.length}` : ''})
+              Mobile Builds ({filteredBuilds.length}
+              {searchQuery || filterType !== 'all' ? ` / ${builds.length}` : ''})
             </h3>
             {/* Type filter tabs */}
             <div className="flex items-center gap-1 bg-card rounded-md p-0.5">
@@ -218,7 +225,9 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                 size="sm"
                 onClick={() => setFilterType('all')}
                 className={`px-2 py-1 h-auto ${
-                  filterType === 'all' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  filterType === 'all'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 All
@@ -229,7 +238,9 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                   size="sm"
                   onClick={() => setFilterType('ipa')}
                   className={`px-2 py-1 h-auto ${
-                    filterType === 'ipa' ? 'bg-blue-500/20 text-blue-400' : 'text-muted-foreground hover:text-foreground'
+                    filterType === 'ipa'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   IPA ({ipaCount})
@@ -241,7 +252,9 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                   size="sm"
                   onClick={() => setFilterType('apk')}
                   className={`px-2 py-1 h-auto ${
-                    filterType === 'apk' ? 'bg-green-500/20 text-green-400' : 'text-muted-foreground hover:text-foreground'
+                    filterType === 'apk'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   APK ({apkCount})
@@ -298,16 +311,20 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                   <div className="flex-1 min-w-0">
                     {/* File name and status */}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                        build.type === 'ipa'
-                          ? 'bg-blue-500/20 text-blue-400'
-                          : 'bg-green-500/20 text-green-400'
-                      }`}>
+                      <span
+                        className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                          build.type === 'ipa'
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-green-500/20 text-green-400'
+                        }`}
+                      >
                         {build.type.toUpperCase()}
                       </span>
-                      <FileBox className={`w-4 h-4 shrink-0 ${
-                        build.error ? 'text-red-400' : 'text-muted-foreground'
-                      }`} />
+                      <FileBox
+                        className={`w-4 h-4 shrink-0 ${
+                          build.error ? 'text-red-400' : 'text-muted-foreground'
+                        }`}
+                      />
                       <span className="text-sm font-medium text-foreground truncate">
                         {build.fileName}
                       </span>
@@ -350,20 +367,28 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                         {build.type === 'ipa' && build.build && (
                           <span className="text-muted-foreground ml-1">({build.build})</span>
                         )}
-                        {build.type === 'apk' && build.versionCode && build.versionCode !== 'N/A' && (
-                          <span className="text-muted-foreground ml-1">(code: {build.versionCode})</span>
-                        )}
+                        {build.type === 'apk' &&
+                          build.versionCode &&
+                          build.versionCode !== 'N/A' && (
+                            <span className="text-muted-foreground ml-1">
+                              (code: {build.versionCode})
+                            </span>
+                          )}
                       </div>
                       <div>
                         <span className="text-muted-foreground">Name:</span>
-                        <span className="text-foreground ml-1.5 truncate">{build.displayName || '-'}</span>
+                        <span className="text-foreground ml-1.5 truncate">
+                          {build.displayName || '-'}
+                        </span>
                       </div>
                       {build.type === 'apk' && (
                         <div>
                           <span className="text-muted-foreground">SDK:</span>
                           <span className="text-foreground ml-1.5">
                             {build.minSdk && build.minSdk !== 'N/A' ? `${build.minSdk}` : '-'}
-                            {build.targetSdk && build.targetSdk !== 'N/A' && ` → ${build.targetSdk}`}
+                            {build.targetSdk &&
+                              build.targetSdk !== 'N/A' &&
+                              ` → ${build.targetSdk}`}
                           </span>
                         </div>
                       )}
@@ -375,12 +400,16 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
                           </span>
                         </div>
                       )}
-                      {build.type === 'apk' && build.fileSize !== undefined && build.fileSize > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Size:</span>
-                          <span className="text-foreground ml-1.5">{formatFileSize(build.fileSize)}</span>
-                        </div>
-                      )}
+                      {build.type === 'apk' &&
+                        build.fileSize !== undefined &&
+                        build.fileSize > 0 && (
+                          <div>
+                            <span className="text-muted-foreground">Size:</span>
+                            <span className="text-foreground ml-1.5">
+                              {formatFileSize(build.fileSize)}
+                            </span>
+                          </div>
+                        )}
                     </div>
 
                     {/* File path */}
@@ -427,13 +456,11 @@ export function MobileBuildsInspector({ projectPath }: MobileBuildsInspectorProp
       </div>
 
       {/* Right: Detail panel (IPA only for now - has fullPlist) */}
-      {selectedIndex !== null && builds[selectedIndex]?.type === 'ipa' && builds[selectedIndex]?.fullPlist && (
-        <BuildDetailPanel
-          build={builds[selectedIndex]}
-          onClose={handleCloseDetail}
-        />
-      )}
-
+      {selectedIndex !== null &&
+        builds[selectedIndex]?.type === 'ipa' &&
+        builds[selectedIndex]?.fullPlist && (
+          <BuildDetailPanel build={builds[selectedIndex]} onClose={handleCloseDetail} />
+        )}
     </div>
   );
 }
@@ -451,31 +478,34 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isResizing.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      isResizing.current = true;
+      startX.current = e.clientX;
+      startWidth.current = width;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      const delta = startX.current - e.clientX;
-      const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 600);
-      setWidth(newWidth);
-    };
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizing.current) return;
+        const delta = startX.current - e.clientX;
+        const newWidth = Math.min(Math.max(startWidth.current + delta, 280), 600);
+        setWidth(newWidth);
+      };
 
-    const handleMouseUp = () => {
-      isResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
+      const handleMouseUp = () => {
+        isResizing.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [width]);
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [width]
+  );
 
   const handleCopy = async () => {
     const jsonText = build.fullPlist
@@ -515,11 +545,7 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
               variant="ghost"
               size="sm"
               onClick={handleCopy}
-              className={`gap-1 h-auto ${
-                copySuccess
-                  ? 'bg-green-500/20 text-green-400'
-                  : ''
-              }`}
+              className={`gap-1 h-auto ${copySuccess ? 'bg-green-500/20 text-green-400' : ''}`}
             >
               {copySuccess ? (
                 <>
@@ -533,12 +559,7 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
                 </>
               )}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="h-auto"
-            >
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-auto">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -551,7 +572,9 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Version:</span>
-            <span className="text-foreground">{build.version} ({build.build})</span>
+            <span className="text-foreground">
+              {build.version} ({build.build})
+            </span>
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Display name:</span>
@@ -559,7 +582,9 @@ function BuildDetailPanel({ build, onClose }: BuildDetailPanelProps) {
           </div>
           <div className="flex">
             <span className="text-muted-foreground w-20 flex-shrink-0">Created at:</span>
-            <span className="text-foreground">{build.createdAt ? formatDate(build.createdAt) : 'N/A'}</span>
+            <span className="text-foreground">
+              {build.createdAt ? formatDate(build.createdAt) : 'N/A'}
+            </span>
           </div>
         </div>
 
@@ -659,12 +684,7 @@ function JsonNodeView({ keyName, value, level }: JsonNodeViewProps) {
         <div>
           {isArray
             ? (value as unknown[]).map((item, index) => (
-                <JsonNodeView
-                  key={index}
-                  keyName={`[${index}]`}
-                  value={item}
-                  level={level + 1}
-                />
+                <JsonNodeView key={index} keyName={`[${index}]`} value={item} level={level + 1} />
               ))
             : Object.entries(value as Record<string, unknown>).map(([k, v]) => (
                 <JsonNodeView key={k} keyName={k} value={v} level={level + 1} />

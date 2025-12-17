@@ -20,26 +20,31 @@ import { ScriptPtyTerminal, type ScriptPtyTerminalRef } from './components/termi
 import { useUpdater } from './hooks/useUpdater';
 import { UpdateDialog } from './components/ui/UpdateDialog';
 import { useMcpStatus } from './hooks/useMcpStatus';
-import { NotificationButton, BackgroundTasksButton, StopProcessesButton, McpStatusButton } from './components/status-bar';
+import {
+  NotificationButton,
+  BackgroundTasksButton,
+  StopProcessesButton,
+  McpStatusButton,
+} from './components/status-bar';
 import { ActionConfirmationDialog } from './components/settings/mcp';
 import { AIAssistantPage } from './components/ai-assistant';
 
 type AppTab = 'workflow' | 'project-manager' | 'ai-assistant';
 
 const DEFAULT_SHORTCUT_KEYS: Record<string, string> = {
-  'refresh': 'cmd+r',
-  'new': 'cmd+n',
-  'save': 'cmd+s',
-  'search': 'cmd+f',
-  'export': 'cmd+e',
-  'import': 'cmd+i',
+  refresh: 'cmd+r',
+  new: 'cmd+n',
+  save: 'cmd+s',
+  search: 'cmd+f',
+  export: 'cmd+e',
+  import: 'cmd+i',
   'tab-projects': 'cmd+1',
   'tab-workflows': 'cmd+2',
   'tab-ai-assistant': 'cmd+3',
   'stop-all': 'cmd+shift+k',
-  'deploy': 'cmd+shift+d',
-  'help': 'cmd+/',
-  'settings': 'cmd+,',
+  deploy: 'cmd+shift+d',
+  help: 'cmd+/',
+  settings: 'cmd+,',
 };
 
 interface WorkflowNavState {
@@ -169,19 +174,19 @@ function App() {
   const { getEffectiveKey, isShortcutEnabled } = useShortcutsContext();
 
   const runningProcessInfo = useMemo(() => {
-    const running = Array.from(runningScripts.values()).filter(
-      s => s.status === 'running'
-    );
+    const running = Array.from(runningScripts.values()).filter((s) => s.status === 'running');
     const allPorts = running
-      .map(s => s.port)
+      .map((s) => s.port)
       .filter((port): port is number => port !== undefined);
     return {
       count: running.length,
-      scripts: running.map(s => ({
-        scriptName: s.scriptName,
-        projectName: s.projectName,
-        port: s.port,
-      })).slice(0, 5),
+      scripts: running
+        .map((s) => ({
+          scriptName: s.scriptName,
+          projectName: s.projectName,
+          port: s.port,
+        }))
+        .slice(0, 5),
       hasMore: running.length > 5,
       ports: allPorts,
     };
@@ -201,11 +206,13 @@ function App() {
       unlisten = await appWindow.onCloseRequested(async (event) => {
         const info = runningProcessInfoRef.current;
         if (info.count > 0) {
-          const scriptsList = info.scripts.map(s => {
-            let line = s.projectName ? `${s.projectName}: ${s.scriptName}` : s.scriptName;
-            if (s.port) line += ` :${s.port}`;
-            return line;
-          }).join('\n');
+          const scriptsList = info.scripts
+            .map((s) => {
+              let line = s.projectName ? `${s.projectName}: ${s.scriptName}` : s.scriptName;
+              if (s.port) line += ` :${s.port}`;
+              return line;
+            })
+            .join('\n');
           const confirmed = await confirm(
             `${info.count} process${info.count > 1 ? 'es are' : ' is'} currently running:\n\n${scriptsList}${info.hasMore ? `\n...and ${info.count - 5} more` : ''}\n\nClosing the app will terminate these processes. Are you sure you want to close?`,
             {
@@ -287,7 +294,14 @@ function App() {
     if (isKilling) return;
 
     console.log('handleKillAllNodeProcesses: starting, runningScripts count:', runningScripts.size);
-    console.log('handleKillAllNodeProcesses: running scripts:', Array.from(runningScripts.entries()).map(([id, s]) => ({ id, name: s.scriptName, status: s.status })));
+    console.log(
+      'handleKillAllNodeProcesses: running scripts:',
+      Array.from(runningScripts.entries()).map(([id, s]) => ({
+        id,
+        name: s.scriptName,
+        status: s.status,
+      }))
+    );
 
     setIsKilling(true);
     try {
@@ -308,190 +322,300 @@ function App() {
     }
   }, [isKilling, runningScripts, triggerKillAllPty]);
 
-  const shortcuts: KeyboardShortcut[] = useMemo(() => [
-    {
-      id: 'refresh',
-      key: getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']),
-      description: 'Reload projects & workflows',
-      category: 'General',
-      enabled: isShortcutEnabled('refresh'),
-      action: () => {
-        setDataVersion((prev) => prev + 1);
-        showShortcutToast('Reloaded', getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']));
+  const shortcuts: KeyboardShortcut[] = useMemo(
+    () => [
+      {
+        id: 'refresh',
+        key: getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh']),
+        description: 'Reload projects & workflows',
+        category: 'General',
+        enabled: isShortcutEnabled('refresh'),
+        action: () => {
+          setDataVersion((prev) => prev + 1);
+          showShortcutToast(
+            'Reloaded',
+            getEffectiveKey('refresh', DEFAULT_SHORTCUT_KEYS['refresh'])
+          );
+        },
       },
-    },
-    {
-      id: 'new',
-      key: getEffectiveKey('new', DEFAULT_SHORTCUT_KEYS['new']),
-      description: 'New item (context-aware)',
-      category: 'General',
-      enabled: isShortcutEnabled('new'),
-      action: () => {
-        const effectiveKey = getEffectiveKey('new', DEFAULT_SHORTCUT_KEYS['new']);
-        if (activeTab === 'project-manager') {
-          window.dispatchEvent(new CustomEvent('shortcut-new-project'));
-          showShortcutToast('New Project', effectiveKey);
-        } else if (activeTab === 'workflow') {
-          window.dispatchEvent(new CustomEvent('shortcut-new-workflow'));
-          showShortcutToast('New Workflow', effectiveKey);
-        }
+      {
+        id: 'new',
+        key: getEffectiveKey('new', DEFAULT_SHORTCUT_KEYS['new']),
+        description: 'New item (context-aware)',
+        category: 'General',
+        enabled: isShortcutEnabled('new'),
+        action: () => {
+          const effectiveKey = getEffectiveKey('new', DEFAULT_SHORTCUT_KEYS['new']);
+          if (activeTab === 'project-manager') {
+            window.dispatchEvent(new CustomEvent('shortcut-new-project'));
+            showShortcutToast('New Project', effectiveKey);
+          } else if (activeTab === 'workflow') {
+            window.dispatchEvent(new CustomEvent('shortcut-new-workflow'));
+            showShortcutToast('New Workflow', effectiveKey);
+          }
+        },
       },
-    },
-    {
-      id: 'save',
-      key: getEffectiveKey('save', DEFAULT_SHORTCUT_KEYS['save']),
-      description: 'Save current workflow',
-      category: 'General',
-      enabled: isShortcutEnabled('save'),
-      action: () => {
-        if (activeTab === 'workflow') {
-          window.dispatchEvent(new CustomEvent('shortcut-save-workflow'));
-          showShortcutToast('Saved', getEffectiveKey('save', DEFAULT_SHORTCUT_KEYS['save']));
-        }
+      {
+        id: 'save',
+        key: getEffectiveKey('save', DEFAULT_SHORTCUT_KEYS['save']),
+        description: 'Save current workflow',
+        category: 'General',
+        enabled: isShortcutEnabled('save'),
+        action: () => {
+          if (activeTab === 'workflow') {
+            window.dispatchEvent(new CustomEvent('shortcut-save-workflow'));
+            showShortcutToast('Saved', getEffectiveKey('save', DEFAULT_SHORTCUT_KEYS['save']));
+          }
+        },
       },
-    },
-    {
-      id: 'search',
-      key: getEffectiveKey('search', DEFAULT_SHORTCUT_KEYS['search']),
-      description: 'Focus search',
-      category: 'General',
-      enabled: isShortcutEnabled('search'),
-      action: () => {
-        window.dispatchEvent(new CustomEvent('shortcut-focus-search'));
+      {
+        id: 'search',
+        key: getEffectiveKey('search', DEFAULT_SHORTCUT_KEYS['search']),
+        description: 'Focus search',
+        category: 'General',
+        enabled: isShortcutEnabled('search'),
+        action: () => {
+          window.dispatchEvent(new CustomEvent('shortcut-focus-search'));
+        },
       },
-    },
-    {
-      id: 'export',
-      key: getEffectiveKey('export', DEFAULT_SHORTCUT_KEYS['export']),
-      description: 'Export data',
-      category: 'Data',
-      enabled: isShortcutEnabled('export'),
-      action: () => {
-        // Open settings to data section and trigger export dialog
-        openSettings('data');
-        // Dispatch event to open export dialog after settings page opens
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('settings-open-export'));
-        }, 100);
+      {
+        id: 'export',
+        key: getEffectiveKey('export', DEFAULT_SHORTCUT_KEYS['export']),
+        description: 'Export data',
+        category: 'Data',
+        enabled: isShortcutEnabled('export'),
+        action: () => {
+          // Open settings to data section and trigger export dialog
+          openSettings('data');
+          // Dispatch event to open export dialog after settings page opens
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('settings-open-export'));
+          }, 100);
+        },
       },
-    },
-    {
-      id: 'import',
-      key: getEffectiveKey('import', DEFAULT_SHORTCUT_KEYS['import']),
-      description: 'Import data',
-      category: 'Data',
-      enabled: isShortcutEnabled('import'),
-      action: () => {
-        // Open settings to data section and trigger import dialog
-        openSettings('data');
-        // Dispatch event to open import dialog after settings page opens
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('settings-open-import'));
-        }, 100);
+      {
+        id: 'import',
+        key: getEffectiveKey('import', DEFAULT_SHORTCUT_KEYS['import']),
+        description: 'Import data',
+        category: 'Data',
+        enabled: isShortcutEnabled('import'),
+        action: () => {
+          // Open settings to data section and trigger import dialog
+          openSettings('data');
+          // Dispatch event to open import dialog after settings page opens
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('settings-open-import'));
+          }, 100);
+        },
       },
-    },
-    {
-      id: 'tab-projects',
-      key: getEffectiveKey('tab-projects', DEFAULT_SHORTCUT_KEYS['tab-projects']),
-      description: 'Switch to Projects tab',
-      category: 'Navigation',
-      enabled: isShortcutEnabled('tab-projects'),
-      action: () => {
-        setActiveTab('project-manager');
-        showShortcutToast('Projects', getEffectiveKey('tab-projects', DEFAULT_SHORTCUT_KEYS['tab-projects']));
+      {
+        id: 'tab-projects',
+        key: getEffectiveKey('tab-projects', DEFAULT_SHORTCUT_KEYS['tab-projects']),
+        description: 'Switch to Projects tab',
+        category: 'Navigation',
+        enabled: isShortcutEnabled('tab-projects'),
+        action: () => {
+          setActiveTab('project-manager');
+          showShortcutToast(
+            'Projects',
+            getEffectiveKey('tab-projects', DEFAULT_SHORTCUT_KEYS['tab-projects'])
+          );
+        },
       },
-    },
-    {
-      id: 'tab-workflows',
-      key: getEffectiveKey('tab-workflows', DEFAULT_SHORTCUT_KEYS['tab-workflows']),
-      description: 'Switch to Workflows tab',
-      category: 'Navigation',
-      enabled: isShortcutEnabled('tab-workflows'),
-      action: () => {
-        setActiveTab('workflow');
-        showShortcutToast('Workflows', getEffectiveKey('tab-workflows', DEFAULT_SHORTCUT_KEYS['tab-workflows']));
+      {
+        id: 'tab-workflows',
+        key: getEffectiveKey('tab-workflows', DEFAULT_SHORTCUT_KEYS['tab-workflows']),
+        description: 'Switch to Workflows tab',
+        category: 'Navigation',
+        enabled: isShortcutEnabled('tab-workflows'),
+        action: () => {
+          setActiveTab('workflow');
+          showShortcutToast(
+            'Workflows',
+            getEffectiveKey('tab-workflows', DEFAULT_SHORTCUT_KEYS['tab-workflows'])
+          );
+        },
       },
-    },
-    {
-      id: 'tab-ai-assistant',
-      key: getEffectiveKey('tab-ai-assistant', DEFAULT_SHORTCUT_KEYS['tab-ai-assistant']),
-      description: 'Switch to AI Assistant tab',
-      category: 'Navigation',
-      enabled: isShortcutEnabled('tab-ai-assistant'),
-      action: () => {
-        setActiveTab('ai-assistant');
-        showShortcutToast('AI Assistant', getEffectiveKey('tab-ai-assistant', DEFAULT_SHORTCUT_KEYS['tab-ai-assistant']));
+      {
+        id: 'tab-ai-assistant',
+        key: getEffectiveKey('tab-ai-assistant', DEFAULT_SHORTCUT_KEYS['tab-ai-assistant']),
+        description: 'Switch to AI Assistant tab',
+        category: 'Navigation',
+        enabled: isShortcutEnabled('tab-ai-assistant'),
+        action: () => {
+          setActiveTab('ai-assistant');
+          showShortcutToast(
+            'AI Assistant',
+            getEffectiveKey('tab-ai-assistant', DEFAULT_SHORTCUT_KEYS['tab-ai-assistant'])
+          );
+        },
       },
-    },
-    {
-      id: 'stop-all',
-      key: getEffectiveKey('stop-all', DEFAULT_SHORTCUT_KEYS['stop-all']),
-      description: 'Stop all running processes',
-      category: 'Execution',
-      enabled: isShortcutEnabled('stop-all'),
-      action: () => {
-        if (runningProcessInfo.count > 0) {
-          handleKillAllNodeProcesses();
-        }
+      {
+        id: 'stop-all',
+        key: getEffectiveKey('stop-all', DEFAULT_SHORTCUT_KEYS['stop-all']),
+        description: 'Stop all running processes',
+        category: 'Execution',
+        enabled: isShortcutEnabled('stop-all'),
+        action: () => {
+          if (runningProcessInfo.count > 0) {
+            handleKillAllNodeProcesses();
+          }
+        },
       },
-    },
-    {
-      id: 'deploy',
-      key: getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']),
-      description: 'Quick deploy current project',
-      category: 'Execution',
-      enabled: isShortcutEnabled('deploy'),
-      action: () => {
-        if (activeTab === 'project-manager') {
-          window.dispatchEvent(new CustomEvent('shortcut-deploy'));
-          showShortcutToast('Deploy', getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']));
-        }
+      {
+        id: 'deploy',
+        key: getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']),
+        description: 'Quick deploy current project',
+        category: 'Execution',
+        enabled: isShortcutEnabled('deploy'),
+        action: () => {
+          if (activeTab === 'project-manager') {
+            window.dispatchEvent(new CustomEvent('shortcut-deploy'));
+            showShortcutToast('Deploy', getEffectiveKey('deploy', DEFAULT_SHORTCUT_KEYS['deploy']));
+          }
+        },
       },
-    },
-    {
-      id: 'help',
-      key: getEffectiveKey('help', DEFAULT_SHORTCUT_KEYS['help']),
-      description: 'Show keyboard shortcuts',
-      category: 'Help',
-      enabled: isShortcutEnabled('help'),
-      action: () => {
-        setShortcutsDialogOpen(true);
+      {
+        id: 'help',
+        key: getEffectiveKey('help', DEFAULT_SHORTCUT_KEYS['help']),
+        description: 'Show keyboard shortcuts',
+        category: 'Help',
+        enabled: isShortcutEnabled('help'),
+        action: () => {
+          setShortcutsDialogOpen(true);
+        },
       },
-    },
-    {
-      id: 'settings',
-      key: getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings']),
-      description: 'Open Settings',
-      category: 'General',
-      enabled: isShortcutEnabled('settings'),
-      action: () => {
-        openSettings();
-        showShortcutToast('Settings', getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings']));
+      {
+        id: 'settings',
+        key: getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings']),
+        description: 'Open Settings',
+        category: 'General',
+        enabled: isShortcutEnabled('settings'),
+        action: () => {
+          openSettings();
+          showShortcutToast(
+            'Settings',
+            getEffectiveKey('settings', DEFAULT_SHORTCUT_KEYS['settings'])
+          );
+        },
       },
-    },
-  ], [activeTab, showShortcutToast, runningProcessInfo.count, handleKillAllNodeProcesses, getEffectiveKey, isShortcutEnabled, openSettings]);
+    ],
+    [
+      activeTab,
+      showShortcutToast,
+      runningProcessInfo.count,
+      handleKillAllNodeProcesses,
+      getEffectiveKey,
+      isShortcutEnabled,
+      openSettings,
+    ]
+  );
 
-  const displayShortcuts: KeyboardShortcut[] = useMemo(() => [
-    { id: 'refresh', key: DEFAULT_SHORTCUT_KEYS['refresh'], description: 'Reload projects & workflows', category: 'General', action: () => {} },
-    { id: 'new', key: DEFAULT_SHORTCUT_KEYS['new'], description: 'New item (context-aware)', category: 'General', action: () => {} },
-    { id: 'save', key: DEFAULT_SHORTCUT_KEYS['save'], description: 'Save current workflow', category: 'General', action: () => {} },
-    { id: 'search', key: DEFAULT_SHORTCUT_KEYS['search'], description: 'Focus search', category: 'General', action: () => {} },
-    { id: 'settings', key: DEFAULT_SHORTCUT_KEYS['settings'], description: 'Open Settings', category: 'General', action: () => {} },
-    { id: 'export', key: DEFAULT_SHORTCUT_KEYS['export'], description: 'Export data', category: 'Data', action: () => {} },
-    { id: 'import', key: DEFAULT_SHORTCUT_KEYS['import'], description: 'Import data', category: 'Data', action: () => {} },
-    { id: 'tab-projects', key: DEFAULT_SHORTCUT_KEYS['tab-projects'], description: 'Switch to Projects tab', category: 'Navigation', action: () => {} },
-    { id: 'tab-workflows', key: DEFAULT_SHORTCUT_KEYS['tab-workflows'], description: 'Switch to Workflows tab', category: 'Navigation', action: () => {} },
-    { id: 'tab-ai-assistant', key: DEFAULT_SHORTCUT_KEYS['tab-ai-assistant'], description: 'Switch to AI Assistant tab', category: 'Navigation', action: () => {} },
-    { id: 'stop-all', key: DEFAULT_SHORTCUT_KEYS['stop-all'], description: 'Stop all running processes', category: 'Execution', action: () => {} },
-    { id: 'deploy', key: DEFAULT_SHORTCUT_KEYS['deploy'], description: 'Quick deploy current project', category: 'Execution', action: () => {} },
-    { id: 'help', key: DEFAULT_SHORTCUT_KEYS['help'], description: 'Show keyboard shortcuts', category: 'Help', action: () => {} },
-  ], []);
+  const displayShortcuts: KeyboardShortcut[] = useMemo(
+    () => [
+      {
+        id: 'refresh',
+        key: DEFAULT_SHORTCUT_KEYS['refresh'],
+        description: 'Reload projects & workflows',
+        category: 'General',
+        action: () => {},
+      },
+      {
+        id: 'new',
+        key: DEFAULT_SHORTCUT_KEYS['new'],
+        description: 'New item (context-aware)',
+        category: 'General',
+        action: () => {},
+      },
+      {
+        id: 'save',
+        key: DEFAULT_SHORTCUT_KEYS['save'],
+        description: 'Save current workflow',
+        category: 'General',
+        action: () => {},
+      },
+      {
+        id: 'search',
+        key: DEFAULT_SHORTCUT_KEYS['search'],
+        description: 'Focus search',
+        category: 'General',
+        action: () => {},
+      },
+      {
+        id: 'settings',
+        key: DEFAULT_SHORTCUT_KEYS['settings'],
+        description: 'Open Settings',
+        category: 'General',
+        action: () => {},
+      },
+      {
+        id: 'export',
+        key: DEFAULT_SHORTCUT_KEYS['export'],
+        description: 'Export data',
+        category: 'Data',
+        action: () => {},
+      },
+      {
+        id: 'import',
+        key: DEFAULT_SHORTCUT_KEYS['import'],
+        description: 'Import data',
+        category: 'Data',
+        action: () => {},
+      },
+      {
+        id: 'tab-projects',
+        key: DEFAULT_SHORTCUT_KEYS['tab-projects'],
+        description: 'Switch to Projects tab',
+        category: 'Navigation',
+        action: () => {},
+      },
+      {
+        id: 'tab-workflows',
+        key: DEFAULT_SHORTCUT_KEYS['tab-workflows'],
+        description: 'Switch to Workflows tab',
+        category: 'Navigation',
+        action: () => {},
+      },
+      {
+        id: 'tab-ai-assistant',
+        key: DEFAULT_SHORTCUT_KEYS['tab-ai-assistant'],
+        description: 'Switch to AI Assistant tab',
+        category: 'Navigation',
+        action: () => {},
+      },
+      {
+        id: 'stop-all',
+        key: DEFAULT_SHORTCUT_KEYS['stop-all'],
+        description: 'Stop all running processes',
+        category: 'Execution',
+        action: () => {},
+      },
+      {
+        id: 'deploy',
+        key: DEFAULT_SHORTCUT_KEYS['deploy'],
+        description: 'Quick deploy current project',
+        category: 'Execution',
+        action: () => {},
+      },
+      {
+        id: 'help',
+        key: DEFAULT_SHORTCUT_KEYS['help'],
+        description: 'Show keyboard shortcuts',
+        category: 'Help',
+        action: () => {},
+      },
+    ],
+    []
+  );
 
   useKeyboardShortcuts(shortcuts);
 
   return (
     <div className="h-screen flex flex-col bg-background rounded-lg overflow-hidden select-none">
-      <header data-tauri-drag-region className="flex items-center justify-between border-b border-border bg-card h-12 flex-shrink-0">
+      <header
+        data-tauri-drag-region
+        className="flex items-center justify-between border-b border-border bg-card h-12 flex-shrink-0"
+      >
         <div data-tauri-drag-region className="flex-1 h-full pl-20" />
         <div className="flex items-center gap-1 px-2">
           {/* Background Tasks */}
@@ -592,7 +716,6 @@ function App() {
         )}
       </main>
 
-
       <TerminalPortal container={terminalPortalContainer}>
         <ScriptPtyTerminal
           ref={ptyTerminalRef}
@@ -636,7 +759,11 @@ function App() {
       />
 
       {/* Update Dialog */}
-      {(updateState === 'available' || updateState === 'downloading' || updateState === 'installing' || updateState === 'complete' || updateState === 'error') && (
+      {(updateState === 'available' ||
+        updateState === 'downloading' ||
+        updateState === 'installing' ||
+        updateState === 'complete' ||
+        updateState === 'error') && (
         <UpdateDialog
           open={updateDialogOpen}
           onOpenChange={setUpdateDialogOpen}

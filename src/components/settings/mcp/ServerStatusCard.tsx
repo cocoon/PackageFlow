@@ -132,12 +132,26 @@ export const ServerStatusCard: React.FC<ServerStatusCardProps> = ({
             Allow AI assistants to interact with PackageFlow
           </p>
           {binaryPath && (
-            <p
-              className="text-xs text-muted-foreground/70 mt-1 truncate font-mono"
-              title={binaryPath}
-            >
-              {formatPath(binaryPath)}
-            </p>
+            <div className="relative group mt-1">
+              <p className="text-xs text-muted-foreground/70 truncate font-mono cursor-help">
+                {formatPath(binaryPath)}
+              </p>
+              {/* Full path tooltip on hover */}
+              <div
+                className={cn(
+                  'absolute left-0 top-full mt-1 z-50',
+                  'px-2.5 py-1.5 rounded-lg',
+                  'bg-popover border border-border shadow-lg',
+                  'text-xs font-mono text-foreground',
+                  'whitespace-nowrap',
+                  'opacity-0 invisible group-hover:opacity-100 group-hover:visible',
+                  'transition-all duration-200',
+                  'pointer-events-none'
+                )}
+              >
+                {binaryPath}
+              </div>
+            </div>
           )}
         </div>
 
@@ -152,10 +166,14 @@ export const ServerStatusCard: React.FC<ServerStatusCardProps> = ({
                 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
                 'transition-all duration-200',
                 'border',
-                healthCheckStatus === 'testing' && 'bg-muted border-border text-muted-foreground cursor-wait',
-                healthCheckStatus === 'success' && 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
-                healthCheckStatus === 'error' && 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400',
-                healthCheckStatus === 'idle' && 'bg-muted/50 border-border hover:bg-muted hover:border-primary/30 text-muted-foreground hover:text-foreground',
+                healthCheckStatus === 'testing' &&
+                  'bg-muted border-border text-muted-foreground cursor-wait',
+                healthCheckStatus === 'success' &&
+                  'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400',
+                healthCheckStatus === 'error' &&
+                  'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400',
+                healthCheckStatus === 'idle' &&
+                  'bg-muted/50 border-border hover:bg-muted hover:border-primary/30 text-muted-foreground hover:text-foreground',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1'
               )}
               title={
@@ -195,10 +213,10 @@ export const ServerStatusCard: React.FC<ServerStatusCardProps> = ({
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
               'transition-all duration-300',
-              isEnabled && isAvailable &&
+              isEnabled &&
+                isAvailable &&
                 'bg-gradient-to-r from-emerald-500/80 to-blue-500/80 text-white shadow-sm',
-              isEnabled && !isAvailable &&
-                'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+              isEnabled && !isAvailable && 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
               !isEnabled && 'bg-muted text-muted-foreground'
             )}
           >

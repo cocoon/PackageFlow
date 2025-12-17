@@ -35,8 +35,7 @@ import { settingsAPI } from '../../../lib/tauri-api';
 
 // Keyboard shortcut display helper
 const isMac =
-  typeof navigator !== 'undefined' &&
-  navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 const modKey = isMac ? 'Cmd' : 'Ctrl';
 
 interface DataSettingsPanelProps {
@@ -51,10 +50,7 @@ interface DataCounts {
   isLoading: boolean;
 }
 
-export const DataSettingsPanel: React.FC<DataSettingsPanelProps> = ({
-  onExport,
-  onImport,
-}) => {
+export const DataSettingsPanel: React.FC<DataSettingsPanelProps> = ({ onExport, onImport }) => {
   const [dataCounts, setDataCounts] = useState<DataCounts>({
     projects: 0,
     workflows: 0,
@@ -106,226 +102,207 @@ export const DataSettingsPanel: React.FC<DataSettingsPanelProps> = ({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pt-4 space-y-6">
-      {/* Export Section */}
-      <SettingSection
-        title="Export Data"
-        description="Create a backup of your configuration and data"
-        icon={<Download className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r from-green-500/5 via-transparent to-transparent',
-            'border border-green-500/20',
-            'transition-colors hover:border-green-500/40'
-          )}
+        {/* Export Section */}
+        <SettingSection
+          title="Export Data"
+          description="Create a backup of your configuration and data"
+          icon={<Download className="w-4 h-4" />}
         >
-          <div className="flex items-start gap-3">
-            {/* Export Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                'bg-green-500/10 text-green-500 dark:text-green-400'
-              )}
-            >
-              <Archive className="w-5 h-5" />
-            </div>
-
-            {/* Export Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  PackageFlow Backup
-                </span>
-                {totalItems > 0 && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
-                      'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                    )}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    {totalItems} items
-                  </span>
+          <div
+            className={cn(
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r from-green-500/5 via-transparent to-transparent',
+              'border border-green-500/20',
+              'transition-colors hover:border-green-500/40'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {/* Export Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  'bg-green-500/10 text-green-500 dark:text-green-400'
                 )}
+              >
+                <Archive className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Download all projects, workflows, templates, and settings as a
-                portable backup file
-              </p>
+
+              {/* Export Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">PackageFlow Backup</span>
+                  {totalItems > 0 && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                      )}
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      {totalItems} items
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Download all projects, workflows, templates, and settings as a portable backup
+                  file
+                </p>
+              </div>
+            </div>
+
+            {/* Export Button */}
+            <div className="mt-4">
+              <Button variant="outline-success" onClick={onExport} className="w-full">
+                <Download className="w-4 h-4 pr-1" />
+                Export Data
+                <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-green-500/10 rounded">
+                  {modKey}+E
+                </kbd>
+              </Button>
             </div>
           </div>
+        </SettingSection>
 
-          {/* Export Button */}
-          <div className="mt-4">
-            <Button
-              variant="outline-success"
-              onClick={onExport}
-              className="w-full"
-            >
-              <Download className="w-4 h-4 pr-1" />
-              Export Data
-              <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-green-500/10 rounded">
-                {modKey}+E
-              </kbd>
-            </Button>
-          </div>
-        </div>
-      </SettingSection>
-
-      {/* Import Section */}
-      <SettingSection
-        title="Import Data"
-        description="Restore data from a backup file"
-        icon={<Upload className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
-            'border border-blue-500/20',
-            'transition-colors hover:border-blue-500/40'
-          )}
+        {/* Import Section */}
+        <SettingSection
+          title="Import Data"
+          description="Restore data from a backup file"
+          icon={<Upload className="w-4 h-4" />}
         >
-          <div className="flex items-start gap-3">
-            {/* Import Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                'bg-blue-500/10 text-blue-500 dark:text-blue-400'
-              )}
-            >
-              <Upload className="w-5 h-5" />
-            </div>
-
-            {/* Import Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  Restore from Backup
-                </span>
+          <div
+            className={cn(
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
+              'border border-blue-500/20',
+              'transition-colors hover:border-blue-500/40'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {/* Import Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  'bg-blue-500/10 text-blue-500 dark:text-blue-400'
+                )}
+              >
+                <Upload className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Import data from a .packageflow file. Choose to merge with
-                existing data or replace entirely.
-              </p>
+
+              {/* Import Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Restore from Backup</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Import data from a .packageflow file. Choose to merge with existing data or
+                  replace entirely.
+                </p>
+              </div>
+            </div>
+
+            {/* Import Button */}
+            <div className="mt-4">
+              <Button variant="outline-info" onClick={onImport} className="w-full">
+                <Upload className="w-4 h-4 pr-1" />
+                Import Data
+                <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-blue-500/10 rounded">
+                  {modKey}+I
+                </kbd>
+              </Button>
             </div>
           </div>
+        </SettingSection>
 
-          {/* Import Button */}
-          <div className="mt-4">
-            <Button
-              variant="outline-info"
-              onClick={onImport}
-              className="w-full"
-            >
-              <Upload className="w-4 h-4 pr-1" />
-              Import Data
-              <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-blue-500/10 rounded">
-                {modKey}+I
-              </kbd>
-            </Button>
-          </div>
-        </div>
-      </SettingSection>
+        {/* Data Contents Section */}
+        <SettingSection
+          title="What's Included"
+          description="Data types that will be exported or imported"
+          icon={<Shield className="w-4 h-4" />}
+        >
+          {dataCounts.isLoading ? (
+            <DataContentsSkeleton />
+          ) : (
+            <div className="grid gap-3">
+              <DataTypeCard
+                icon={<FolderDown className="w-4 h-4" />}
+                title="Projects"
+                description="Project configurations, paths, and metadata"
+                count={dataCounts.projects}
+                variant="blue"
+              />
+              <DataTypeCard
+                icon={<Workflow className="w-4 h-4" />}
+                title="Workflows"
+                description="Automation workflows and step configurations"
+                count={dataCounts.workflows}
+                variant="purple"
+              />
+              <DataTypeCard
+                icon={<GitBranch className="w-4 h-4" />}
+                title="Worktree Templates"
+                description="Git worktree templates for branch management"
+                variant="green"
+              />
+              <DataTypeCard
+                icon={<Zap className="w-4 h-4" />}
+                title="Step Templates"
+                description="Reusable workflow step templates"
+                variant="cyan"
+              />
+              <DataTypeCard
+                icon={<Bell className="w-4 h-4" />}
+                title="Notifications"
+                description="Notification preferences and settings"
+                variant="amber"
+              />
+              <DataTypeCard
+                icon={<Settings className="w-4 h-4" />}
+                title="Application Settings"
+                description="Theme, shortcuts, and other preferences"
+                variant="default"
+              />
+            </div>
+          )}
+        </SettingSection>
 
-      {/* Data Contents Section */}
-      <SettingSection
-        title="What's Included"
-        description="Data types that will be exported or imported"
-        icon={<Shield className="w-4 h-4" />}
-      >
-        {dataCounts.isLoading ? (
-          <DataContentsSkeleton />
-        ) : (
-          <div className="grid gap-3">
-            <DataTypeCard
-              icon={<FolderDown className="w-4 h-4" />}
-              title="Projects"
-              description="Project configurations, paths, and metadata"
-              count={dataCounts.projects}
-              variant="blue"
-            />
-            <DataTypeCard
-              icon={<Workflow className="w-4 h-4" />}
-              title="Workflows"
-              description="Automation workflows and step configurations"
-              count={dataCounts.workflows}
-              variant="purple"
-            />
-            <DataTypeCard
-              icon={<GitBranch className="w-4 h-4" />}
-              title="Worktree Templates"
-              description="Git worktree templates for branch management"
-              variant="green"
-            />
-            <DataTypeCard
-              icon={<Zap className="w-4 h-4" />}
-              title="Step Templates"
-              description="Reusable workflow step templates"
-              variant="cyan"
-            />
-            <DataTypeCard
-              icon={<Bell className="w-4 h-4" />}
-              title="Notifications"
-              description="Notification preferences and settings"
-              variant="amber"
-            />
-            <DataTypeCard
-              icon={<Settings className="w-4 h-4" />}
-              title="Application Settings"
-              description="Theme, shortcuts, and other preferences"
-              variant="default"
-            />
-          </div>
-        )}
-      </SettingSection>
+        {/* Security Note */}
+        <SettingInfoBox title="Security Notice" variant="warning">
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2">
+              <Shield className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
+              <span>
+                API keys and sensitive credentials are <strong>NOT</strong> included in exports for
+                security
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
+              <span>After importing, you will need to re-enter any API keys and tokens</span>
+            </li>
+          </ul>
+        </SettingInfoBox>
 
-      {/* Security Note */}
-      <SettingInfoBox title="Security Notice" variant="warning">
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
-            <Shield className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
-            <span>
-              API keys and sensitive credentials are <strong>NOT</strong>{' '}
-              included in exports for security
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Clock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-500" />
-            <span>
-              After importing, you will need to re-enter any API keys and tokens
-            </span>
-          </li>
-        </ul>
-      </SettingInfoBox>
-
-      {/* Best Practices */}
-      <SettingInfoBox title="Best Practices" variant="info">
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Create regular backups before making major changes to your
-              configuration
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Use <strong>Merge</strong> mode when importing to preserve existing
-              data
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Store backup files securely - they contain your project paths and
-              configurations
-            </span>
-          </li>
-        </ul>
-      </SettingInfoBox>
+        {/* Best Practices */}
+        <SettingInfoBox title="Best Practices" variant="info">
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>Create regular backups before making major changes to your configuration</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                Use <strong>Merge</strong> mode when importing to preserve existing data
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                Store backup files securely - they contain your project paths and configurations
+              </span>
+            </li>
+          </ul>
+        </SettingInfoBox>
       </div>
     </div>
   );
@@ -404,23 +381,13 @@ const DataTypeCard: React.FC<DataTypeCardProps> = ({
   const styles = variantStyles[variant];
 
   return (
-    <div
-      className={cn(
-        'flex items-start gap-3 p-3 rounded-lg',
-        'border bg-card',
-        styles.border
-      )}
-    >
-      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>
-        {icon}
-      </div>
+    <div className={cn('flex items-start gap-3 p-3 rounded-lg', 'border bg-card', styles.border)}>
+      <div className={cn('p-2 rounded-lg flex-shrink-0', styles.iconBg)}>{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <h4 className="text-sm font-medium text-foreground">{title}</h4>
           {count !== undefined && count > 0 && (
-            <span className={cn('text-sm font-medium', styles.countColor)}>
-              {count}
-            </span>
+            <span className={cn('text-sm font-medium', styles.countColor)}>{count}</span>
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>

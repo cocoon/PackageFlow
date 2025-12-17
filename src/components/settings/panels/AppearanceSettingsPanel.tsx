@@ -74,214 +74,210 @@ export const AppearanceSettingsPanel: React.FC = () => {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pt-4 space-y-6">
-      {/* Theme Section */}
-      <SettingSection
-        title="Theme"
-        description="Choose your preferred color scheme"
-        icon={<Sun className="w-4 h-4" />}
-      >
-        <div className="grid grid-cols-3 gap-3">
-          <ThemePreviewCard
-            mode="light"
-            label="Light"
-            description="Bright and clean"
-            isActive={themeMode === 'light'}
-            onClick={() => handleThemeModeChange('light')}
-          />
-          <ThemePreviewCard
-            mode="dark"
-            label="Dark"
-            description="Easy on the eyes"
-            isActive={themeMode === 'dark'}
-            onClick={() => handleThemeModeChange('dark')}
-          />
-          <ThemePreviewCard
-            mode="system"
-            label="System"
-            description="Follow OS setting"
-            isActive={themeMode === 'system'}
-            onClick={() => handleThemeModeChange('system')}
-          />
-        </div>
+        {/* Theme Section */}
+        <SettingSection
+          title="Theme"
+          description="Choose your preferred color scheme"
+          icon={<Sun className="w-4 h-4" />}
+        >
+          <div className="grid grid-cols-3 gap-3">
+            <ThemePreviewCard
+              mode="light"
+              label="Light"
+              description="Bright and clean"
+              isActive={themeMode === 'light'}
+              onClick={() => handleThemeModeChange('light')}
+            />
+            <ThemePreviewCard
+              mode="dark"
+              label="Dark"
+              description="Easy on the eyes"
+              isActive={themeMode === 'dark'}
+              onClick={() => handleThemeModeChange('dark')}
+            />
+            <ThemePreviewCard
+              mode="system"
+              label="System"
+              description="Follow OS setting"
+              isActive={themeMode === 'system'}
+              onClick={() => handleThemeModeChange('system')}
+            />
+          </div>
 
-        {/* Current theme indicator */}
-        {themeMode === 'system' && (
+          {/* Current theme indicator */}
+          {themeMode === 'system' && (
+            <div
+              className={cn(
+                'flex items-center gap-2 p-2.5 rounded-lg mt-3',
+                'bg-purple-500/5 border border-purple-500/20'
+              )}
+            >
+              <div className="p-1.5 rounded-md bg-purple-500/10">
+                {resolvedTheme === 'dark' ? (
+                  <Moon className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Currently using <span className="font-medium text-foreground">{resolvedTheme}</span>{' '}
+                theme based on system preferences
+              </span>
+            </div>
+          )}
+        </SettingSection>
+
+        {/* Display Section */}
+        <SettingSection
+          title="Display"
+          description="Adjust how information is displayed"
+          icon={<Eye className="w-4 h-4" />}
+        >
           <div
             className={cn(
-              'flex items-center gap-2 p-2.5 rounded-lg mt-3',
-              'bg-purple-500/5 border border-purple-500/20'
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
+              'border border-blue-500/20',
+              'transition-colors hover:border-blue-500/40'
             )}
           >
-            <div className="p-1.5 rounded-md bg-purple-500/10">
-              {resolvedTheme === 'dark' ? (
-                <Moon className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-              ) : (
-                <Sun className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
-              )}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              Currently using <span className="font-medium text-foreground">{resolvedTheme}</span>{' '}
-              theme based on system preferences
-            </span>
-          </div>
-        )}
-      </SettingSection>
-
-      {/* Display Section */}
-      <SettingSection
-        title="Display"
-        description="Adjust how information is displayed"
-        icon={<Eye className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r from-blue-500/5 via-transparent to-transparent',
-            'border border-blue-500/20',
-            'transition-colors hover:border-blue-500/40'
-          )}
-        >
-          <div className="flex items-start gap-3">
-            {/* Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                'bg-blue-500/10 text-blue-500 dark:text-blue-400'
-              )}
-            >
-              <FolderTree className="w-5 h-5" />
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Compact Paths</span>
-                {pathDisplayFormat === 'short' && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
-                      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                    )}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    Enabled
-                  </span>
+            <div className="flex items-start gap-3">
+              {/* Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  'bg-blue-500/10 text-blue-500 dark:text-blue-400'
                 )}
+              >
+                <FolderTree className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Show ~/... instead of full paths like /Users/name/...
-              </p>
 
-              {/* Preview */}
-              <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Preview
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Compact Paths</span>
+                  {pathDisplayFormat === 'short' && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                      )}
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      Enabled
+                    </span>
+                  )}
                 </div>
-                <code className="text-xs font-mono text-foreground">
-                  {pathDisplayFormat === 'short'
-                    ? '~/Developer/Projects/my-app'
-                    : '/Users/username/Developer/Projects/my-app'}
-                </code>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Show ~/... instead of full paths like /Users/name/...
+                </p>
+
+                {/* Preview */}
+                <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border">
+                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Preview
+                  </div>
+                  <code className="text-xs font-mono text-foreground">
+                    {pathDisplayFormat === 'short'
+                      ? '~/Developer/Projects/my-app'
+                      : '/Users/username/Developer/Projects/my-app'}
+                  </code>
+                </div>
+              </div>
+
+              {/* Toggle */}
+              <div className="flex-shrink-0">
+                <Toggle
+                  checked={pathDisplayFormat === 'short'}
+                  onChange={handlePathFormatToggle}
+                  aria-label="Compact paths"
+                />
               </div>
             </div>
-
-            {/* Toggle */}
-            <div className="flex-shrink-0">
-              <Toggle
-                checked={pathDisplayFormat === 'short'}
-                onChange={handlePathFormatToggle}
-                aria-label="Compact paths"
-              />
-            </div>
           </div>
-        </div>
-      </SettingSection>
+        </SettingSection>
 
-      {/* Accessibility Section */}
-      <SettingSection
-        title="Accessibility"
-        description="Settings for improved accessibility"
-        icon={<Accessibility className="w-4 h-4" />}
-      >
-        <div
-          className={cn(
-            'group relative p-4 rounded-lg',
-            'bg-gradient-to-r from-green-500/5 via-transparent to-transparent',
-            'border border-green-500/20',
-            'transition-colors hover:border-green-500/40'
-          )}
+        {/* Accessibility Section */}
+        <SettingSection
+          title="Accessibility"
+          description="Settings for improved accessibility"
+          icon={<Accessibility className="w-4 h-4" />}
         >
-          <div className="flex items-start gap-3">
-            {/* Icon */}
-            <div
-              className={cn(
-                'flex-shrink-0 p-2.5 rounded-lg',
-                'bg-green-500/10 text-green-500 dark:text-green-400'
-              )}
-            >
-              <Sparkles className="w-5 h-5" />
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Reduce Motion</span>
-                {reduceMotion && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
-                      'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
-                    )}
-                  >
-                    <CheckCircle2 className="w-3 h-3" />
-                    Enabled
-                  </span>
+          <div
+            className={cn(
+              'group relative p-4 rounded-lg',
+              'bg-gradient-to-r from-green-500/5 via-transparent to-transparent',
+              'border border-green-500/20',
+              'transition-colors hover:border-green-500/40'
+            )}
+          >
+            <div className="flex items-start gap-3">
+              {/* Icon */}
+              <div
+                className={cn(
+                  'flex-shrink-0 p-2.5 rounded-lg',
+                  'bg-green-500/10 text-green-500 dark:text-green-400'
                 )}
+              >
+                <Sparkles className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Minimize animations and transitions throughout the app
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Recommended for users sensitive to motion or using screen readers
-              </p>
-            </div>
 
-            {/* Toggle */}
-            <div className="flex-shrink-0">
-              <Toggle
-                checked={reduceMotion}
-                onChange={handleReduceMotionToggle}
-                aria-label="Reduce motion"
-              />
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Reduce Motion</span>
+                  {reduceMotion && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20'
+                      )}
+                    >
+                      <CheckCircle2 className="w-3 h-3" />
+                      Enabled
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Minimize animations and transitions throughout the app
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Recommended for users sensitive to motion or using screen readers
+                </p>
+              </div>
+
+              {/* Toggle */}
+              <div className="flex-shrink-0">
+                <Toggle
+                  checked={reduceMotion}
+                  onChange={handleReduceMotionToggle}
+                  aria-label="Reduce motion"
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </SettingSection>
+        </SettingSection>
 
-      {/* Tips */}
-      <SettingInfoBox title="Display Tips" variant="info">
-        <ul className="space-y-1.5">
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Theme changes take effect immediately without requiring a restart
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Use <strong>System</strong> theme to automatically switch between light and dark
-              based on your OS settings
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
-            <span>
-              Reduce Motion also respects your system's motion preferences
-            </span>
-          </li>
-        </ul>
-      </SettingInfoBox>
+        {/* Tips */}
+        <SettingInfoBox title="Display Tips" variant="info">
+          <ul className="space-y-1.5">
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>Theme changes take effect immediately without requiring a restart</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>
+                Use <strong>System</strong> theme to automatically switch between light and dark
+                based on your OS settings
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 pr-1 mt-0.5 flex-shrink-0 text-blue-500" />
+              <span>Reduce Motion also respects your system's motion preferences</span>
+            </li>
+          </ul>
+        </SettingInfoBox>
       </div>
     </div>
   );

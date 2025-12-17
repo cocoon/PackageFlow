@@ -7,11 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { versionAPI } from '../lib/tauri-api';
-import type {
-  VersionRequirement,
-  SystemEnvironment,
-  VersionCompatibility,
-} from '../types/version';
+import type { VersionRequirement, SystemEnvironment, VersionCompatibility } from '../types/version';
 
 interface UseVersionCheckReturn {
   // State
@@ -38,31 +34,32 @@ export function useVersionCheck(): UseVersionCheckReturn {
   /**
    * Load version requirements from project's package.json
    */
-  const loadVersionRequirement = useCallback(async (
-    projectPath: string
-  ): Promise<VersionRequirement | null> => {
-    setIsLoading(true);
-    setError(null);
+  const loadVersionRequirement = useCallback(
+    async (projectPath: string): Promise<VersionRequirement | null> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await versionAPI.getVersionRequirement(projectPath);
+      try {
+        const response = await versionAPI.getVersionRequirement(projectPath);
 
-      if (response.success && response.data) {
-        setVersionRequirement(response.data);
-        return response.data;
-      } else {
-        setError(response.error || 'Failed to load version requirement');
+        if (response.success && response.data) {
+          setVersionRequirement(response.data);
+          return response.data;
+        } else {
+          setError(response.error || 'Failed to load version requirement');
+          return null;
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Failed to load version requirement:', err);
         return null;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Failed to load version requirement:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Load system environment information
@@ -94,31 +91,32 @@ export function useVersionCheck(): UseVersionCheckReturn {
   /**
    * Check version compatibility between project requirements and system
    */
-  const checkCompatibility = useCallback(async (
-    projectPath: string
-  ): Promise<VersionCompatibility | null> => {
-    setIsLoading(true);
-    setError(null);
+  const checkCompatibility = useCallback(
+    async (projectPath: string): Promise<VersionCompatibility | null> => {
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      const response = await versionAPI.checkVersionCompatibility(projectPath);
+      try {
+        const response = await versionAPI.checkVersionCompatibility(projectPath);
 
-      if (response.success && response.data) {
-        setCompatibility(response.data);
-        return response.data;
-      } else {
-        setError(response.error || 'Failed to check version compatibility');
+        if (response.success && response.data) {
+          setCompatibility(response.data);
+          return response.data;
+        } else {
+          setError(response.error || 'Failed to check version compatibility');
+          return null;
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Failed to check version compatibility:', err);
         return null;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('Failed to check version compatibility:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Clear error state

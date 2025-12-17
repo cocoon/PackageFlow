@@ -2,15 +2,7 @@
 // One-Click Deploy feature (015-one-click-deploy)
 
 import { useState } from 'react';
-import {
-  Cloud,
-  Link2,
-  Unlink,
-  Loader2,
-  Check,
-  ExternalLink,
-  AlertCircle,
-} from 'lucide-react';
+import { Cloud, Link2, Unlink, Loader2, Check, ExternalLink, AlertCircle } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { openUrl } from '../../../lib/tauri-api';
 import type { PlatformType, ConnectedPlatform } from '../../../types/deploy';
@@ -103,7 +95,9 @@ export function PlatformConnector({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   {/* Platform Icon */}
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform.bgClass}`}>
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-lg ${platform.bgClass}`}
+                  >
                     {platform.icon}
                   </div>
 
@@ -130,9 +124,7 @@ export function PlatformConnector({
                         <span>{account.username}</span>
                       </div>
                     ) : (
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {platform.description}
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{platform.description}</p>
                     )}
                   </div>
                 </div>

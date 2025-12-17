@@ -35,11 +35,9 @@ export const projectAPI = {
   scanProject: (path: string): Promise<ScanProjectResponse> =>
     invoke<ScanProjectResponse>('scan_project', { path }),
 
-  saveProject: (project: Project): Promise<void> =>
-    invoke('save_project', { project }),
+  saveProject: (project: Project): Promise<void> => invoke('save_project', { project }),
 
-  removeProject: (id: string): Promise<void> =>
-    invoke('remove_project', { id }),
+  removeProject: (id: string): Promise<void> => invoke('remove_project', { id }),
 
   refreshProject: (id: string): Promise<RefreshProjectResponse> =>
     invoke<RefreshProjectResponse>('refresh_project', { id }),
@@ -107,11 +105,11 @@ export interface RunningScriptInfo {
   // Original fields
   executionId: string;
   scriptName: string;
-  startedAtMs: number;  // elapsed time for backward compatibility
+  startedAtMs: number; // elapsed time for backward compatibility
   // Feature 007: New fields for reconnection support
   projectPath: string;
   projectName?: string;
-  startedAt: string;  // ISO 8601 absolute timestamp
+  startedAt: string; // ISO 8601 absolute timestamp
   status: ScriptExecutionStatus;
   exitCode?: number;
   completedAt?: string;
@@ -121,7 +119,7 @@ export interface RunningScriptInfo {
 export interface OutputLine {
   content: string;
   stream: 'stdout' | 'stderr';
-  timestamp: string;  // ISO 8601
+  timestamp: string; // ISO 8601
 }
 
 // Feature 007: Response for get_script_output command
@@ -151,8 +149,7 @@ export const scriptAPI = {
   killPorts: (ports: number[]): Promise<CancelScriptResponse> =>
     invoke<CancelScriptResponse>('kill_ports', { ports }),
 
-  checkPorts: (ports: number[]): Promise<number[]> =>
-    invoke<number[]>('check_ports', { ports }),
+  checkPorts: (ports: number[]): Promise<number[]> => invoke<number[]>('check_ports', { ports }),
 
   getRunningScripts: (): Promise<RunningScriptInfo[]> =>
     invoke<RunningScriptInfo[]>('get_running_scripts'),
@@ -166,8 +163,7 @@ export const scriptAPI = {
     invoke<WriteToScriptResponse>('write_to_script', { executionId, input }),
 
   // Feature 008: Get PTY environment variables (for proper PATH, VOLTA_HOME, etc.)
-  getPtyEnv: (): Promise<Record<string, string>> =>
-    invoke<Record<string, string>>('get_pty_env'),
+  getPtyEnv: (): Promise<Record<string, string>> => invoke<Record<string, string>>('get_pty_env'),
 
   // Get Volta-wrapped command for PTY execution
   getVoltaWrappedCommand: (
@@ -245,15 +241,18 @@ export interface Execution {
   status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
   startedAt: string;
   finishedAt?: string;
-  nodeResults: Record<string, {
-    nodeId: string;
-    status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
-    startedAt?: string;
-    finishedAt?: string;
-    output?: string;
-    exitCode?: number;
-    errorMessage?: string;
-  }>;
+  nodeResults: Record<
+    string,
+    {
+      nodeId: string;
+      status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+      startedAt?: string;
+      finishedAt?: string;
+      output?: string;
+      exitCode?: number;
+      errorMessage?: string;
+    }
+  >;
 }
 
 // Available workflow info for trigger selection (Feature 013)
@@ -337,11 +336,9 @@ export interface ExecutionHistoryStoreData {
 export const workflowAPI = {
   // Note: loadWorkflows is in settingsAPI.loadWorkflows
 
-  saveWorkflow: (workflow: Workflow): Promise<void> =>
-    invoke('save_workflow', { workflow }),
+  saveWorkflow: (workflow: Workflow): Promise<void> => invoke('save_workflow', { workflow }),
 
-  deleteWorkflow: (workflowId: string): Promise<void> =>
-    invoke('delete_workflow', { workflowId }),
+  deleteWorkflow: (workflowId: string): Promise<void> => invoke('delete_workflow', { workflowId }),
 
   executeWorkflow: (workflowId: string): Promise<string> =>
     invoke<string>('execute_workflow', { workflowId }),
@@ -355,11 +352,9 @@ export const workflowAPI = {
   getRunningExecutions: (): Promise<Record<string, Execution>> =>
     invoke<Record<string, Execution>>('get_running_executions'),
 
-  restoreRunningExecutions: (): Promise<void> =>
-    invoke('restore_running_executions'),
+  restoreRunningExecutions: (): Promise<void> => invoke('restore_running_executions'),
 
-  killProcess: (executionId: string): Promise<void> =>
-    invoke('kill_process', { executionId }),
+  killProcess: (executionId: string): Promise<void> => invoke('kill_process', { executionId }),
 
   // Feature 013: Workflow Trigger Workflow
   getAvailableWorkflows: (excludeWorkflowId: string): Promise<AvailableWorkflowInfo[]> =>
@@ -596,13 +591,24 @@ export const worktreeAPI = {
       deleteBranch: params.deleteBranch ?? false,
     }),
 
-  getMergedWorktrees: (projectPath: string, baseBranch?: string): Promise<GetMergedWorktreesResponse> =>
+  getMergedWorktrees: (
+    projectPath: string,
+    baseBranch?: string
+  ): Promise<GetMergedWorktreesResponse> =>
     invoke<GetMergedWorktreesResponse>('get_merged_worktrees', { projectPath, baseBranch }),
 
-  getBehindCommits: (worktreePath: string, baseBranch?: string, limit?: number): Promise<GetBehindCommitsResponse> =>
+  getBehindCommits: (
+    worktreePath: string,
+    baseBranch?: string,
+    limit?: number
+  ): Promise<GetBehindCommitsResponse> =>
     invoke<GetBehindCommitsResponse>('get_behind_commits', { worktreePath, baseBranch, limit }),
 
-  syncWorktree: (worktreePath: string, baseBranch: string, method: 'rebase' | 'merge'): Promise<SyncWorktreeResponse> =>
+  syncWorktree: (
+    worktreePath: string,
+    baseBranch: string,
+    method: 'rebase' | 'merge'
+  ): Promise<SyncWorktreeResponse> =>
     invoke<SyncWorktreeResponse>('sync_worktree', { worktreePath, baseBranch, method }),
 
   // T012: Enhanced worktree status API
@@ -993,23 +999,15 @@ export const securityAPI = {
 };
 
 export const securityEvents = {
-  onScanStarted: (
-    callback: (data: SecurityScanStartedPayload) => void
-  ): Promise<UnlistenFn> =>
-    listen<SecurityScanStartedPayload>('security_scan_started', (event) =>
-      callback(event.payload)
-    ),
+  onScanStarted: (callback: (data: SecurityScanStartedPayload) => void): Promise<UnlistenFn> =>
+    listen<SecurityScanStartedPayload>('security_scan_started', (event) => callback(event.payload)),
 
-  onScanProgress: (
-    callback: (data: SecurityScanProgressPayload) => void
-  ): Promise<UnlistenFn> =>
+  onScanProgress: (callback: (data: SecurityScanProgressPayload) => void): Promise<UnlistenFn> =>
     listen<SecurityScanProgressPayload>('security_scan_progress', (event) =>
       callback(event.payload)
     ),
 
-  onScanCompleted: (
-    callback: (data: SecurityScanCompletedPayload) => void
-  ): Promise<UnlistenFn> =>
+  onScanCompleted: (callback: (data: SecurityScanCompletedPayload) => void): Promise<UnlistenFn> =>
     listen<SecurityScanCompletedPayload>('security_scan_completed', (event) =>
       callback(event.payload)
     ),
@@ -1073,46 +1071,40 @@ export const versionAPI = {
 // ============================================================================
 
 export const settingsAPI = {
-  loadSettings: (): Promise<AppSettings> =>
-    invoke<AppSettings>('load_settings'),
+  loadSettings: (): Promise<AppSettings> => invoke<AppSettings>('load_settings'),
 
-  saveSettings: (settings: AppSettings): Promise<void> =>
-    invoke('save_settings', { settings }),
+  saveSettings: (settings: AppSettings): Promise<void> => invoke('save_settings', { settings }),
 
-  loadProjects: (): Promise<Project[]> =>
-    invoke<Project[]>('load_projects'),
+  loadProjects: (): Promise<Project[]> => invoke<Project[]>('load_projects'),
 
-  saveProjects: (projects: Project[]): Promise<void> =>
-    invoke('save_projects', { projects }),
+  saveProjects: (projects: Project[]): Promise<void> => invoke('save_projects', { projects }),
 
-  loadWorkflows: (): Promise<Workflow[]> =>
-    invoke<Workflow[]>('load_workflows'),
+  loadWorkflows: (): Promise<Workflow[]> => invoke<Workflow[]>('load_workflows'),
 
-  saveWorkflows: (workflows: Workflow[]): Promise<void> =>
-    invoke('save_workflows', { workflows }),
+  saveWorkflows: (workflows: Workflow[]): Promise<void> => invoke('save_workflows', { workflows }),
 
-  loadStoreData: (): Promise<StoreData> =>
-    invoke<StoreData>('load_store_data'),
+  loadStoreData: (): Promise<StoreData> => invoke<StoreData>('load_store_data'),
 
   // Store path management
-  getStorePath: (): Promise<StorePathInfo> =>
-    invoke<StorePathInfo>('get_store_path'),
+  getStorePath: (): Promise<StorePathInfo> => invoke<StorePathInfo>('get_store_path'),
 
   setStorePath: (newPath: string): Promise<StorePathInfo> =>
     invoke<StorePathInfo>('set_store_path', { newPath }),
 
-  resetStorePath: (): Promise<StorePathInfo> =>
-    invoke<StorePathInfo>('reset_store_path'),
+  resetStorePath: (): Promise<StorePathInfo> => invoke<StorePathInfo>('reset_store_path'),
 
-  openStoreLocation: (): Promise<void> =>
-    invoke('open_store_location'),
+  openStoreLocation: (): Promise<void> => invoke('open_store_location'),
 };
 
 // ============================================================================
 // Notification Settings Commands
 // ============================================================================
 
-import type { NotificationSettings, NotificationRecord, NotificationListResponse } from '../types/notification';
+import type {
+  NotificationSettings,
+  NotificationRecord,
+  NotificationListResponse,
+} from '../types/notification';
 
 export type { NotificationSettings, NotificationRecord, NotificationListResponse };
 
@@ -1136,16 +1128,13 @@ export const notificationHistoryAPI = {
     invoke<NotificationListResponse>('get_notifications', { limit, offset }),
 
   /** Get unread notification count */
-  getUnreadCount: (): Promise<number> =>
-    invoke<number>('get_unread_notification_count'),
+  getUnreadCount: (): Promise<number> => invoke<number>('get_unread_notification_count'),
 
   /** Mark a notification as read */
-  markAsRead: (id: string): Promise<boolean> =>
-    invoke<boolean>('mark_notification_read', { id }),
+  markAsRead: (id: string): Promise<boolean> => invoke<boolean>('mark_notification_read', { id }),
 
   /** Mark all notifications as read */
-  markAllAsRead: (): Promise<number> =>
-    invoke<number>('mark_all_notifications_read'),
+  markAllAsRead: (): Promise<number> => invoke<number>('mark_all_notifications_read'),
 
   /** Delete a notification */
   deleteNotification: (id: string): Promise<boolean> =>
@@ -1156,8 +1145,7 @@ export const notificationHistoryAPI = {
     invoke<number>('cleanup_old_notifications', { retentionDays }),
 
   /** Clear all notifications */
-  clearAll: (): Promise<number> =>
-    invoke<number>('clear_all_notifications'),
+  clearAll: (): Promise<number> => invoke<number>('clear_all_notifications'),
 };
 
 // ============================================================================
@@ -1221,17 +1209,31 @@ export const tauriEvents = {
     listen<ExecutionPausedPayload>('execution_paused', (event) => callback(event.payload)),
 
   // Feature 013: Child execution events (T028-T030)
-  onChildExecutionStarted: (callback: (data: ChildExecutionStartedPayload) => void): Promise<UnlistenFn> =>
-    listen<ChildExecutionStartedPayload>('child_execution_started', (event) => callback(event.payload)),
+  onChildExecutionStarted: (
+    callback: (data: ChildExecutionStartedPayload) => void
+  ): Promise<UnlistenFn> =>
+    listen<ChildExecutionStartedPayload>('child_execution_started', (event) =>
+      callback(event.payload)
+    ),
 
-  onChildExecutionProgress: (callback: (data: ChildExecutionProgressPayload) => void): Promise<UnlistenFn> =>
-    listen<ChildExecutionProgressPayload>('child_execution_progress', (event) => callback(event.payload)),
+  onChildExecutionProgress: (
+    callback: (data: ChildExecutionProgressPayload) => void
+  ): Promise<UnlistenFn> =>
+    listen<ChildExecutionProgressPayload>('child_execution_progress', (event) =>
+      callback(event.payload)
+    ),
 
-  onChildExecutionCompleted: (callback: (data: ChildExecutionCompletedPayload) => void): Promise<UnlistenFn> =>
-    listen<ChildExecutionCompletedPayload>('child_execution_completed', (event) => callback(event.payload)),
+  onChildExecutionCompleted: (
+    callback: (data: ChildExecutionCompletedPayload) => void
+  ): Promise<UnlistenFn> =>
+    listen<ChildExecutionCompletedPayload>('child_execution_completed', (event) =>
+      callback(event.payload)
+    ),
 
   // File watcher events (package.json monitoring)
-  onPackageJsonChanged: (callback: (data: PackageJsonChangedPayload) => void): Promise<UnlistenFn> =>
+  onPackageJsonChanged: (
+    callback: (data: PackageJsonChangedPayload) => void
+  ): Promise<UnlistenFn> =>
     listen<PackageJsonChangedPayload>('package-json-changed', (event) => callback(event.payload)),
 
   // Notification Center events (021-mcp-actions)
@@ -1267,8 +1269,7 @@ export const fileWatcherAPI = {
     invoke<FileWatcherResponse>('unwatch_all_projects'),
 
   /** Get list of currently watched project paths */
-  getWatchedProjects: (): Promise<string[]> =>
-    invoke<string[]>('get_watched_projects'),
+  getWatchedProjects: (): Promise<string[]> => invoke<string[]>('get_watched_projects'),
 };
 
 // ============================================================================
@@ -1412,20 +1413,12 @@ export const monorepoAPI = {
 
 export const monorepoEvents = {
   /** Listen for batch execution progress */
-  onBatchProgress: (
-    callback: (data: BatchProgressPayload) => void
-  ): Promise<UnlistenFn> =>
-    listen<BatchProgressPayload>('batch_progress', (event) =>
-      callback(event.payload)
-    ),
+  onBatchProgress: (callback: (data: BatchProgressPayload) => void): Promise<UnlistenFn> =>
+    listen<BatchProgressPayload>('batch_progress', (event) => callback(event.payload)),
 
   /** Listen for batch execution completion */
-  onBatchCompleted: (
-    callback: (data: BatchCompletedPayload) => void
-  ): Promise<UnlistenFn> =>
-    listen<BatchCompletedPayload>('batch_completed', (event) =>
-      callback(event.payload)
-    ),
+  onBatchCompleted: (callback: (data: BatchCompletedPayload) => void): Promise<UnlistenFn> =>
+    listen<BatchCompletedPayload>('batch_completed', (event) => callback(event.payload)),
 };
 
 // ============================================================================
@@ -1532,10 +1525,7 @@ export const gitAPI = {
     invoke<CreateCommitResponse>('create_commit', { projectPath, message, amendLast }),
 
   // US3: Branch Management
-  getBranches: (
-    projectPath: string,
-    includeRemote?: boolean
-  ): Promise<GetBranchesResponse> =>
+  getBranches: (projectPath: string, includeRemote?: boolean): Promise<GetBranchesResponse> =>
     invoke<GetBranchesResponse>('get_branches', { projectPath, includeRemote }),
 
   createBranch: (
@@ -1617,11 +1607,7 @@ export const gitAPI = {
   ): Promise<CreateStashResponse> =>
     invoke<CreateStashResponse>('create_stash', { projectPath, message, includeUntracked }),
 
-  applyStash: (
-    projectPath: string,
-    index?: number,
-    pop?: boolean
-  ): Promise<ApplyStashResponse> =>
+  applyStash: (projectPath: string, index?: number, pop?: boolean): Promise<ApplyStashResponse> =>
     invoke<ApplyStashResponse>('apply_stash', { projectPath, index, pop }),
 
   dropStash: (projectPath: string, index?: number): Promise<DropStashResponse> =>
@@ -1759,10 +1745,7 @@ export const stepTemplateAPI = {
 // Per-workflow server architecture: each workflow has its own HTTP server
 // ============================================================================
 
-import type {
-  IncomingWebhookConfig,
-  IncomingWebhookServerStatus,
-} from '../types/incoming-webhook';
+import type { IncomingWebhookConfig, IncomingWebhookServerStatus } from '../types/incoming-webhook';
 
 /** Port status returned by check_port_available */
 export type PortStatus =
@@ -1772,8 +1755,7 @@ export type PortStatus =
 
 export const incomingWebhookAPI = {
   /** Generate a new API token */
-  generateToken: (): Promise<string> =>
-    invoke<string>('generate_incoming_webhook_token'),
+  generateToken: (): Promise<string> => invoke<string>('generate_incoming_webhook_token'),
 
   /** Get incoming webhook server status (multi-server) */
   getServerStatus: (): Promise<IncomingWebhookServerStatus> =>
@@ -1869,7 +1851,11 @@ export const deployAPI = {
     invoke('disconnect_platform', { platform }),
 
   // Deployment
-  startDeployment: (projectId: string, projectPath: string, config: DeploymentConfig): Promise<Deployment> =>
+  startDeployment: (
+    projectId: string,
+    projectPath: string,
+    config: DeploymentConfig
+  ): Promise<Deployment> =>
     invoke<Deployment>('start_deployment', { projectId, projectPath, config }),
 
   getDeploymentHistory: (projectId: string): Promise<Deployment[]> =>
@@ -1902,8 +1888,7 @@ export const deployAPI = {
 
   // T012: Account Management
   /** Get all deploy accounts (sanitized - no tokens) */
-  getDeployAccounts: (): Promise<DeployAccount[]> =>
-    invoke<DeployAccount[]>('get_deploy_accounts'),
+  getDeployAccounts: (): Promise<DeployAccount[]> => invoke<DeployAccount[]>('get_deploy_accounts'),
 
   /** Get accounts filtered by platform */
   getAccountsByPlatform: (platform: PlatformType): Promise<DeployAccount[]> =>
@@ -1948,7 +1933,10 @@ export const deployAPI = {
   // ============================================================================
 
   /** Generate GitHub Actions workflow file for GitHub Pages deployment */
-  generateGitHubActionsWorkflow: (projectPath: string, config: DeploymentConfig): Promise<GitHubWorkflowResult> =>
+  generateGitHubActionsWorkflow: (
+    projectPath: string,
+    config: DeploymentConfig
+  ): Promise<GitHubWorkflowResult> =>
     invoke<GitHubWorkflowResult>('generate_github_actions_workflow', { projectPath, config }),
 
   // ============================================================================
@@ -1976,7 +1964,10 @@ export const deployAPI = {
     invoke<BackupExportResult>('export_deploy_backup', { password }),
 
   /** Import encrypted backup of deploy accounts */
-  importDeployBackup: (encryptedData: EncryptedData, password: string): Promise<BackupImportResult> =>
+  importDeployBackup: (
+    encryptedData: EncryptedData,
+    password: string
+  ): Promise<BackupImportResult> =>
     invoke<BackupImportResult>('import_deploy_backup', { encryptedData, password }),
 
   // ============================================================================
@@ -1993,20 +1984,12 @@ export const deployAPI = {
 };
 
 export const deployEvents = {
-  onDeploymentStatus: (
-    callback: (event: DeploymentStatusEvent) => void
-  ): Promise<UnlistenFn> =>
-    listen<DeploymentStatusEvent>('deployment:status', (e) =>
-      callback(e.payload)
-    ),
+  onDeploymentStatus: (callback: (event: DeploymentStatusEvent) => void): Promise<UnlistenFn> =>
+    listen<DeploymentStatusEvent>('deployment:status', (e) => callback(e.payload)),
 
   /** Listen for deployment progress events with extended info */
-  onDeploymentProgress: (
-    callback: (event: DeploymentProgressEvent) => void
-  ): Promise<UnlistenFn> =>
-    listen<DeploymentProgressEvent>('deployment:progress', (e) =>
-      callback(e.payload)
-    ),
+  onDeploymentProgress: (callback: (event: DeploymentProgressEvent) => void): Promise<UnlistenFn> =>
+    listen<DeploymentProgressEvent>('deployment:progress', (e) => callback(e.payload)),
 };
 
 // ============================================================================
@@ -2059,8 +2042,7 @@ export const toolchainAPI = {
     projectPath: string,
     strategy: ToolchainStrategy,
     remember: boolean
-  ): Promise<void> =>
-    invoke('set_toolchain_preference', { projectPath, strategy, remember }),
+  ): Promise<void> => invoke('set_toolchain_preference', { projectPath, strategy, remember }),
 
   /** Clear project toolchain preference */
   clearPreference: (projectPath: string): Promise<void> =>
@@ -2095,16 +2077,13 @@ export const shortcutsAPI = {
     invoke('register_global_toggle_shortcut', { shortcutKey }),
 
   /** Unregister all global shortcuts */
-  unregisterGlobal: (): Promise<void> =>
-    invoke('unregister_global_shortcuts'),
+  unregisterGlobal: (): Promise<void> => invoke('unregister_global_shortcuts'),
 
   /** Toggle window visibility */
-  toggleWindowVisibility: (): Promise<boolean> =>
-    invoke<boolean>('toggle_window_visibility'),
+  toggleWindowVisibility: (): Promise<boolean> => invoke<boolean>('toggle_window_visibility'),
 
   /** Get all registered global shortcuts */
-  getRegisteredShortcuts: (): Promise<string[]> =>
-    invoke<string[]>('get_registered_shortcuts'),
+  getRegisteredShortcuts: (): Promise<string[]> => invoke<string[]>('get_registered_shortcuts'),
 
   /** Check if a shortcut is registered */
   isShortcutRegistered: (shortcutKey: string): Promise<boolean> =>
@@ -2252,7 +2231,9 @@ export const aiAPI = {
   // ============================================================================
 
   /** Generate a commit message using AI */
-  generateCommitMessage: (request: GenerateCommitMessageRequest): Promise<AIApiResponse<GenerateResult>> =>
+  generateCommitMessage: (
+    request: GenerateCommitMessageRequest
+  ): Promise<AIApiResponse<GenerateResult>> =>
     invoke<AIApiResponse<GenerateResult>>('ai_generate_commit_message', { request }),
 
   // ============================================================================
@@ -2260,11 +2241,15 @@ export const aiAPI = {
   // ============================================================================
 
   /** Generate a code review using AI */
-  generateCodeReview: (request: GenerateCodeReviewRequest): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
+  generateCodeReview: (
+    request: GenerateCodeReviewRequest
+  ): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
     invoke<AIApiResponse<GenerateCodeReviewResult>>('ai_generate_code_review', { request }),
 
   /** Generate a code review for all staged changes */
-  generateStagedReview: (request: GenerateStagedReviewRequest): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
+  generateStagedReview: (
+    request: GenerateStagedReviewRequest
+  ): Promise<AIApiResponse<GenerateCodeReviewResult>> =>
     invoke<AIApiResponse<GenerateCodeReviewResult>>('ai_generate_staged_review', { request }),
 
   // ============================================================================
@@ -2272,12 +2257,20 @@ export const aiAPI = {
   // ============================================================================
 
   /** Generate security analysis for a single vulnerability */
-  generateSecurityAnalysis: (request: GenerateSecurityAnalysisRequest): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
-    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_analysis', { request }),
+  generateSecurityAnalysis: (
+    request: GenerateSecurityAnalysisRequest
+  ): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
+    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_analysis', {
+      request,
+    }),
 
   /** Generate security summary for all vulnerabilities */
-  generateSecuritySummary: (request: GenerateSecuritySummaryRequest): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
-    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_summary', { request }),
+  generateSecuritySummary: (
+    request: GenerateSecuritySummaryRequest
+  ): Promise<AIApiResponse<GenerateSecurityAnalysisResult>> =>
+    invoke<AIApiResponse<GenerateSecurityAnalysisResult>>('ai_generate_security_summary', {
+      request,
+    }),
 
   // ============================================================================
   // Diagnostic
@@ -2288,14 +2281,17 @@ export const aiAPI = {
     invoke('ai_store_api_key', { providerId, apiKey }),
 
   /** Check API key status for a service (diagnostic) */
-  checkApiKeyStatus: (providerId: string): Promise<AIApiResponse<{
-    providerId: string;
-    existsInDb: boolean;
-    canDecrypt: boolean;
-    keyPrefix: string | null;
-    error: string | null;
-  }>> =>
-    invoke('ai_check_api_key_status', { providerId }),
+  checkApiKeyStatus: (
+    providerId: string
+  ): Promise<
+    AIApiResponse<{
+      providerId: string;
+      existsInDb: boolean;
+      canDecrypt: boolean;
+      keyPrefix: string | null;
+      error: string | null;
+    }>
+  > => invoke('ai_check_api_key_status', { providerId }),
 };
 
 // ============================================================================
@@ -2491,24 +2487,20 @@ export interface McpHealthCheckResult {
 
 export const mcpAPI = {
   /** Get MCP server information including binary path and config */
-  getServerInfo: (): Promise<McpServerInfo> =>
-    invoke<McpServerInfo>('get_mcp_server_info'),
+  getServerInfo: (): Promise<McpServerInfo> => invoke<McpServerInfo>('get_mcp_server_info'),
 
   /** Test MCP server health by running --version */
   testConnection: (): Promise<McpHealthCheckResult> =>
     invoke<McpHealthCheckResult>('test_mcp_connection'),
 
   /** Get available MCP tools */
-  getTools: (): Promise<McpToolInfo[]> =>
-    invoke<McpToolInfo[]>('get_mcp_tools'),
+  getTools: (): Promise<McpToolInfo[]> => invoke<McpToolInfo[]>('get_mcp_tools'),
 
   /** Get MCP server configuration */
-  getConfig: (): Promise<McpServerConfig> =>
-    invoke<McpServerConfig>('get_mcp_config'),
+  getConfig: (): Promise<McpServerConfig> => invoke<McpServerConfig>('get_mcp_config'),
 
   /** Save MCP server configuration */
-  saveConfig: (config: McpServerConfig): Promise<void> =>
-    invoke('save_mcp_config', { config }),
+  saveConfig: (config: McpServerConfig): Promise<void> => invoke('save_mcp_config', { config }),
 
   /** Update specific MCP configuration fields */
   updateConfig: (options: {
@@ -2517,8 +2509,7 @@ export const mcpAPI = {
     devServerMode?: DevServerMode;
     allowedTools?: string[];
     logRequests?: boolean;
-  }): Promise<McpServerConfig> =>
-    invoke<McpServerConfig>('update_mcp_config', options),
+  }): Promise<McpServerConfig> => invoke<McpServerConfig>('update_mcp_config', options),
 
   /** Get all MCP tools with their permission status based on current config */
   getToolsWithPermissions: (): Promise<McpToolWithPermission[]> =>
@@ -2529,8 +2520,7 @@ export const mcpAPI = {
     invoke<McpLogsResponse>('get_mcp_logs', { limit }),
 
   /** Clear MCP request logs */
-  clearLogs: (): Promise<void> =>
-    invoke('clear_mcp_logs'),
+  clearLogs: (): Promise<void> => invoke('clear_mcp_logs'),
 };
 
 // ============================================================================
@@ -2611,7 +2601,12 @@ export const mcpActionAPI = {
     status?: ExecutionStatus,
     limit?: number
   ): Promise<MCPActionExecution[]> =>
-    invoke<MCPActionExecution[]>('get_mcp_action_executions', { actionId, actionType, status, limit }),
+    invoke<MCPActionExecution[]>('get_mcp_action_executions', {
+      actionId,
+      actionType,
+      status,
+      limit,
+    }),
 
   /** Get a single execution by ID */
   getExecution: (executionId: string): Promise<MCPActionExecution | null> =>
@@ -2632,7 +2627,11 @@ export const mcpActionAPI = {
     actionType: MCPActionType | null,
     permissionLevel: PermissionLevel
   ): Promise<MCPActionPermission> =>
-    invoke<MCPActionPermission>('update_mcp_action_permission', { actionId, actionType, permissionLevel }),
+    invoke<MCPActionPermission>('update_mcp_action_permission', {
+      actionId,
+      actionType,
+      permissionLevel,
+    }),
 
   /** Delete MCP action permission */
   deletePermission: (permissionId: string): Promise<boolean> =>

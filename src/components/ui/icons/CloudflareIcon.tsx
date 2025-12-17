@@ -5,11 +5,7 @@ interface CloudflareIconProps {
 
 export function CloudflareIcon({ className }: CloudflareIconProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
-      className={className}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" className={className}>
       {/* White background with rounded corners */}
       <rect width="64" height="64" rx="8" fill="white" />
       {/* Icon content centered with padding */}

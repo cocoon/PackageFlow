@@ -18,16 +18,7 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import {
-  Package,
-  Box,
-  TestTube2,
-  Layers,
-  RefreshCw,
-  X,
-  ArrowUp,
-  ArrowDown,
-} from 'lucide-react';
+import { Package, Box, TestTube2, Layers, RefreshCw, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { useDependencyGraph, type GraphNodeData } from '../../../hooks/useDependencyGraph';
 import type { MonorepoToolType } from '../../../types/monorepo';
 import { Button } from '../../ui/Button';
@@ -57,8 +48,8 @@ const PackageNode = memo(({ data, selected }: NodeProps) => {
         selected
           ? 'border-blue-500 shadow-lg shadow-blue-500/20'
           : nodeData.isIsolated
-          ? 'border-border border-dashed'
-          : 'border-border',
+            ? 'border-border border-dashed'
+            : 'border-border',
         nodeData.isAffected && 'ring-2 ring-amber-500/50',
         nodeData.isInCycle && 'ring-2 ring-red-500/50 border-red-500/50'
       )}
@@ -76,10 +67,12 @@ const PackageNode = memo(({ data, selected }: NodeProps) => {
           {typeIcon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className={cn(
-            'text-sm font-medium truncate',
-            nodeData.isIsolated ? 'text-muted-foreground' : 'text-foreground'
-          )}>
+          <div
+            className={cn(
+              'text-sm font-medium truncate',
+              nodeData.isIsolated ? 'text-muted-foreground' : 'text-foreground'
+            )}
+          >
             {nodeData.label}
           </div>
           <div className="text-[10px] text-muted-foreground truncate">{nodeData.root}</div>
@@ -115,11 +108,7 @@ const nodeTypes = {
   packageNode: PackageNode,
 };
 
-export function DependencyGraphView({
-  projectPath,
-  tool,
-  onClose,
-}: DependencyGraphViewProps) {
+export function DependencyGraphView({ projectPath, tool, onClose }: DependencyGraphViewProps) {
   const {
     loading,
     error,
@@ -256,9 +245,7 @@ export function DependencyGraphView({
           {selectedNode && selectedNodeData && (
             <div className="w-64 border-l border-border p-4 overflow-y-auto">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-foreground">
-                  {selectedNodeData.label}
-                </h4>
+                <h4 className="font-semibold text-foreground">{selectedNodeData.label}</h4>
                 <Button
                   variant="ghost"
                   size="icon"

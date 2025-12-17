@@ -111,7 +111,10 @@ export function Collapsible({
 /**
  * CollapsibleCard - A styled collapsible with card-like appearance
  */
-interface CollapsibleCardProps extends Omit<CollapsibleProps, 'trigger' | 'triggerClassName' | 'contentClassName'> {
+interface CollapsibleCardProps extends Omit<
+  CollapsibleProps,
+  'trigger' | 'triggerClassName' | 'contentClassName'
+> {
   /** Icon to show in the header */
   icon?: React.ReactNode;
   /** Title text */
@@ -135,24 +138,17 @@ export function CollapsibleCard({
     <Collapsible
       trigger={
         <div className="flex items-center gap-3 flex-1 py-2">
-          {icon && (
-            <span className="text-muted-foreground shrink-0">{icon}</span>
-          )}
+          {icon && <span className="text-muted-foreground shrink-0">{icon}</span>}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-medium text-foreground">{title}</span>
               {badge}
             </div>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-            )}
+            {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
           </div>
         </div>
       }
-      className={cn(
-        'border border-border rounded-lg bg-card/50',
-        className
-      )}
+      className={cn('border border-border rounded-lg bg-card/50', className)}
       triggerClassName="px-4 hover:bg-accent/50 rounded-lg transition-colors"
       contentClassName="px-4 pb-4"
       {...props}

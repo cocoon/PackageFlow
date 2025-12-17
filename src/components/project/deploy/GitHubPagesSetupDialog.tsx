@@ -2,14 +2,7 @@
 // Shows setup instructions after generating GitHub Actions workflow file
 
 import { useState } from 'react';
-import {
-  FileCode,
-  ExternalLink,
-  Check,
-  Copy,
-  AlertCircle,
-  Loader2,
-} from 'lucide-react';
+import { FileCode, ExternalLink, Check, Copy, AlertCircle, Loader2 } from 'lucide-react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { GithubIcon } from '../../ui/icons';
 import {
@@ -81,9 +74,7 @@ export function GitHubPagesSetupDialog({
           {isGenerating && (
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="mt-3 text-sm text-muted-foreground">
-                Generating workflow file...
-              </p>
+              <p className="mt-3 text-sm text-muted-foreground">Generating workflow file...</p>
             </div>
           )}
 
@@ -92,9 +83,7 @@ export function GitHubPagesSetupDialog({
             <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
               <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
               <div className="space-y-1">
-                <p className="text-sm font-medium text-destructive">
-                  Failed to generate workflow
-                </p>
+                <p className="text-sm font-medium text-destructive">Failed to generate workflow</p>
                 <p className="text-sm text-muted-foreground">{error}</p>
               </div>
             </div>
@@ -118,14 +107,10 @@ export function GitHubPagesSetupDialog({
 
               {/* Generated File */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Generated File
-                </label>
+                <label className="text-sm font-medium text-foreground">Generated File</label>
                 <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-3">
                   <FileCode className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <code className="flex-1 text-sm font-mono">
-                    {result.workflowPath}
-                  </code>
+                  <code className="flex-1 text-sm font-mono">{result.workflowPath}</code>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -144,9 +129,7 @@ export function GitHubPagesSetupDialog({
 
               {/* Setup Instructions */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Setup Instructions
-                </label>
+                <label className="text-sm font-medium text-foreground">Setup Instructions</label>
                 <div className="space-y-2">
                   {result.setupInstructions.map((instruction, index) => (
                     <div
@@ -184,18 +167,12 @@ export function GitHubPagesSetupDialog({
 
         <DialogFooter>
           {result && onCommitAndPush && (
-            <Button
-              variant="outline"
-              onClick={handleCommitAndPush}
-              disabled={isPushing}
-            >
+            <Button variant="outline" onClick={handleCommitAndPush} disabled={isPushing}>
               {isPushing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Commit & Push
             </Button>
           )}
-          <Button onClick={onClose}>
-            {result ? 'Done' : 'Close'}
-          </Button>
+          <Button onClick={onClose}>{result ? 'Done' : 'Close'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -6,11 +6,7 @@
 
 // Main components
 export { SecurityTab, SecurityIndicator } from './SecurityTab';
-export {
-  SecurityScanCard,
-  SecurityScanGrid,
-  SecurityStatusBar,
-} from './SecurityScanCard';
+export { SecurityScanCard, SecurityScanGrid, SecurityStatusBar } from './SecurityScanCard';
 export { VulnerabilityList, CompactVulnerabilityList } from './VulnerabilityList';
 export { VulnerabilityDetail, VulnerabilityCard } from './VulnerabilityDetail';
 export {

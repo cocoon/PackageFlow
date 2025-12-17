@@ -94,8 +94,7 @@ export function PackageFilterBar({
   // Check if all visible are selected
   const allSelected = useMemo(() => {
     return (
-      filteredPackages.length > 0 &&
-      filteredPackages.every((pkg) => selectedPackages.has(pkg.name))
+      filteredPackages.length > 0 && filteredPackages.every((pkg) => selectedPackages.has(pkg.name))
     );
   }, [filteredPackages, selectedPackages]);
 
@@ -192,9 +191,7 @@ export function PackageFilterBar({
             {selectedPackages.size} of {packages.length} selected
           </span>
         </div>
-        <span className="text-muted-foreground">
-          {filteredPackages.length} packages shown
-        </span>
+        <span className="text-muted-foreground">{filteredPackages.length} packages shown</span>
       </div>
 
       {/* Package list */}

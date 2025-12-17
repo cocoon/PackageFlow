@@ -9,7 +9,21 @@ import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { ContextMenu } from '../../ui/ContextMenu';
 import { NodeContextMenuItems } from '../NodeContextMenuItems';
-import { Terminal, Play, Check, X, Clock, SkipForward, Loader2, Trash2, Plus, Pencil, Copy, ChevronUp, ChevronDown } from 'lucide-react';
+import {
+  Terminal,
+  Play,
+  Check,
+  X,
+  Clock,
+  SkipForward,
+  Loader2,
+  Trash2,
+  Plus,
+  Pencil,
+  Copy,
+  ChevronUp,
+  ChevronDown,
+} from 'lucide-react';
 import type { NodeStatus } from '../../../types/workflow';
 
 export interface ScriptNodeData extends Record<string, unknown> {
@@ -306,30 +320,18 @@ export const ScriptNode = memo(({ data, selected }: ScriptNodeProps) => {
       />
 
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
-        <div
-          className={cn(
-            'flex items-center justify-center w-8 h-8 rounded-lg',
-            config.iconBg
-          )}
-        >
+        <div className={cn('flex items-center justify-center w-8 h-8 rounded-lg', config.iconBg)}>
           <Terminal className="w-4 h-4 text-white" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className={cn('text-xs font-mono', config.orderColor)}>#{data.order + 1}</span>
-            <h3 className={cn('font-medium truncate text-sm', config.titleColor)}>
-              {data.label}
-            </h3>
+            <h3 className={cn('font-medium truncate text-sm', config.titleColor)}>{data.label}</h3>
           </div>
         </div>
 
-        <div
-          className={cn(
-            'flex items-center justify-center w-6 h-6 rounded-full',
-            config.iconBg
-          )}
-        >
+        <div className={cn('flex items-center justify-center w-6 h-6 rounded-full', config.iconBg)}>
           <StatusIcon className={cn('w-3.5 h-3.5 text-white', config.iconClass)} />
         </div>
       </div>

@@ -54,7 +54,8 @@ export function useWorktreeStatuses({
     setError(null);
 
     try {
-      const response: GetAllWorktreeStatusesResponse = await worktreeAPI.getAllWorktreeStatuses(projectPath);
+      const response: GetAllWorktreeStatusesResponse =
+        await worktreeAPI.getAllWorktreeStatuses(projectPath);
 
       if (response.success && response.statuses) {
         setStatuses(response.statuses);

@@ -34,12 +34,8 @@ export const SettingInfoBox: React.FC<SettingInfoBoxProps> = ({
   className,
 }) => {
   return (
-    <div
-      className={cn('p-4 rounded-lg border', VARIANT_STYLES[variant], className)}
-    >
-      {title && (
-        <h3 className="text-sm font-medium text-foreground mb-2">{title}</h3>
-      )}
+    <div className={cn('p-4 rounded-lg border', VARIANT_STYLES[variant], className)}>
+      {title && <h3 className="text-sm font-medium text-foreground mb-2">{title}</h3>}
       <div className="text-sm text-muted-foreground">{children}</div>
     </div>
   );

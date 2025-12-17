@@ -78,4 +78,4 @@ export const SUPPORTED_VARIABLES = [
   'error_message',
 ] as const;
 
-export type TemplateVariable = typeof SUPPORTED_VARIABLES[number];
+export type TemplateVariable = (typeof SUPPORTED_VARIABLES)[number];

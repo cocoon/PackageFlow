@@ -10,33 +10,33 @@
 // ============================================================================
 
 export type ToolchainStrategy =
-  | "volta_priority"
-  | "corepack_priority"
-  | "hybrid"
-  | "system_default";
+  | 'volta_priority'
+  | 'corepack_priority'
+  | 'hybrid'
+  | 'system_default';
 
 export type ToolchainConflictType =
-  | { type: "none" }
+  | { type: 'none' }
   | {
-      type: "dual_config";
+      type: 'dual_config';
       volta_node?: string;
       volta_pm?: string;
       package_manager: string;
     }
   | {
-      type: "shim_overwrite";
+      type: 'shim_overwrite';
       affected_tools: string[];
       fix_command: string;
     }
-  | { type: "volta_missing" }
-  | { type: "corepack_disabled" };
+  | { type: 'volta_missing' }
+  | { type: 'corepack_disabled' };
 
 export type ToolchainErrorCode =
-  | "VERSION_NOT_FOUND"
-  | "NETWORK_ERROR"
-  | "COREPACK_DISABLED"
-  | "PM_NOT_INSTALLED"
-  | "UNKNOWN";
+  | 'VERSION_NOT_FOUND'
+  | 'NETWORK_ERROR'
+  | 'COREPACK_DISABLED'
+  | 'PM_NOT_INSTALLED'
+  | 'UNKNOWN';
 
 // ============================================================================
 // Data Types
@@ -224,23 +224,23 @@ export interface ToolchainDiagnosticsProps {
 // ============================================================================
 
 export const STRATEGY_LABELS: Record<ToolchainStrategy, string> = {
-  volta_priority: "Volta Priority",
-  corepack_priority: "Corepack Priority",
-  hybrid: "Hybrid Mode",
-  system_default: "System Default",
+  volta_priority: 'Volta Priority',
+  corepack_priority: 'Corepack Priority',
+  hybrid: 'Hybrid Mode',
+  system_default: 'System Default',
 };
 
 export const STRATEGY_DESCRIPTIONS: Record<ToolchainStrategy, string> = {
-  volta_priority: "Use Volta to manage Node.js and Package Manager versions",
-  corepack_priority: "Use Corepack to manage Package Manager versions",
-  hybrid: "Volta manages Node.js, Corepack manages Package Manager",
-  system_default: "No special handling, use system default versions",
+  volta_priority: 'Use Volta to manage Node.js and Package Manager versions',
+  corepack_priority: 'Use Corepack to manage Package Manager versions',
+  hybrid: 'Volta manages Node.js, Corepack manages Package Manager',
+  system_default: 'No special handling, use system default versions',
 };
 
-export const CONFLICT_TYPE_LABELS: Record<ToolchainConflictType["type"], string> = {
-  none: "No Conflict",
-  dual_config: "Dual Config Conflict",
-  shim_overwrite: "Shim Overwrite Conflict",
-  volta_missing: "Volta Not Installed",
-  corepack_disabled: "Corepack Disabled",
+export const CONFLICT_TYPE_LABELS: Record<ToolchainConflictType['type'], string> = {
+  none: 'No Conflict',
+  dual_config: 'Dual Config Conflict',
+  shim_overwrite: 'Shim Overwrite Conflict',
+  volta_missing: 'Volta Not Installed',
+  corepack_disabled: 'Corepack Disabled',
 };

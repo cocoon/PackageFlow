@@ -105,8 +105,7 @@ export function AccountCard({
   const isExpiringSoon =
     account.expiresAt &&
     new Date(account.expiresAt).getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
-  const isExpired =
-    account.expiresAt && new Date(account.expiresAt).getTime() < Date.now();
+  const isExpired = account.expiresAt && new Date(account.expiresAt).getTime() < Date.now();
 
   return (
     <div
@@ -143,9 +142,7 @@ export function AccountCard({
               {account.displayName || account.username}
             </span>
             {account.displayName && (
-              <span className="text-xs text-muted-foreground truncate">
-                @{account.username}
-              </span>
+              <span className="text-xs text-muted-foreground truncate">@{account.username}</span>
             )}
             {isDefault && (
               <span
@@ -205,10 +202,7 @@ export function AccountCard({
           <DropdownItem icon={<Pencil className="h-4 w-4" />} onClick={onEdit}>
             Edit display name
           </DropdownItem>
-          <DropdownItem
-            icon={<ExternalLink className="h-4 w-4" />}
-            onClick={onOpenDashboard}
-          >
+          <DropdownItem icon={<ExternalLink className="h-4 w-4" />} onClick={onOpenDashboard}>
             Open dashboard
           </DropdownItem>
           <DropdownSeparator />
@@ -262,12 +256,7 @@ function EditDisplayNameInput({
           if (e.key === 'Escape') onCancel();
         }}
       />
-      <Button
-        variant="link"
-        size="sm"
-        onClick={() => onSave(value)}
-        className="h-auto px-3 py-1.5"
-      >
+      <Button variant="link" size="sm" onClick={() => onSave(value)} className="h-auto px-3 py-1.5">
         Save
       </Button>
       <Button
@@ -392,9 +381,7 @@ export function PlatformAccountSection({
             >
               <User className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              No {platform.name} accounts connected
-            </p>
+            <p className="text-sm text-muted-foreground">No {platform.name} accounts connected</p>
             <p className="text-xs text-muted-foreground mt-1">
               Connect an account to start deploying
             </p>
@@ -472,9 +459,7 @@ export function PlatformAccountSection({
             : 'Are you sure you want to remove this account? This action cannot be undone.'
         }
         confirmText={
-          (confirmRemove?.affectedProjects?.length ?? 0) > 0
-            ? 'Remove Anyway'
-            : 'Yes, Remove'
+          (confirmRemove?.affectedProjects?.length ?? 0) > 0 ? 'Remove Anyway' : 'Yes, Remove'
         }
         onConfirm={handleConfirmRemove}
       />
@@ -495,8 +480,8 @@ export function SecurityInfoBox() {
       <div>
         <h4 className="text-sm font-medium text-foreground">Secure Storage</h4>
         <p className="text-xs text-muted-foreground mt-1">
-          API tokens and credentials are encrypted and stored securely in your system
-          keychain. They are never exposed to the frontend or logged.
+          API tokens and credentials are encrypted and stored securely in your system keychain. They
+          are never exposed to the frontend or logged.
         </p>
       </div>
     </div>
@@ -584,9 +569,7 @@ export function AccountManager({
           onAddAccount={() => handleAddAccount(platform)}
           onRemoveAccount={(accountId) => onRemoveAccount(accountId, true)}
           onUpdateDisplayName={onUpdateDisplayName}
-          onSetDefaultAccount={(accountId) =>
-            onSetDefaultAccount(platform.id, accountId)
-          }
+          onSetDefaultAccount={(accountId) => onSetDefaultAccount(platform.id, accountId)}
           onCheckUsage={onCheckUsage}
         />
       ))}

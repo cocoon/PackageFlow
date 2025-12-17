@@ -58,14 +58,22 @@ const formatRelativeTime = (isoDate: string): string => {
 // Get platform display name
 const getPlatformName = (platform: PlatformType): string => {
   switch (platform) {
-    case 'github_pages': return 'GitHub Pages';
-    case 'netlify': return 'Netlify';
-    case 'cloudflare_pages': return 'Cloudflare Pages';
-    default: return platform;
+    case 'github_pages':
+      return 'GitHub Pages';
+    case 'netlify':
+      return 'Netlify';
+    case 'cloudflare_pages':
+      return 'Cloudflare Pages';
+    default:
+      return platform;
   }
 };
 
-export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }: DeploymentStatsCardProps) {
+export function DeploymentStatsCard({
+  projectId,
+  onStatsLoaded,
+  refreshTrigger,
+}: DeploymentStatsCardProps) {
   const [stats, setStats] = useState<DeploymentStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,9 +132,7 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center">
         <BarChart3 className="mx-auto h-8 w-8 text-muted-foreground/50" />
-        <p className="mt-2 text-sm text-muted-foreground">
-          No deployment history yet
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">No deployment history yet</p>
         <p className="text-xs text-muted-foreground">
           Stats will appear after your first deployment
         </p>
@@ -163,10 +169,15 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
 
         {/* Success Rate */}
         <div className="rounded-lg border border-border bg-card p-3">
-          <div className={`text-2xl font-bold ${
-            stats.successRate >= 80 ? 'text-green-500' :
-            stats.successRate >= 50 ? 'text-amber-500' : 'text-red-500'
-          }`}>
+          <div
+            className={`text-2xl font-bold ${
+              stats.successRate >= 80
+                ? 'text-green-500'
+                : stats.successRate >= 50
+                  ? 'text-amber-500'
+                  : 'text-red-500'
+            }`}
+          >
             {formatPercent(stats.successRate)}
           </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -177,9 +188,7 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
 
         {/* Average Time */}
         <div className="rounded-lg border border-border bg-card p-3">
-          <div className="text-2xl font-bold">
-            {formatDuration(stats.averageDeployTime)}
-          </div>
+          <div className="text-2xl font-bold">{formatDuration(stats.averageDeployTime)}</div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
             Avg. Time
@@ -206,7 +215,8 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span>
-            Deploy time range: {formatDuration(stats.fastestDeployTime)} - {formatDuration(stats.slowestDeployTime)}
+            Deploy time range: {formatDuration(stats.fastestDeployTime)} -{' '}
+            {formatDuration(stats.slowestDeployTime)}
           </span>
         </div>
       )}
@@ -239,7 +249,9 @@ export function DeploymentStatsCard({ projectId, onStatsLoaded, refreshTrigger }
                 className="h-auto w-auto rounded p-1 hover:bg-green-100 dark:hover:bg-green-900"
                 title="Copy URL"
               >
-                <Copy className={`h-4 w-4 ${copied ? 'text-green-500' : 'text-green-600 dark:text-green-500'}`} />
+                <Copy
+                  className={`h-4 w-4 ${copied ? 'text-green-500' : 'text-green-600 dark:text-green-500'}`}
+                />
               </Button>
               <button
                 onClick={() => openUrl(stats.lastSuccessfulDeployment!.url)}

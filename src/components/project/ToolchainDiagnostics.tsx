@@ -6,15 +6,7 @@
  */
 
 import * as React from 'react';
-import {
-  Terminal,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  FolderOpen,
-  Info,
-  X,
-} from 'lucide-react';
+import { Terminal, CheckCircle2, XCircle, AlertTriangle, FolderOpen, Info, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { isTopModal, registerModal, unregisterModal } from '../ui/modalStack';
 import { Button } from '../ui/Button';
@@ -216,9 +208,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-16 gap-4">
                 <div className="w-10 h-10 border-3 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm text-muted-foreground">
-                  Analyzing environment...
-                </span>
+                <span className="text-sm text-muted-foreground">Analyzing environment...</span>
               </div>
             ) : diagnostics ? (
               <div className="space-y-4">
@@ -229,19 +219,13 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                 >
                   <InfoRow
                     label="Status"
-                    value={
-                      diagnostics.volta.available ? 'Installed' : 'Not Installed'
-                    }
+                    value={diagnostics.volta.available ? 'Installed' : 'Not Installed'}
                   />
                   {diagnostics.volta.available && (
                     <>
                       <InfoRow label="Version" value={diagnostics.volta.version} />
                       <InfoRow label="Path" value={diagnostics.volta.path} mono />
-                      <InfoRow
-                        label="Shim Path"
-                        value={diagnostics.volta.shim_path}
-                        mono
-                      />
+                      <InfoRow label="Shim Path" value={diagnostics.volta.shim_path} mono />
                     </>
                   )}
                 </Section>
@@ -258,11 +242,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                 >
                   <InfoRow
                     label="Status"
-                    value={
-                      diagnostics.corepack.available
-                        ? 'Installed'
-                        : 'Not Installed'
-                    }
+                    value={diagnostics.corepack.available ? 'Installed' : 'Not Installed'}
                   />
                   {diagnostics.corepack.available && (
                     <>
@@ -270,15 +250,8 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                         label="Enabled"
                         value={diagnostics.corepack.enabled ? 'Yes' : 'No'}
                       />
-                      <InfoRow
-                        label="Version"
-                        value={diagnostics.corepack.version}
-                      />
-                      <InfoRow
-                        label="Path"
-                        value={diagnostics.corepack.path}
-                        mono
-                      />
+                      <InfoRow label="Version" value={diagnostics.corepack.version} />
+                      <InfoRow label="Path" value={diagnostics.corepack.path} mono />
                     </>
                   )}
                 </Section>
@@ -286,19 +259,10 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                 {/* System Node Section */}
                 <Section
                   title="System Node.js"
-                  icon={
-                    <StatusIcon available={!!diagnostics.system_node.version} />
-                  }
+                  icon={<StatusIcon available={!!diagnostics.system_node.version} />}
                 >
-                  <InfoRow
-                    label="Version"
-                    value={diagnostics.system_node.version}
-                  />
-                  <InfoRow
-                    label="Path"
-                    value={diagnostics.system_node.path}
-                    mono
-                  />
+                  <InfoRow label="Version" value={diagnostics.system_node.version} />
+                  <InfoRow label="Path" value={diagnostics.system_node.path} mono />
                 </Section>
 
                 {/* Package Managers Section */}
@@ -315,11 +279,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                     }
                   />
                   {diagnostics.package_managers.npm?.path && (
-                    <InfoRow
-                      label="npm Path"
-                      value={diagnostics.package_managers.npm.path}
-                      mono
-                    />
+                    <InfoRow label="npm Path" value={diagnostics.package_managers.npm.path} mono />
                   )}
                   <InfoRow
                     label="pnpm"
@@ -364,8 +324,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                           <p className="text-xs text-amber-700 dark:text-amber-200 leading-relaxed">
-                            Volta and Corepack shim order in PATH may cause
-                            inconsistent behavior
+                            Volta and Corepack shim order in PATH may cause inconsistent behavior
                           </p>
                         </div>
                       </div>
@@ -376,14 +335,10 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                   />
                   <InfoRow
                     label="Corepack First"
-                    value={
-                      diagnostics.path_analysis.corepack_first ? 'Yes' : 'No'
-                    }
+                    value={diagnostics.path_analysis.corepack_first ? 'Yes' : 'No'}
                   />
                   <div className="py-3">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      PATH Order (first 10):
-                    </p>
+                    <p className="text-xs text-muted-foreground mb-2">PATH Order (first 10):</p>
                     <div className="p-3 rounded-lg bg-muted/30 border border-border max-h-40 overflow-auto">
                       <ol className="text-xs font-mono text-muted-foreground space-y-1 min-w-max">
                         {diagnostics.path_analysis.order.map((entry, idx) => (
@@ -391,16 +346,12 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                             key={idx}
                             className={cn(
                               'whitespace-nowrap px-2 py-1 rounded',
-                              entry.includes('.volta') &&
-                                'text-blue-400 bg-blue-500/10',
-                              (entry.includes('corepack') ||
-                                entry.includes('.nvm')) &&
+                              entry.includes('.volta') && 'text-blue-400 bg-blue-500/10',
+                              (entry.includes('corepack') || entry.includes('.nvm')) &&
                                 'text-green-400 bg-green-500/10'
                             )}
                           >
-                            <span className="text-muted-foreground/50 mr-2">
-                              {idx + 1}.
-                            </span>
+                            <span className="text-muted-foreground/50 mr-2">{idx + 1}.</span>
                             {entry}
                           </li>
                         ))}
@@ -414,9 +365,7 @@ export const ToolchainDiagnostics: React.FC<ToolchainDiagnosticsProps> = ({
                 <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
                   <Info className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  No diagnostics data available
-                </p>
+                <p className="text-sm text-muted-foreground">No diagnostics data available</p>
               </div>
             )}
           </div>

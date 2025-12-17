@@ -5,7 +5,18 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Play, Square, Download, RefreshCw, Plus, Trash2, X, Zap, FolderX, Loader2 } from 'lucide-react';
+import {
+  Play,
+  Square,
+  Download,
+  RefreshCw,
+  Plus,
+  Trash2,
+  X,
+  Zap,
+  FolderX,
+  Loader2,
+} from 'lucide-react';
 import { listen } from '@tauri-apps/api/event';
 import type { PackageManager } from '../../types/project';
 import type { VersionCompatibility } from '../../types/version';
@@ -46,11 +57,15 @@ const packageManagerCommands: PackageManagerCommand[] = [
     needsPackageName: false,
     getCommand: (pm) => {
       switch (pm) {
-        case 'pnpm': return 'pnpm install';
-        case 'yarn': return 'yarn install';
-        case 'bun': return 'bun install';
+        case 'pnpm':
+          return 'pnpm install';
+        case 'yarn':
+          return 'yarn install';
+        case 'bun':
+          return 'bun install';
         case 'npm':
-        default: return 'npm install';
+        default:
+          return 'npm install';
       }
     },
   },
@@ -62,11 +77,15 @@ const packageManagerCommands: PackageManagerCommand[] = [
     needsPackageName: false,
     getCommand: (pm) => {
       switch (pm) {
-        case 'pnpm': return 'pnpm update';
-        case 'yarn': return 'yarn upgrade';
-        case 'bun': return 'bun update';
+        case 'pnpm':
+          return 'pnpm update';
+        case 'yarn':
+          return 'yarn upgrade';
+        case 'bun':
+          return 'bun update';
         case 'npm':
-        default: return 'npm update';
+        default:
+          return 'npm update';
       }
     },
   },
@@ -78,11 +97,15 @@ const packageManagerCommands: PackageManagerCommand[] = [
     needsPackageName: false,
     getCommand: (pm) => {
       switch (pm) {
-        case 'pnpm': return 'pnpm install --frozen-lockfile';
-        case 'yarn': return 'yarn install --frozen-lockfile';
-        case 'bun': return 'bun install --frozen-lockfile';
+        case 'pnpm':
+          return 'pnpm install --frozen-lockfile';
+        case 'yarn':
+          return 'yarn install --frozen-lockfile';
+        case 'bun':
+          return 'bun install --frozen-lockfile';
         case 'npm':
-        default: return 'npm ci';
+        default:
+          return 'npm ci';
       }
     },
   },
@@ -97,11 +120,15 @@ const packageManagerCommands: PackageManagerCommand[] = [
       const pkg = packageName || '';
       const devFlag = isDev ? ' -D' : '';
       switch (pm) {
-        case 'pnpm': return `pnpm add${devFlag} ${pkg}`.trim();
-        case 'yarn': return `yarn add${devFlag} ${pkg}`.trim();
-        case 'bun': return `bun add${devFlag} ${pkg}`.trim();
+        case 'pnpm':
+          return `pnpm add${devFlag} ${pkg}`.trim();
+        case 'yarn':
+          return `yarn add${devFlag} ${pkg}`.trim();
+        case 'bun':
+          return `bun add${devFlag} ${pkg}`.trim();
         case 'npm':
-        default: return `npm install${devFlag} ${pkg}`.trim();
+        default:
+          return `npm install${devFlag} ${pkg}`.trim();
       }
     },
   },
@@ -114,11 +141,15 @@ const packageManagerCommands: PackageManagerCommand[] = [
     getCommand: (pm, packageName) => {
       const pkg = packageName || '';
       switch (pm) {
-        case 'pnpm': return `pnpm remove ${pkg}`.trim();
-        case 'yarn': return `yarn remove ${pkg}`.trim();
-        case 'bun': return `bun remove ${pkg}`.trim();
+        case 'pnpm':
+          return `pnpm remove ${pkg}`.trim();
+        case 'yarn':
+          return `yarn remove ${pkg}`.trim();
+        case 'bun':
+          return `bun remove ${pkg}`.trim();
         case 'npm':
-        default: return `npm uninstall ${pkg}`.trim();
+        default:
+          return `npm uninstall ${pkg}`.trim();
       }
     },
   },
@@ -132,7 +163,6 @@ const packageManagerLabels: Record<PackageManager, string> = {
   bun: 'Bun',
   unknown: 'Unknown',
 };
-
 
 // Single command item component
 function CommandItem({
@@ -235,12 +265,7 @@ function CommandItem({
             >
               <Play className="w-4 h-4" />
             </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleCancel}
-              title="Cancel"
-            >
+            <Button variant="secondary" size="icon" onClick={handleCancel} title="Cancel">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -272,9 +297,7 @@ function CommandItem({
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Icon className="w-4 h-4 text-cyan-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-foreground truncate">
-              {cmd.label}
-            </div>
+            <div className="text-sm font-medium text-foreground truncate">{cmd.label}</div>
             <div className="text-xs text-muted-foreground truncate" title={displayCommand}>
               {cmd.needsPackageName ? `${command} <package>` : command}
             </div>
@@ -283,14 +306,10 @@ function CommandItem({
         <Button
           variant={isRunning ? 'outline-destructive' : 'ghost'}
           size="icon"
-          onClick={() => isRunning ? onCancel(cmd.id) : handleExecute()}
+          onClick={() => (isRunning ? onCancel(cmd.id) : handleExecute())}
           title={isRunning ? 'Stop' : cmd.needsPackageName ? 'Enter package name' : 'Run'}
         >
-          {isRunning ? (
-            <Square className="w-4 h-4" />
-          ) : (
-            <Play className="w-4 h-4" />
-          )}
+          {isRunning ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </Button>
       </div>
     </li>
@@ -306,33 +325,59 @@ export function PackageManagerCommands({
   onCancel,
 }: PackageManagerCommandsProps) {
   const [usingVolta, setUsingVolta] = useState(false);
+  // State for trash node_modules - must be declared before any conditional returns
+  const [isTrashingNodeModules, setIsTrashingNodeModules] = useState(false);
+
+  // Handle trash node_modules
+  const handleTrashNodeModules = useCallback(async () => {
+    setIsTrashingNodeModules(true);
+    try {
+      const response = await projectAPI.trashNodeModules(projectPath);
+      if (!response.success && response.error) {
+        console.error('Failed to trash node_modules:', response.error);
+      }
+      // Minimum display time for loading state so user can see feedback
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (err) {
+      console.error('Failed to trash node_modules:', err);
+    } finally {
+      setIsTrashingNodeModules(false);
+    }
+  }, [projectPath]);
 
   // Check if a command is running (from either runningCommands or runningScriptsMap)
-  const isCommandRunning = useCallback((commandId: string): boolean => {
-    // Check legacy runningCommands Set
-    if (runningCommands.has(commandId)) {
-      return true;
-    }
-    // Check runningScriptsMap (for PTY integration)
-    if (runningScriptsMap) {
-      for (const script of runningScriptsMap.values()) {
-        if (
-          script.scriptName === commandId &&
-          script.projectPath === projectPath &&
-          script.status === 'running'
-        ) {
-          return true;
+  const isCommandRunning = useCallback(
+    (commandId: string): boolean => {
+      // Check legacy runningCommands Set
+      if (runningCommands.has(commandId)) {
+        return true;
+      }
+      // Check runningScriptsMap (for PTY integration)
+      if (runningScriptsMap) {
+        for (const script of runningScriptsMap.values()) {
+          if (
+            script.scriptName === commandId &&
+            script.projectPath === projectPath &&
+            script.status === 'running'
+          ) {
+            return true;
+          }
         }
       }
-    }
-    return false;
-  }, [runningCommands, runningScriptsMap, projectPath]);
+      return false;
+    },
+    [runningCommands, runningScriptsMap, projectPath]
+  );
 
   // Version check state
   const { checkCompatibility } = useVersionCheck();
   const [showVersionWarning, setShowVersionWarning] = useState(false);
-  const [pendingCommand, setPendingCommand] = useState<{ command: string; args: string[] } | null>(null);
-  const [currentCompatibility, setCurrentCompatibility] = useState<VersionCompatibility | null>(null);
+  const [pendingCommand, setPendingCommand] = useState<{ command: string; args: string[] } | null>(
+    null
+  );
+  const [currentCompatibility, setCurrentCompatibility] = useState<VersionCompatibility | null>(
+    null
+  );
   // Track preference cleared for current project to force re-check
   const [preferenceCleared, setPreferenceCleared] = useState(false);
 
@@ -360,7 +405,9 @@ export function PackageManagerCommands({
     const checkVolta = async () => {
       try {
         // Use a simple command to check if Volta would be used
-        const response = await versionAPI.getWrappedCommand(projectPath, packageManager, ['--version']);
+        const response = await versionAPI.getWrappedCommand(projectPath, packageManager, [
+          '--version',
+        ]);
         setUsingVolta(response.usingVersionManager && response.versionManager === 'volta');
       } catch (err) {
         console.error('Failed to check Volta status:', err);
@@ -374,61 +421,67 @@ export function PackageManagerCommands({
   }, [projectPath, packageManager]);
 
   // Execute command (after version check passed or user chose to continue)
-  const executeCommand = useCallback(async (command: string, args: string[]) => {
-    try {
-      // Get wrapped command (might use Volta)
-      const wrapped = await versionAPI.getWrappedCommand(projectPath, command, args);
+  const executeCommand = useCallback(
+    async (command: string, args: string[]) => {
+      try {
+        // Get wrapped command (might use Volta)
+        const wrapped = await versionAPI.getWrappedCommand(projectPath, command, args);
 
-      if (wrapped.success && wrapped.command) {
-        // Execute the wrapped command
-        const fullCommand = `${wrapped.command} ${wrapped.args?.join(' ') || ''}`.trim();
-        onExecute(fullCommand);
-      } else {
+        if (wrapped.success && wrapped.command) {
+          // Execute the wrapped command
+          const fullCommand = `${wrapped.command} ${wrapped.args?.join(' ') || ''}`.trim();
+          onExecute(fullCommand);
+        } else {
+          // Fallback to original command
+          const fullCommand = `${command} ${args.join(' ')}`.trim();
+          onExecute(fullCommand);
+        }
+      } catch (err) {
+        console.error('Failed to execute command with version manager:', err);
         // Fallback to original command
         const fullCommand = `${command} ${args.join(' ')}`.trim();
         onExecute(fullCommand);
       }
-    } catch (err) {
-      console.error('Failed to execute command with version manager:', err);
-      // Fallback to original command
-      const fullCommand = `${command} ${args.join(' ')}`.trim();
-      onExecute(fullCommand);
-    }
-  }, [projectPath, onExecute]);
+    },
+    [projectPath, onExecute]
+  );
 
   // Execute command with version check
-  const handleExecuteWithVersionManager = useCallback(async (command: string, args: string[]) => {
-    // Check for saved preference first (unless recently cleared)
-    if (!preferenceCleared) {
-      try {
-        const savedPreference = await toolchainAPI.getPreference(projectPath);
-        if (savedPreference) {
-          // Has saved preference - execute directly using the saved strategy
-          // The backend will use the appropriate version management
-          executeCommand(command, args);
-          return;
+  const handleExecuteWithVersionManager = useCallback(
+    async (command: string, args: string[]) => {
+      // Check for saved preference first (unless recently cleared)
+      if (!preferenceCleared) {
+        try {
+          const savedPreference = await toolchainAPI.getPreference(projectPath);
+          if (savedPreference) {
+            // Has saved preference - execute directly using the saved strategy
+            // The backend will use the appropriate version management
+            executeCommand(command, args);
+            return;
+          }
+        } catch (err) {
+          // Preference check failed - continue with compatibility check
+          console.error('Failed to check preference:', err);
         }
-      } catch (err) {
-        // Preference check failed - continue with compatibility check
-        console.error('Failed to check preference:', err);
       }
-    }
 
-    // Check version compatibility before execution
-    const compatibility = await checkCompatibility(projectPath);
+      // Check version compatibility before execution
+      const compatibility = await checkCompatibility(projectPath);
 
-    if (compatibility && !compatibility.isCompatible) {
-      // Show warning dialog
-      setCurrentCompatibility(compatibility);
-      setPendingCommand({ command, args });
-      setShowVersionWarning(true);
-      // Reset preference cleared flag after showing dialog
-      setPreferenceCleared(false);
-    } else {
-      // Version compatible or no requirements - execute directly
-      executeCommand(command, args);
-    }
-  }, [projectPath, checkCompatibility, executeCommand, preferenceCleared]);
+      if (compatibility && !compatibility.isCompatible) {
+        // Show warning dialog
+        setCurrentCompatibility(compatibility);
+        setPendingCommand({ command, args });
+        setShowVersionWarning(true);
+        // Reset preference cleared flag after showing dialog
+        setPreferenceCleared(false);
+      } else {
+        // Version compatible or no requirements - execute directly
+        executeCommand(command, args);
+      }
+    },
+    [projectPath, checkCompatibility, executeCommand, preferenceCleared]
+  );
 
   // Handle continue despite version mismatch
   const handleContinueAnyway = useCallback(() => {
@@ -480,26 +533,6 @@ export function PackageManagerCommands({
     );
   }
 
-  // State for trash node_modules
-  const [isTrashingNodeModules, setIsTrashingNodeModules] = useState(false);
-
-  // Handle trash node_modules
-  const handleTrashNodeModules = useCallback(async () => {
-    setIsTrashingNodeModules(true);
-    try {
-      const response = await projectAPI.trashNodeModules(projectPath);
-      if (!response.success && response.error) {
-        console.error('Failed to trash node_modules:', response.error);
-      }
-      // Minimum display time for loading state so user can see feedback
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (err) {
-      console.error('Failed to trash node_modules:', err);
-    } finally {
-      setIsTrashingNodeModules(false);
-    }
-  }, [projectPath]);
-
   return (
     <>
       <div className="rounded-lg border border-border bg-card p-4 bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent">
@@ -509,7 +542,10 @@ export function PackageManagerCommands({
             {packageManagerLabels[packageManager]} Commands
           </h3>
           {usingVolta && (
-            <span className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-orange-500/20 text-orange-400 rounded" title="Volta will manage Node.js and package manager versions">
+            <span
+              className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-orange-500/20 text-orange-400 rounded"
+              title="Volta will manage Node.js and package manager versions"
+            >
               <Zap className="w-3 h-3" />
               Volta enabled
             </span>

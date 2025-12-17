@@ -91,7 +91,10 @@ interface FileSectionProps {
 }
 
 // Module-level click state tracker for distinguishing single vs double clicks
-const clickState = new Map<string, { timer: ReturnType<typeof setTimeout> | null; count: number }>();
+const clickState = new Map<
+  string,
+  { timer: ReturnType<typeof setTimeout> | null; count: number }
+>();
 
 function handleFileClick(
   filePath: string,
@@ -151,11 +154,7 @@ function FileSection({
           onClick={onToggle}
           className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground h-auto px-1"
         >
-          {isExpanded ? (
-            <ChevronDown className="w-4 h-4" />
-          ) : (
-            <ChevronRight className="w-4 h-4" />
-          )}
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           {title} ({files.length})
         </Button>
         <div className="flex items-center gap-1">
@@ -208,9 +207,7 @@ function FileSection({
 
                 {/* Status Label */}
                 {!isStaged && (
-                  <span className={`text-xs ${config.color} font-mono`}>
-                    {config.label}
-                  </span>
+                  <span className={`text-xs ${config.color} font-mono`}>{config.label}</span>
                 )}
 
                 {/* Secondary Action Button (Discard) */}
@@ -323,7 +320,8 @@ export function GitFileList({
         return {
           variant: 'warning' as const,
           title: 'Discard Changes',
-          description: 'Are you sure you want to discard changes to this file? This action cannot be undone.',
+          description:
+            'Are you sure you want to discard changes to this file? This action cannot be undone.',
           itemName: confirmDialog.filePath,
           confirmText: 'Discard',
         };
@@ -338,7 +336,8 @@ export function GitFileList({
         return {
           variant: 'destructive' as const,
           title: 'Delete Untracked File',
-          description: 'Are you sure you want to delete this untracked file? This action cannot be undone.',
+          description:
+            'Are you sure you want to delete this untracked file? This action cannot be undone.',
           itemName: confirmDialog.filePath,
           confirmText: 'Delete',
         };
@@ -401,10 +400,14 @@ export function GitFileList({
           label: 'Stage All',
           onClick: onStageAll,
         }}
-        secondaryButton={onDiscardAll ? {
-          label: 'Discard All',
-          onClick: handleDiscardAllWithConfirm,
-        } : undefined}
+        secondaryButton={
+          onDiscardAll
+            ? {
+                label: 'Discard All',
+                onClick: handleDiscardAllWithConfirm,
+              }
+            : undefined
+        }
         onFileAction={onStageFile}
         fileActionIcon={Plus}
         fileActionTitle="Stage file"
@@ -425,10 +428,14 @@ export function GitFileList({
           label: 'Stage All',
           onClick: onStageAll,
         }}
-        secondaryButton={onDeleteAllUntracked ? {
-          label: 'Delete All',
-          onClick: handleDeleteAllUntrackedWithConfirm,
-        } : undefined}
+        secondaryButton={
+          onDeleteAllUntracked
+            ? {
+                label: 'Delete All',
+                onClick: handleDeleteAllUntrackedWithConfirm,
+              }
+            : undefined
+        }
         onFileAction={onStageFile}
         fileActionIcon={Plus}
         fileActionTitle="Stage file"
@@ -441,12 +448,7 @@ export function GitFileList({
 
       {/* Stage All Button */}
       {(changedFiles.length > 0 || untrackedFiles.length > 0) && (
-        <Button
-          variant="secondary"
-          onClick={onStageAll}
-          disabled={isLoading}
-          className="w-full"
-        >
+        <Button variant="secondary" onClick={onStageAll} disabled={isLoading} className="w-full">
           Stage All Changes
         </Button>
       )}

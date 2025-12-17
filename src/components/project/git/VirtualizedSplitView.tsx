@@ -204,7 +204,9 @@ function SplitLineRow({
           {lineNumber ?? ''}
         </span>
       )}
-      <span className={cn('w-5 flex-shrink-0 text-center select-none', prefixStyles[line.lineType])}>
+      <span
+        className={cn('w-5 flex-shrink-0 text-center select-none', prefixStyles[line.lineType])}
+      >
         {prefix[line.lineType]}
       </span>
       <pre className="flex-1 overflow-x-auto whitespace-pre px-2 truncate">

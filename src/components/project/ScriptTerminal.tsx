@@ -24,16 +24,16 @@ const ansiConverter = new AnsiToHtml({
   fg: '#d1d5db', // terminal foreground
   bg: '#030712', // terminal background (keep dark for terminal convention)
   colors: {
-    0: '#374151',  // black
-    1: '#ef4444',  // red
-    2: '#22c55e',  // green
-    3: '#eab308',  // yellow
-    4: '#3b82f6',  // blue
-    5: '#a855f7',  // magenta
-    6: '#06b6d4',  // cyan
-    7: '#d1d5db',  // white
-    8: '#6b7280',  // bright black
-    9: '#f87171',  // bright red
+    0: '#374151', // black
+    1: '#ef4444', // red
+    2: '#22c55e', // green
+    3: '#eab308', // yellow
+    4: '#3b82f6', // blue
+    5: '#a855f7', // magenta
+    6: '#06b6d4', // cyan
+    7: '#d1d5db', // white
+    8: '#6b7280', // bright black
+    9: '#f87171', // bright red
     10: '#4ade80', // bright green
     11: '#facc15', // bright yellow
     12: '#60a5fa', // bright blue
@@ -101,12 +101,15 @@ export function ScriptTerminal({
   const search = useTerminalSearch(plainTextOutput);
 
   // Handle resize drag
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    startYRef.current = e.clientY;
-    startHeightRef.current = height;
-  }, [height]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
+      startYRef.current = e.clientY;
+      startHeightRef.current = height;
+    },
+    [height]
+  );
 
   useEffect(() => {
     if (!isResizing) return;
@@ -147,7 +150,10 @@ export function ScriptTerminal({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!containerRef.current?.contains(document.activeElement) && document.activeElement !== document.body) {
+      if (
+        !containerRef.current?.contains(document.activeElement) &&
+        document.activeElement !== document.body
+      ) {
         return;
       }
 
@@ -203,8 +209,7 @@ export function ScriptTerminal({
 
   const formatTabLabel = (script: RunningScript) => {
     const projectLabel =
-      script.projectName ||
-      script.projectPath.split(/[\\/]/).filter(Boolean).pop();
+      script.projectName || script.projectPath.split(/[\\/]/).filter(Boolean).pop();
     return projectLabel ? `${projectLabel}: ${script.scriptName}` : script.scriptName;
   };
 
@@ -220,10 +225,7 @@ export function ScriptTerminal({
           <span className="text-sm text-muted-foreground">Terminal output</span>
           <span className="text-xs text-muted-foreground">({runningScripts.size})</span>
         </div>
-        <button
-          onClick={onToggleCollapse}
-          className="p-1 rounded hover:bg-accent"
-        >
+        <button onClick={onToggleCollapse} className="p-1 rounded hover:bg-accent">
           <ChevronUp className="w-4 h-4 text-muted-foreground" />
         </button>
       </div>
@@ -262,14 +264,20 @@ export function ScriptTerminal({
                     : 'text-muted-foreground hover:bg-secondary/50'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${
-                  script.status === 'running' ? 'bg-yellow-400 animate-pulse' :
-                  script.status === 'completed' ? 'bg-green-400' :
-                  script.status === 'failed' ? 'bg-red-400' : 'bg-muted-foreground'
-                }`} />
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    script.status === 'running'
+                      ? 'bg-yellow-400 animate-pulse'
+                      : script.status === 'completed'
+                        ? 'bg-green-400'
+                        : script.status === 'failed'
+                          ? 'bg-red-400'
+                          : 'bg-muted-foreground'
+                  }`}
+                />
                 <span className="max-w-[180px] truncate">{formatTabLabel(script)}</span>
                 <button
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation();
                     onClearOutput(id);
                   }}
@@ -342,7 +350,11 @@ export function ScriptTerminal({
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                e.shiftKey ? search.goToPrev() : search.goToNext();
+                if (e.shiftKey) {
+                  search.goToPrev();
+                } else {
+                  search.goToNext();
+                }
               } else if (e.key === 'Escape') {
                 search.close();
               }
@@ -356,9 +368,7 @@ export function ScriptTerminal({
             </span>
           )}
           {search.query && search.matchCount === 0 && (
-            <span className="text-xs text-muted-foreground flex-shrink-0">
-              No matches
-            </span>
+            <span className="text-xs text-muted-foreground flex-shrink-0">No matches</span>
           )}
           <div className="flex items-center gap-0.5 flex-shrink-0">
             <button
@@ -502,9 +512,7 @@ export function ScriptTerminal({
             {statusConfig[activeScript.status].label}
           </span>
           {activeScript.exitCode !== undefined && (
-            <span className="ml-2 text-muted-foreground">
-              Exit code: {activeScript.exitCode}
-            </span>
+            <span className="ml-2 text-muted-foreground">Exit code: {activeScript.exitCode}</span>
           )}
           {!autoScroll && (
             <button

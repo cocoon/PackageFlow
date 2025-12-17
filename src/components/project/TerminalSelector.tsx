@@ -48,31 +48,34 @@ export const TerminalSelector: React.FC<TerminalSelectorProps> = ({
     loadTerminals();
   }, []);
 
-  const handleOpenTerminal = useCallback(async (terminal: TerminalDefinition) => {
-    if (terminal.isBuiltin) {
-      // Use built-in terminal
-      onOpenBuiltinTerminal?.();
-      // Update default terminal preference
-      await terminalAPI.setPreferredTerminal(terminal.id);
-      setDefaultTerminal(terminal.id);
-      return;
-    }
-
-    // Open external terminal
-    try {
-      const response = await terminalAPI.openInTerminal(path, terminal.id);
-      if (response.success) {
+  const handleOpenTerminal = useCallback(
+    async (terminal: TerminalDefinition) => {
+      if (terminal.isBuiltin) {
+        // Use built-in terminal
+        onOpenBuiltinTerminal?.();
+        // Update default terminal preference
+        await terminalAPI.setPreferredTerminal(terminal.id);
         setDefaultTerminal(terminal.id);
-      } else if (response.error) {
-        console.error('Failed to open terminal:', response.error);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to open terminal:', error);
-    }
-  }, [path, onOpenBuiltinTerminal]);
+
+      // Open external terminal
+      try {
+        const response = await terminalAPI.openInTerminal(path, terminal.id);
+        if (response.success) {
+          setDefaultTerminal(terminal.id);
+        } else if (response.error) {
+          console.error('Failed to open terminal:', response.error);
+        }
+      } catch (error) {
+        console.error('Failed to open terminal:', error);
+      }
+    },
+    [path, onOpenBuiltinTerminal]
+  );
 
   // Only show available terminals
-  const availableTerminals = terminals.filter(t => t.isAvailable);
+  const availableTerminals = terminals.filter((t) => t.isAvailable);
 
   const trigger = (
     <Button
@@ -106,7 +109,13 @@ export const TerminalSelector: React.FC<TerminalSelectorProps> = ({
         <DropdownItem
           key={terminal.id}
           onClick={() => handleOpenTerminal(terminal)}
-          icon={terminal.id === defaultTerminal ? <Check className="w-4 h-4" /> : <div className="w-4" />}
+          icon={
+            terminal.id === defaultTerminal ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <div className="w-4" />
+            )
+          }
         >
           <span className="flex items-center gap-2">
             {terminal.name}

@@ -9,11 +9,7 @@ import { Eye, Pencil, Play } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { PermissionToggleGroup } from '../../ui/PermissionCheckbox';
 import { Collapsible } from '../../ui/Collapsible';
-import type {
-  ToolPermissionEntry,
-  ToolCategory,
-  PermissionType,
-} from '../../../types/mcp';
+import type { ToolPermissionEntry, ToolCategory, PermissionType } from '../../../types/mcp';
 
 interface ToolPermissionMatrixProps {
   /** Tool permission entries to display */
@@ -200,7 +196,9 @@ export const ToolPermissionMatrix: React.FC<ToolPermissionMatrixProps> = ({
       {/* Header with legend */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-medium">{enabledTools}/{totalTools} tools enabled</span>
+          <span className="font-medium">
+            {enabledTools}/{totalTools} tools enabled
+          </span>
         </div>
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1">

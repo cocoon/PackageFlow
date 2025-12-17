@@ -153,9 +153,7 @@ export function TaskSearchBar({
   const filteredTasks = useMemo(() => {
     if (!query.trim()) return [];
     const lowerQuery = query.toLowerCase();
-    return tasks
-      .filter((t) => t.name.toLowerCase().includes(lowerQuery))
-      .slice(0, 8);
+    return tasks.filter((t) => t.name.toLowerCase().includes(lowerQuery)).slice(0, 8);
   }, [tasks, query]);
 
   // Global shortcut: Cmd+/
@@ -397,7 +395,9 @@ export const TaskButton = memo(function TaskButton({
     <div
       className={cn(
         'group relative rounded-lg border bg-secondary/50 transition-all',
-        isRunning ? 'border-blue-500/50' : 'border-border hover:border-muted-foreground hover:bg-secondary'
+        isRunning
+          ? 'border-blue-500/50'
+          : 'border-border hover:border-muted-foreground hover:bg-secondary'
       )}
     >
       <Button

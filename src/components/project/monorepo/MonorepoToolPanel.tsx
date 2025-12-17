@@ -77,7 +77,12 @@ export function MonorepoToolPanel({
   }, [selectedTool, projectPath, packages, availableScripts]);
 
   return (
-    <div className={cn('flex flex-col h-full bg-card rounded-lg border border-border overflow-hidden', className)}>
+    <div
+      className={cn(
+        'flex flex-col h-full bg-card rounded-lg border border-border overflow-hidden',
+        className
+      )}
+    >
       {toolPanelContent}
     </div>
   );

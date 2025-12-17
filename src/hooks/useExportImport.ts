@@ -4,11 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import {
-  exportAllData,
-  selectImportFile,
-  executeImport,
-} from '../lib/export-import';
+import { exportAllData, selectImportFile, executeImport } from '../lib/export-import';
 import type {
   ExportResult,
   ImportFileResult,
@@ -152,7 +148,13 @@ export function useExportImport() {
           success: false,
           error: errorMessage,
           summary: {
-            imported: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0, settings: false },
+            imported: {
+              projects: 0,
+              workflows: 0,
+              templates: 0,
+              stepTemplates: 0,
+              settings: false,
+            },
             skipped: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0 },
             overwritten: { projects: 0, workflows: 0, templates: 0, stepTemplates: 0 },
           },

@@ -22,12 +22,7 @@ interface SaveAsTemplateDialogProps {
 /**
  * Save As Template Dialog Component
  */
-export function SaveAsTemplateDialog({
-  isOpen,
-  node,
-  onClose,
-  onSave,
-}: SaveAsTemplateDialogProps) {
+export function SaveAsTemplateDialog({ isOpen, node, onClose, onSave }: SaveAsTemplateDialogProps) {
   const [name, setName] = useState('');
 
   // Reset form when dialog opens with a new node
@@ -57,29 +52,35 @@ export function SaveAsTemplateDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
-        'bg-background border-yellow-500/30 max-w-md p-0 overflow-hidden',
-        'shadow-2xl shadow-black/60'
-      )}>
+      <DialogContent
+        className={cn(
+          'bg-background border-yellow-500/30 max-w-md p-0 overflow-hidden',
+          'shadow-2xl shadow-black/60'
+        )}
+      >
         {/* Header with gradient background and icon badge */}
-        <div className={cn(
-          'relative px-6 py-5',
-          'border-b border-border',
-          'bg-gradient-to-r',
-          'dark:from-yellow-500/15 dark:via-yellow-600/5 dark:to-transparent',
-          'from-yellow-500/10 via-yellow-600/5 to-transparent'
-        )}>
+        <div
+          className={cn(
+            'relative px-6 py-5',
+            'border-b border-border',
+            'bg-gradient-to-r',
+            'dark:from-yellow-500/15 dark:via-yellow-600/5 dark:to-transparent',
+            'from-yellow-500/10 via-yellow-600/5 to-transparent'
+          )}
+        >
           <div className="flex items-center gap-4">
             {/* Icon badge */}
-            <div className={cn(
-              'flex-shrink-0',
-              'w-12 h-12 rounded-xl',
-              'flex items-center justify-center',
-              'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
-              'border',
-              'bg-yellow-500/10 border-yellow-500/20',
-              'shadow-lg'
-            )}>
+            <div
+              className={cn(
+                'flex-shrink-0',
+                'w-12 h-12 rounded-xl',
+                'flex items-center justify-center',
+                'bg-background/80 dark:bg-background/50 backdrop-blur-sm',
+                'border',
+                'bg-yellow-500/10 border-yellow-500/20',
+                'shadow-lg'
+              )}
+            >
               <Star className="w-6 h-6 text-yellow-500" />
             </div>
             <div className="flex-1 min-w-0">
@@ -136,12 +137,14 @@ export function SaveAsTemplateDialog({
         </div>
 
         {/* Footer with actions */}
-        <div className={cn(
-          'px-6 py-4',
-          'border-t border-border',
-          'bg-card/50',
-          'flex justify-end gap-3'
-        )}>
+        <div
+          className={cn(
+            'px-6 py-4',
+            'border-t border-border',
+            'bg-card/50',
+            'flex justify-end gap-3'
+          )}
+        >
           <Button
             variant="ghost"
             onClick={onClose}

@@ -168,13 +168,14 @@ export function useUpdater(): UseUpdaterReturn {
             setTotalBytes(contentLength);
             console.log(`[Updater] Started downloading ${contentLength} bytes`);
             break;
-          case 'Progress':
+          case 'Progress': {
             downloaded += event.data.chunkLength;
             const percent = contentLength > 0 ? Math.round((downloaded / contentLength) * 100) : 0;
             setDownloadedBytes(downloaded);
             setDownloadProgress(percent);
             console.log(`[Updater] Progress: ${percent}%`);
             break;
+          }
           case 'Finished':
             console.log('[Updater] Download finished, installing...');
             setDownloadedBytes(contentLength);

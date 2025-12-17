@@ -13,7 +13,12 @@ export { AIProviderNotConfiguredState } from './AIProviderNotConfiguredState';
 export { ActionConfirmationCard } from './ActionConfirmationCard';
 
 // Phase 3 components (US3 - Quick Actions):
-export { QuickActionChips, DEFAULT_QUICK_ACTIONS, GIT_QUICK_ACTIONS, PROJECT_QUICK_ACTIONS } from './QuickActionChips';
+export {
+  QuickActionChips,
+  DEFAULT_QUICK_ACTIONS,
+  GIT_QUICK_ACTIONS,
+  PROJECT_QUICK_ACTIONS,
+} from './QuickActionChips';
 
 // Phase 4 components (US4 - History Management):
 export { AIAssistantSidebar } from './AIAssistantSidebar';

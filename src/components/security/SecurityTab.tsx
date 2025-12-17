@@ -151,7 +151,12 @@ function getErrorConfig(code: string): ErrorConfig {
   }
 }
 
-function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: ScanErrorDisplayProps) {
+function ScanErrorDisplay({
+  error,
+  onRetry,
+  onNavigateToScripts,
+  isRetrying,
+}: ScanErrorDisplayProps) {
   const config = getErrorConfig(error.code);
   const ErrorIcon = config.icon;
   const isResolvable = config.isResolvable && onNavigateToScripts;
@@ -184,9 +189,7 @@ function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: S
         <div className="flex-1 min-w-0">
           {/* Title and Badge */}
           <div className="flex items-center gap-2 mb-1">
-            <h4 className={cn('text-base font-medium', theme.titleColor)}>
-              {config.title}
-            </h4>
+            <h4 className={cn('text-base font-medium', theme.titleColor)}>{config.title}</h4>
             {isResolvable && (
               <span className="px-1.5 py-0.5 text-xs rounded bg-amber-500/20 text-amber-300">
                 Fixable
@@ -199,24 +202,27 @@ function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: S
 
           {/* Error Details (if any) */}
           {error.details && (
-            <p className="text-xs text-muted-foreground font-mono mb-2 break-all">{error.details}</p>
+            <p className="text-xs text-muted-foreground font-mono mb-2 break-all">
+              {error.details}
+            </p>
           )}
 
           {/* Suggestion Box - Different styling for resolvable errors */}
           {error.suggestion && (
-            <div className={cn(
-              'p-3 rounded text-sm mb-4',
-              isResolvable
-                ? 'bg-amber-500/5 border border-amber-500/20'
-                : 'bg-secondary'
-            )}>
+            <div
+              className={cn(
+                'p-3 rounded text-sm mb-4',
+                isResolvable ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-secondary'
+              )}
+            >
               {isResolvable ? (
                 <div className="flex items-start gap-2">
                   <Terminal className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" aria-hidden="true" />
                   <div>
                     <p className="text-foreground font-medium mb-1">Quick Fix</p>
                     <p className="text-muted-foreground">
-                      Go to the <span className="text-amber-300 font-medium">Scripts</span> tab and run{' '}
+                      Go to the <span className="text-amber-300 font-medium">Scripts</span> tab and
+                      run{' '}
                       <code className="px-1.5 py-0.5 bg-secondary rounded text-amber-300 text-xs">
                         install
                       </code>{' '}
@@ -237,11 +243,7 @@ function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: S
             {isResolvable ? (
               <>
                 {/* Primary: Go to Scripts */}
-                <Button
-                  size="sm"
-                  onClick={onNavigateToScripts}
-                  className={theme.primaryBtnClass}
-                >
+                <Button size="sm" onClick={onNavigateToScripts} className={theme.primaryBtnClass}>
                   <Terminal className="w-4 h-4 mr-1.5" aria-hidden="true" />
                   Go to Scripts
                   <ArrowRight className="w-3.5 h-3.5 ml-1.5" aria-hidden="true" />
@@ -254,7 +256,10 @@ function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: S
                   disabled={isRetrying}
                   className={theme.secondaryBtnClass}
                 >
-                  <RefreshCw className={cn('w-4 h-4 mr-1.5', isRetrying && 'animate-spin')} aria-hidden="true" />
+                  <RefreshCw
+                    className={cn('w-4 h-4 mr-1.5', isRetrying && 'animate-spin')}
+                    aria-hidden="true"
+                  />
                   {isRetrying ? 'Retrying...' : 'Retry Anyway'}
                 </Button>
               </>
@@ -267,7 +272,10 @@ function ScanErrorDisplay({ error, onRetry, onNavigateToScripts, isRetrying }: S
                 disabled={isRetrying}
                 className={theme.primaryBtnClass}
               >
-                <RefreshCw className={cn('w-4 h-4 mr-1.5', isRetrying && 'animate-spin')} aria-hidden="true" />
+                <RefreshCw
+                  className={cn('w-4 h-4 mr-1.5', isRetrying && 'animate-spin')}
+                  aria-hidden="true"
+                />
                 {isRetrying ? 'Retrying...' : 'Retry Scan'}
               </Button>
             )}
@@ -359,7 +367,6 @@ function SecuritySummaryHeader({
           />
         </div>
       )}
-
     </div>
   );
 }
@@ -422,7 +429,12 @@ function SecureState({ scannedAt, packageManager, onRescan, isScanning }: Secure
       <p className="text-sm text-muted-foreground max-w-md mb-6">
         Your project dependencies are secure. Keep packages updated to maintain security.
       </p>
-      <Button onClick={onRescan} disabled={isScanning} variant="outline" className="border-green-500/50 text-green-400 hover:bg-green-500/10">
+      <Button
+        onClick={onRescan}
+        disabled={isScanning}
+        variant="outline"
+        className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+      >
         <RefreshCw className={cn('w-4 h-4 mr-2', isScanning && 'animate-spin')} />
         {isScanning ? 'Scanning...' : 'Rescan'}
       </Button>
@@ -454,7 +466,8 @@ function ScanningState({ projectName, onCancel }: ScanningStateProps) {
       </div>
       <h3 className="text-lg font-medium text-foreground mb-2">Scanning Dependencies</h3>
       <p className="text-sm text-muted-foreground max-w-md mb-4">
-        Checking <strong className="text-foreground">{projectName}</strong> for known vulnerabilities...
+        Checking <strong className="text-foreground">{projectName}</strong> for known
+        vulnerabilities...
       </p>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <RefreshCw className="w-3 h-3 animate-spin" />
@@ -534,15 +547,20 @@ export function SecurityTab({
   }, [isScanning, showSkeleton]);
 
   // Handle single vulnerability AI analysis
-  const handleAnalyzeVulnerability = useCallback(async (vulnerability: VulnItem) => {
-    const result = await aiAnalysis.generateAnalysis(vulnerability);
-    if (result) {
-      setAIAnalysisContent(result);
-      setAIDialogTitle('Security Analysis');
-      setAIDialogSubtitle(`${vulnerability.packageName}@${vulnerability.installedVersion} - ${vulnerability.title}`);
-      setShowAIDialog(true);
-    }
-  }, [aiAnalysis]);
+  const handleAnalyzeVulnerability = useCallback(
+    async (vulnerability: VulnItem) => {
+      const result = await aiAnalysis.generateAnalysis(vulnerability);
+      if (result) {
+        setAIAnalysisContent(result);
+        setAIDialogTitle('Security Analysis');
+        setAIDialogSubtitle(
+          `${vulnerability.packageName}@${vulnerability.installedVersion} - ${vulnerability.title}`
+        );
+        setShowAIDialog(true);
+      }
+    },
+    [aiAnalysis]
+  );
 
   // Handle all vulnerabilities AI summary
   const handleAnalyzeAll = useCallback(async () => {
@@ -559,10 +577,7 @@ export function SecurityTab({
     }
 
     console.log('[SecurityTab] Calling aiAnalysis.generateSummary...');
-    const result = await aiAnalysis.generateSummary(
-      scanResult.vulnerabilities,
-      scanResult.summary
-    );
+    const result = await aiAnalysis.generateSummary(scanResult.vulnerabilities, scanResult.summary);
 
     console.log('[SecurityTab] generateSummary result:', {
       hasResult: !!result,
@@ -587,11 +602,7 @@ export function SecurityTab({
 
       {/* Not Scanned State */}
       {currentState === 'not-scanned' && (
-        <NotScannedState
-          projectName={projectName}
-          onScan={handleScan}
-          isScanning={isScanning}
-        />
+        <NotScannedState projectName={projectName} onScan={handleScan} isScanning={isScanning} />
       )}
 
       {/* Error State */}

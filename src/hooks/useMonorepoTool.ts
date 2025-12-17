@@ -121,43 +121,46 @@ export function useMonorepoTool(projectPath: string | null): UseMonorepoToolRetu
   }, [detectTools]);
 
   // Lazy version fetching
-  const fetchVersion = useCallback(async (toolType: MonorepoToolType): Promise<string | null> => {
-    if (!projectPath) return null;
+  const fetchVersion = useCallback(
+    async (toolType: MonorepoToolType): Promise<string | null> => {
+      if (!projectPath) return null;
 
-    // Skip if already fetched
-    const cached = toolVersions.get(toolType);
-    if (cached !== undefined) return cached;
+      // Skip if already fetched
+      const cached = toolVersions.get(toolType);
+      if (cached !== undefined) return cached;
 
-    // Skip if fetch already in progress
-    if (versionFetchInProgress.current.has(toolType)) return null;
+      // Skip if fetch already in progress
+      if (versionFetchInProgress.current.has(toolType)) return null;
 
-    versionFetchInProgress.current.add(toolType);
-    setVersionLoading(true);
+      versionFetchInProgress.current.add(toolType);
+      setVersionLoading(true);
 
-    try {
-      const version = await monorepoAPI.getToolVersion(projectPath, toolType);
+      try {
+        const version = await monorepoAPI.getToolVersion(projectPath, toolType);
 
-      // Update state
-      setToolVersions(prev => {
-        const newMap = new Map(prev);
-        newMap.set(toolType, version);
-        return newMap;
-      });
+        // Update state
+        setToolVersions((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(toolType, version);
+          return newMap;
+        });
 
-      // Update cache
-      if (!versionCache.has(projectPath)) {
-        versionCache.set(projectPath, new Map());
+        // Update cache
+        if (!versionCache.has(projectPath)) {
+          versionCache.set(projectPath, new Map());
+        }
+        versionCache.get(projectPath)!.set(toolType, version);
+
+        return version;
+      } catch {
+        return null;
+      } finally {
+        versionFetchInProgress.current.delete(toolType);
+        setVersionLoading(false);
       }
-      versionCache.get(projectPath)!.set(toolType, version);
-
-      return version;
-    } catch {
-      return null;
-    } finally {
-      versionFetchInProgress.current.delete(toolType);
-      setVersionLoading(false);
-    }
-  }, [projectPath, toolVersions]);
+    },
+    [projectPath, toolVersions]
+  );
 
   // Auto-fetch version for selected tool (deferred to avoid blocking)
   useEffect(() => {

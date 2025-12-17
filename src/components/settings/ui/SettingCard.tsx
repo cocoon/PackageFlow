@@ -73,31 +73,17 @@ export const SettingCard: React.FC<SettingCardProps> = ({
   const styles = VARIANT_STYLES[variant];
 
   return (
-    <div
-      className={cn(
-        'p-4 rounded-lg border bg-card',
-        styles.border,
-        styles.bg,
-        className
-      )}
-    >
+    <div className={cn('p-4 rounded-lg border bg-card', styles.border, styles.bg, className)}>
       {/* Header */}
       <div className="flex items-start gap-3">
         {icon && (
-          <div
-            className={cn(
-              'p-2 rounded-lg flex-shrink-0',
-              iconBgColor || styles.iconBg
-            )}
-          >
+          <div className={cn('p-2 rounded-lg flex-shrink-0', iconBgColor || styles.iconBg)}>
             {icon}
           </div>
         )}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-medium text-foreground">{title}</h4>
-          {description && (
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
-          )}
+          {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
         </div>
       </div>
 

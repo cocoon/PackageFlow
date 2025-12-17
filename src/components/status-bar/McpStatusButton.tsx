@@ -134,10 +134,12 @@ export const McpStatusButton: React.FC<McpStatusButtonProps> = ({
           <div className="px-4 py-3 border-b border-border flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-sm text-foreground">MCP Server</h3>
-              <span className={cn(
-                'text-xs px-1.5 py-0.5 rounded-full',
-                isEnabled ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
-              )}>
+              <span
+                className={cn(
+                  'text-xs px-1.5 py-0.5 rounded-full',
+                  isEnabled ? 'bg-green-500/20 text-green-400' : 'bg-muted text-muted-foreground'
+                )}
+              >
                 {isEnabled ? 'Enabled' : 'Disabled'}
               </span>
             </div>
@@ -152,9 +154,7 @@ export const McpStatusButton: React.FC<McpStatusButtonProps> = ({
           {/* Content */}
           <div className="p-4">
             {isLoading ? (
-              <div className="text-center py-4 text-muted-foreground text-sm">
-                Loading...
-              </div>
+              <div className="text-center py-4 text-muted-foreground text-sm">Loading...</div>
             ) : !isEnabled ? (
               <div className="text-center py-2">
                 <Lock className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -203,12 +203,7 @@ export const McpStatusButton: React.FC<McpStatusButtonProps> = ({
 
           {/* Footer */}
           <div className="px-4 py-3 border-t border-border flex-shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenSettings}
-              className="w-full"
-            >
+            <Button variant="outline" size="sm" onClick={handleOpenSettings} className="w-full">
               <Settings className="w-4 h-4 mr-2" />
               Configure MCP
             </Button>

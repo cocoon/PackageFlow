@@ -4,13 +4,7 @@
 
 import { useDeployAccounts } from '../../hooks/useDeployAccounts';
 import { AccountManager } from '../project/deploy/AccountManager';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from '../ui/Dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../ui/Dialog';
 import { Users } from 'lucide-react';
 import type { PlatformType } from '../../types/deploy';
 import { useCallback } from 'react';
@@ -35,16 +29,19 @@ export function DeployAccountsDialog({ isOpen, onClose }: DeployAccountsDialogPr
     checkUsage,
   } = useDeployAccounts();
 
-  const handleAddAccount = useCallback(async (platform: PlatformType): Promise<void> => {
-    await addAccount(platform);
-  }, [addAccount]);
+  const handleAddAccount = useCallback(
+    async (platform: PlatformType): Promise<void> => {
+      await addAccount(platform);
+    },
+    [addAccount]
+  );
 
-  const handleUpdateDisplayName = useCallback(async (
-    accountId: string,
-    displayName?: string
-  ): Promise<void> => {
-    await updateAccountDisplayName(accountId, displayName);
-  }, [updateAccountDisplayName]);
+  const handleUpdateDisplayName = useCallback(
+    async (accountId: string, displayName?: string): Promise<void> => {
+      await updateAccountDisplayName(accountId, displayName);
+    },
+    [updateAccountDisplayName]
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

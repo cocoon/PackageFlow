@@ -4,16 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Cloud,
-  CloudOff,
-  Plus,
-  Trash2,
-  X,
-  Check,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react';
+import { Cloud, CloudOff, Plus, Trash2, X, Check, Loader2, RefreshCw } from 'lucide-react';
 import { gitAPI } from '../../../lib/tauri-api';
 import type { GitRemote } from '../../../types/git';
 import { GitAuthPanel } from './GitAuthPanel';
@@ -38,24 +29,27 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
   const [operationError, setOperationError] = useState<string | null>(null);
 
   // Load remotes (silent refresh when data exists)
-  const loadRemotes = useCallback(async (silent = false) => {
-    if (!projectPath) return;
+  const loadRemotes = useCallback(
+    async (silent = false) => {
+      if (!projectPath) return;
 
-    // Only show loading spinner on initial load (no existing data)
-    if (!silent && remotes.length === 0) {
-      setIsLoadingRemotes(true);
-    }
-    try {
-      const response = await gitAPI.getRemotes(projectPath);
-      if (response.success && response.remotes) {
-        setRemotes(response.remotes);
+      // Only show loading spinner on initial load (no existing data)
+      if (!silent && remotes.length === 0) {
+        setIsLoadingRemotes(true);
       }
-    } catch (err) {
-      console.error('Failed to load remotes:', err);
-    } finally {
-      setIsLoadingRemotes(false);
-    }
-  }, [projectPath, remotes.length]);
+      try {
+        const response = await gitAPI.getRemotes(projectPath);
+        if (response.success && response.remotes) {
+          setRemotes(response.remotes);
+        }
+      } catch (err) {
+        console.error('Failed to load remotes:', err);
+      } finally {
+        setIsLoadingRemotes(false);
+      }
+    },
+    [projectPath, remotes.length]
+  );
 
   // Initial load
   useEffect(() => {
@@ -108,7 +102,11 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
     setOperationError(null);
 
     try {
-      const response = await gitAPI.addRemote(projectPath, newRemoteName.trim(), newRemoteUrl.trim());
+      const response = await gitAPI.addRemote(
+        projectPath,
+        newRemoteName.trim(),
+        newRemoteUrl.trim()
+      );
       if (response.success) {
         const addedRemoteName = newRemoteName.trim();
         setNewRemoteName('origin');
@@ -200,11 +198,7 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
                 )}
                 Fetch All
               </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => setShowAddRemote(!showAddRemote)}
-              >
+              <Button variant="default" size="sm" onClick={() => setShowAddRemote(!showAddRemote)}>
                 <Plus className="w-4 h-4 mr-1.5" />
                 Add Remote
               </Button>
@@ -321,9 +315,7 @@ export function GitSettingsPanel({ projectPath, onRemotesChange }: GitSettingsPa
       )}
 
       {/* Authentication Tab */}
-      {activeTab === 'auth' && (
-        <GitAuthPanel projectPath={projectPath} remotes={remotes} />
-      )}
+      {activeTab === 'auth' && <GitAuthPanel projectPath={projectPath} remotes={remotes} />}
     </div>
   );
 }

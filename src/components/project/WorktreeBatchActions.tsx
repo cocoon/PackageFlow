@@ -38,7 +38,11 @@ interface WorktreeBatchActionsProps {
   onComplete: () => void;
 }
 
-export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: WorktreeBatchActionsProps) {
+export function WorktreeBatchActions({
+  worktrees,
+  projectPath,
+  onComplete,
+}: WorktreeBatchActionsProps) {
   // Settings for path display format
   const { formatPath } = useSettings();
 
@@ -174,9 +178,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
       const worktree = pullableWorktrees[i];
 
       // Update status to pulling
-      setPullResults((prev) =>
-        prev.map((r, idx) => (idx === i ? { ...r, status: 'pulling' } : r))
-      );
+      setPullResults((prev) => prev.map((r, idx) => (idx === i ? { ...r, status: 'pulling' } : r)));
 
       try {
         const result = await gitAPI.pull(worktree.path);
@@ -399,7 +401,10 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
       </Button>
 
       {/* Fetch Progress Dialog */}
-      <Dialog open={isFetchDialogOpen} onOpenChange={(open) => !isFetching && !open && handleCloseFetch()}>
+      <Dialog
+        open={isFetchDialogOpen}
+        onOpenChange={(open) => !isFetching && !open && handleCloseFetch()}
+      >
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
@@ -430,9 +435,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                     {result.status === 'fetching' && (
                       <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
                     )}
-                    {result.status === 'success' && (
-                      <Check className="w-4 h-4 text-green-400" />
-                    )}
+                    {result.status === 'success' && <Check className="w-4 h-4 text-green-400" />}
                     {result.status === 'error' && <X className="w-4 h-4 text-red-400" />}
                   </div>
 
@@ -445,9 +448,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                       <div
                         className={cn(
                           'text-xs truncate',
-                          result.status === 'error'
-                            ? 'text-red-400'
-                            : 'text-muted-foreground'
+                          result.status === 'error' ? 'text-red-400' : 'text-muted-foreground'
                         )}
                       >
                         {result.message}
@@ -487,7 +488,10 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
       </Dialog>
 
       {/* Pull Progress Dialog */}
-      <Dialog open={isPullDialogOpen} onOpenChange={(open) => !isPulling && !open && handleClosePull()}>
+      <Dialog
+        open={isPullDialogOpen}
+        onOpenChange={(open) => !isPulling && !open && handleClosePull()}
+      >
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
@@ -518,9 +522,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                     {result.status === 'pulling' && (
                       <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                     )}
-                    {result.status === 'success' && (
-                      <Check className="w-4 h-4 text-green-400" />
-                    )}
+                    {result.status === 'success' && <Check className="w-4 h-4 text-green-400" />}
                     {result.status === 'error' && <X className="w-4 h-4 text-red-400" />}
                   </div>
 
@@ -533,9 +535,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                       <div
                         className={cn(
                           'text-xs truncate',
-                          result.status === 'error'
-                            ? 'text-red-400'
-                            : 'text-muted-foreground'
+                          result.status === 'error' ? 'text-red-400' : 'text-muted-foreground'
                         )}
                       >
                         {result.message}
@@ -575,7 +575,10 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
       </Dialog>
 
       {/* Clean Merged Dialog */}
-      <Dialog open={isCleanDialogOpen} onOpenChange={(open) => !isCleaning && !open && handleCloseClean()}>
+      <Dialog
+        open={isCleanDialogOpen}
+        onOpenChange={(open) => !isCleaning && !open && handleCloseClean()}
+      >
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
@@ -606,7 +609,8 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
             {!isFetchingMerged && mergedWorktrees.length > 0 && cleanResults.length === 0 && (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Found {mergedWorktrees.length} worktree{mergedWorktrees.length > 1 ? 's' : ''} merged into <span className="font-medium text-foreground">{baseBranch}</span>:
+                  Found {mergedWorktrees.length} worktree{mergedWorktrees.length > 1 ? 's' : ''}{' '}
+                  merged into <span className="font-medium text-foreground">{baseBranch}</span>:
                 </p>
 
                 <div className="space-y-2 max-h-[200px] overflow-y-auto">
@@ -644,10 +648,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                   <Button variant="outline" onClick={handleCloseClean}>
                     Cancel
                   </Button>
-                  <Button
-                    onClick={handleCleanMerged}
-                    className="bg-red-600 hover:bg-red-500"
-                  >
+                  <Button onClick={handleCleanMerged} className="bg-red-600 hover:bg-red-500">
                     Remove {mergedWorktrees.length} Worktree{mergedWorktrees.length > 1 ? 's' : ''}
                   </Button>
                 </div>
@@ -692,9 +693,7 @@ export function WorktreeBatchActions({ worktrees, projectPath, onComplete }: Wor
                           <div
                             className={cn(
                               'text-xs truncate',
-                              result.status === 'error'
-                                ? 'text-red-400'
-                                : 'text-muted-foreground'
+                              result.status === 'error' ? 'text-red-400' : 'text-muted-foreground'
                             )}
                           >
                             {result.message}

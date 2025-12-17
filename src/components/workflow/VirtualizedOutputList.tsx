@@ -84,11 +84,7 @@ export function VirtualizedOutputList<T extends GenericOutputLine>({
   // Standard rendering for small outputs
   if (!useVirtualization) {
     return (
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className={cn('overflow-auto', className)}
-      >
+      <div ref={containerRef} onScroll={handleScroll} className={cn('overflow-auto', className)}>
         <div className="font-mono text-xs leading-relaxed space-y-0.5">
           {lines.map((line, index) => (
             <div key={index}>{renderLine(line, index)}</div>
@@ -102,11 +98,7 @@ export function VirtualizedOutputList<T extends GenericOutputLine>({
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <div
-      ref={containerRef}
-      onScroll={handleScroll}
-      className={cn('overflow-auto', className)}
-    >
+    <div ref={containerRef} onScroll={handleScroll} className={cn('overflow-auto', className)}>
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -158,7 +150,9 @@ export function getOutputLineClassName(
     isSystemMessage && !isTriggerWorkflow && 'text-blue-400 font-medium',
     isSystemMessage && isTriggerWorkflow && 'text-purple-400 font-medium',
     // Highlight starting messages
-    isSystemMessage && (content.startsWith('>') || content.startsWith('>>')) && 'mt-3 pt-2 border-t border-border',
+    isSystemMessage &&
+      (content.startsWith('>') || content.startsWith('>>')) &&
+      'mt-3 pt-2 border-t border-border',
     // Status message styling
     isSystemMessage && content.startsWith('[OK]') && 'text-green-400',
     isSystemMessage && content.startsWith('[FAIL]') && 'text-red-400'

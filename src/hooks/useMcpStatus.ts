@@ -35,8 +35,8 @@ export function useMcpStatus() {
     });
 
     return () => {
-      unlistenDbPromise.then(unlisten => unlisten());
-      unlistenConfigPromise.then(unlisten => unlisten());
+      unlistenDbPromise.then((unlisten) => unlisten());
+      unlistenConfigPromise.then((unlisten) => unlisten());
     };
   }, [fetchConfig]);
 

@@ -6,7 +6,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { OutputLine } from '../components/terminal/TerminalOutput';
 import type { OutputEvent } from '../types/workflow';
-import { tauriEvents, type NodeStartedPayload, type ExecutionOutputPayload, type NodeCompletedPayload } from '../lib/tauri-api';
+import {
+  tauriEvents,
+  type NodeStartedPayload,
+  type ExecutionOutputPayload,
+  type NodeCompletedPayload,
+} from '../lib/tauri-api';
 
 interface UseTerminalOptions {
   maxLines?: number;
@@ -26,33 +31,42 @@ export function useTerminal(options: UseTerminalOptions = {}): UseTerminalReturn
   const { maxLines = 10000 } = options;
   const [lines, setLines] = useState<OutputLine[]>([]);
 
-  const addLine = useCallback((line: OutputLine) => {
-    setLines((prev) => {
-      const newLines = [...prev, line];
-      if (newLines.length > maxLines) {
-        return newLines.slice(-maxLines);
-      }
-      return newLines;
-    });
-  }, [maxLines]);
+  const addLine = useCallback(
+    (line: OutputLine) => {
+      setLines((prev) => {
+        const newLines = [...prev, line];
+        if (newLines.length > maxLines) {
+          return newLines.slice(-maxLines);
+        }
+        return newLines;
+      });
+    },
+    [maxLines]
+  );
 
-  const addOutput = useCallback((event: OutputEvent) => {
-    addLine({
-      type: event.type,
-      content: event.data,
-      timestamp: event.timestamp,
-      nodeId: event.nodeId,
-    });
-  }, [addLine]);
+  const addOutput = useCallback(
+    (event: OutputEvent) => {
+      addLine({
+        type: event.type,
+        content: event.data,
+        timestamp: event.timestamp,
+        nodeId: event.nodeId,
+      });
+    },
+    [addLine]
+  );
 
-  const addSystemMessage = useCallback((message: string, nodeId?: string) => {
-    addLine({
-      type: 'system',
-      content: message,
-      timestamp: new Date().toISOString(),
-      nodeId,
-    });
-  }, [addLine]);
+  const addSystemMessage = useCallback(
+    (message: string, nodeId?: string) => {
+      addLine({
+        type: 'system',
+        content: message,
+        timestamp: new Date().toISOString(),
+        nodeId,
+      });
+    },
+    [addLine]
+  );
 
   const clear = useCallback(() => {
     setLines([]);
@@ -97,12 +111,14 @@ export function useExecutionListener(terminal: UseTerminalReturn, workflowId: st
       if (workflowIdRef.current && event.workflowId !== workflowIdRef.current) return;
       // Feature 013: Different message for trigger-workflow nodes
       // Use target workflow name if available
-      const displayName = event.nodeType === 'trigger-workflow' && event.targetWorkflowName
-        ? event.targetWorkflowName
-        : event.nodeName;
-      const message = event.nodeType === 'trigger-workflow'
-        ? `\n>> Triggering workflow: ${displayName}`
-        : `\n> Starting: ${event.nodeName}`;
+      const displayName =
+        event.nodeType === 'trigger-workflow' && event.targetWorkflowName
+          ? event.targetWorkflowName
+          : event.nodeName;
+      const message =
+        event.nodeType === 'trigger-workflow'
+          ? `\n>> Triggering workflow: ${displayName}`
+          : `\n> Starting: ${event.nodeName}`;
       terminalRef.current.addSystemMessage(message, event.nodeId);
     };
 
@@ -125,7 +141,10 @@ export function useExecutionListener(terminal: UseTerminalReturn, workflowId: st
       // Filter by workflowId - only show events for the current workflow
       if (workflowIdRef.current && event.workflowId !== workflowIdRef.current) return;
       if (event.status === 'completed') {
-        terminalRef.current.addSystemMessage(`✓ Node completed (exit code: ${event.exitCode})`, event.nodeId);
+        terminalRef.current.addSystemMessage(
+          `✓ Node completed (exit code: ${event.exitCode})`,
+          event.nodeId
+        );
       } else {
         terminalRef.current.addSystemMessage(
           `✗ Node failed (exit code: ${event.exitCode})${event.errorMessage ? `: ${event.errorMessage}` : ''}`,
@@ -154,7 +173,7 @@ export function useExecutionListener(terminal: UseTerminalReturn, workflowId: st
 
     return () => {
       isMounted = false;
-      unsubscribers.forEach(unsub => unsub());
+      unsubscribers.forEach((unsub) => unsub());
       isSubscribedRef.current = false;
     };
   }, []);

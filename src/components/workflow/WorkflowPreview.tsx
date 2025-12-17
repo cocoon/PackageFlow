@@ -48,7 +48,9 @@ export function WorkflowPreview({
               key={node.id}
               className={cn(
                 'flex items-center gap-2 px-2 py-1.5 rounded text-sm',
-                isRunning && currentNodeIndex === index && 'bg-blue-500/10 border border-blue-500/30'
+                isRunning &&
+                  currentNodeIndex === index &&
+                  'bg-blue-500/10 border border-blue-500/30'
               )}
             >
               {/* Step number */}
@@ -64,9 +66,7 @@ export function WorkflowPreview({
               )}
 
               {/* Node name */}
-              <span className="text-foreground truncate flex-1">
-                {node.name}
-              </span>
+              <span className="text-foreground truncate flex-1">{node.name}</span>
 
               {/* Running indicator */}
               {isRunning && currentNodeIndex === index && (

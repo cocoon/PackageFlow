@@ -37,12 +37,7 @@ export function SeveritySummaryBarSkeleton({ className }: SkeletonProps) {
  */
 export function VulnerabilityCardSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'p-3 border border-border rounded-lg bg-card',
-        className
-      )}
-    >
+    <div className={cn('p-3 border border-border rounded-lg bg-card', className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           {/* Severity badges */}
@@ -67,12 +62,7 @@ export function VulnerabilityCardSkeleton({ className }: SkeletonProps) {
  */
 export function VulnerabilityDetailSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'p-4 bg-card rounded-lg border border-border',
-        className
-      )}
-    >
+    <div className={cn('p-4 bg-card rounded-lg border border-border', className)}>
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="flex-1">
@@ -170,12 +160,7 @@ export function VulnerabilityListSkeleton({
  */
 export function SecurityScanCardSkeleton({ className }: SkeletonProps) {
   return (
-    <div
-      className={cn(
-        'p-4 bg-card rounded-lg border border-border',
-        className
-      )}
-    >
+    <div className={cn('p-4 bg-card rounded-lg border border-border', className)}>
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-start gap-3">
@@ -210,17 +195,9 @@ interface SecurityScanGridSkeletonProps extends SkeletonProps {
   count?: number;
 }
 
-export function SecurityScanGridSkeleton({
-  count = 3,
-  className,
-}: SecurityScanGridSkeletonProps) {
+export function SecurityScanGridSkeleton({ count = 3, className }: SecurityScanGridSkeletonProps) {
   return (
-    <div
-      className={cn(
-        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4',
-        className
-      )}
-    >
+    <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4', className)}>
       {Array.from({ length: count }).map((_, index) => (
         <SecurityScanCardSkeleton key={index} />
       ))}

@@ -33,8 +33,7 @@ export function DeployButton({
   onGenerateWorkflow,
   onOpenSettings,
 }: DeployButtonProps) {
-  const canDeploy =
-    deploymentConfig && isPlatformConnected(deploymentConfig.platform);
+  const canDeploy = deploymentConfig && isPlatformConnected(deploymentConfig.platform);
 
   const isGitHubPages = deploymentConfig?.platform === 'github_pages';
   const isLoading = isDeploying || isGeneratingWorkflow;
@@ -81,7 +80,8 @@ export function DeployButton({
               className={cn(
                 'h-4 w-4 transition-transform duration-200',
                 // Hover: gentle lift
-                !isLoading && 'group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:scale-110',
+                !isLoading &&
+                  'group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:scale-110',
                 // Deploying: vibrate + fly animation
                 isLoading && 'animate-rocket-vibrate'
               )}
@@ -90,7 +90,10 @@ export function DeployButton({
             {isLoading && (
               <span className="absolute -bottom-1 -left-0.5 flex flex-col items-center">
                 <span className="w-2 h-2 bg-gradient-to-t from-orange-500 to-yellow-400 rounded-full animate-flame-flicker blur-[1px]" />
-                <span className="w-1.5 h-1.5 bg-gradient-to-t from-red-500 to-orange-400 rounded-full animate-flame-flicker blur-[0.5px] -mt-1" style={{ animationDelay: '75ms' }} />
+                <span
+                  className="w-1.5 h-1.5 bg-gradient-to-t from-red-500 to-orange-400 rounded-full animate-flame-flicker blur-[0.5px] -mt-1"
+                  style={{ animationDelay: '75ms' }}
+                />
               </span>
             )}
           </>

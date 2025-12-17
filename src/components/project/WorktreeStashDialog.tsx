@@ -101,60 +101,66 @@ export function WorktreeStashDialog({
     }
   }, [worktree, stashMessage, includeUntracked, loadStashes, onComplete]);
 
-  const handleApplyStash = useCallback(async (index: number, pop: boolean) => {
-    if (!worktree) return;
+  const handleApplyStash = useCallback(
+    async (index: number, pop: boolean) => {
+      if (!worktree) return;
 
-    setIsActioning(true);
-    setActioningIndex(index);
-    setError(null);
-    setSuccessMessage(null);
+      setIsActioning(true);
+      setActioningIndex(index);
+      setError(null);
+      setSuccessMessage(null);
 
-    try {
-      const result = await gitAPI.applyStash(worktree.path, index, pop);
+      try {
+        const result = await gitAPI.applyStash(worktree.path, index, pop);
 
-      if (result.success) {
-        setSuccessMessage(pop ? 'Stash popped successfully' : 'Stash applied successfully');
-        await loadStashes();
-        onComplete();
-      } else {
-        const errorMessages: Record<string, string> = {
-          CONFLICT: 'Conflicts detected, resolve manually',
-          STASH_NOT_FOUND: 'Stash not found',
-        };
-        setError(errorMessages[result.error || ''] || result.error || 'Failed to apply stash');
+        if (result.success) {
+          setSuccessMessage(pop ? 'Stash popped successfully' : 'Stash applied successfully');
+          await loadStashes();
+          onComplete();
+        } else {
+          const errorMessages: Record<string, string> = {
+            CONFLICT: 'Conflicts detected, resolve manually',
+            STASH_NOT_FOUND: 'Stash not found',
+          };
+          setError(errorMessages[result.error || ''] || result.error || 'Failed to apply stash');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsActioning(false);
+        setActioningIndex(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsActioning(false);
-      setActioningIndex(null);
-    }
-  }, [worktree, loadStashes, onComplete]);
+    },
+    [worktree, loadStashes, onComplete]
+  );
 
-  const handleDropStash = useCallback(async (index: number) => {
-    if (!worktree) return;
+  const handleDropStash = useCallback(
+    async (index: number) => {
+      if (!worktree) return;
 
-    setIsActioning(true);
-    setActioningIndex(index);
-    setError(null);
-    setSuccessMessage(null);
+      setIsActioning(true);
+      setActioningIndex(index);
+      setError(null);
+      setSuccessMessage(null);
 
-    try {
-      const result = await gitAPI.dropStash(worktree.path, index);
+      try {
+        const result = await gitAPI.dropStash(worktree.path, index);
 
-      if (result.success) {
-        setSuccessMessage('Stash dropped');
-        await loadStashes();
-      } else {
-        setError(result.error || 'Failed to drop stash');
+        if (result.success) {
+          setSuccessMessage('Stash dropped');
+          await loadStashes();
+        } else {
+          setError(result.error || 'Failed to drop stash');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsActioning(false);
+        setActioningIndex(null);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsActioning(false);
-      setActioningIndex(null);
-    }
-  }, [worktree, loadStashes]);
+    },
+    [worktree, loadStashes]
+  );
 
   const handleClose = () => {
     if (!isActioning) {

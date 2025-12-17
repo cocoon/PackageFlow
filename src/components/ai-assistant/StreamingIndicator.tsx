@@ -39,11 +39,7 @@ export function StreamingIndicator({
   // Dots variant
   return (
     <span
-      className={cn(
-        'inline-flex items-center gap-1',
-        'text-muted-foreground',
-        className
-      )}
+      className={cn('inline-flex items-center gap-1', 'text-muted-foreground', className)}
       aria-label="AI is generating response"
       role="status"
     >

@@ -142,10 +142,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className={cn(
-        'fixed inset-0 z-50',
-        'animate-in fade-in-0 duration-200'
-      )}
+      className={cn('fixed inset-0 z-50', 'animate-in fade-in-0 duration-200')}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
@@ -215,9 +212,7 @@ export function ConfirmDialog({
                   {itemName && (
                     <>
                       {' '}
-                      <span className="font-medium text-foreground">
-                        "{itemName}"
-                      </span>
+                      <span className="font-medium text-foreground">"{itemName}"</span>
                     </>
                   )}
                 </p>

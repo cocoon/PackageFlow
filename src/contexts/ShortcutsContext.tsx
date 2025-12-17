@@ -3,19 +3,9 @@
  * Provides keyboard shortcuts settings and global shortcut management
  */
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  ReactNode,
-} from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { shortcutsAPI, shortcutsEvents } from '../lib/tauri-api';
-import type {
-  KeyboardShortcutsSettings,
-  CustomShortcutBinding,
-} from '../types/shortcuts';
+import type { KeyboardShortcutsSettings, CustomShortcutBinding } from '../types/shortcuts';
 import { DEFAULT_KEYBOARD_SHORTCUTS_SETTINGS } from '../types/shortcuts';
 
 interface ShortcutsContextValue {
@@ -86,11 +76,13 @@ export function ShortcutsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unlisten: (() => void) | null = null;
 
-    shortcutsEvents.onGlobalShortcutTriggered((action) => {
-      console.log('[ShortcutsContext] Global shortcut triggered:', action);
-    }).then((unlistenFn) => {
-      unlisten = unlistenFn;
-    });
+    shortcutsEvents
+      .onGlobalShortcutTriggered((action) => {
+        console.log('[ShortcutsContext] Global shortcut triggered:', action);
+      })
+      .then((unlistenFn) => {
+        unlisten = unlistenFn;
+      });
 
     return () => {
       if (unlisten) {
@@ -106,20 +98,17 @@ export function ShortcutsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const updateSettings = useCallback(
-    async (newSettings: KeyboardShortcutsSettings) => {
-      try {
-        await shortcutsAPI.saveSettings(newSettings);
-        setSettings(newSettings);
-        setError(null);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-        throw e;
-      }
-    },
-    []
-  );
+  const updateSettings = useCallback(async (newSettings: KeyboardShortcutsSettings) => {
+    try {
+      await shortcutsAPI.saveSettings(newSettings);
+      setSettings(newSettings);
+      setError(null);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      throw e;
+    }
+  }, []);
 
   const updateShortcut = useCallback(
     async (shortcutId: string, customKey: string | null, enabled = true) => {
@@ -276,19 +265,13 @@ export function ShortcutsProvider({ children }: { children: ReactNode }) {
     isShortcutEnabled,
   };
 
-  return (
-    <ShortcutsContext.Provider value={value}>
-      {children}
-    </ShortcutsContext.Provider>
-  );
+  return <ShortcutsContext.Provider value={value}>{children}</ShortcutsContext.Provider>;
 }
 
 export function useShortcutsContext(): ShortcutsContextValue {
   const context = useContext(ShortcutsContext);
   if (!context) {
-    throw new Error(
-      'useShortcutsContext must be used within a ShortcutsProvider'
-    );
+    throw new Error('useShortcutsContext must be used within a ShortcutsProvider');
   }
   return context;
 }

@@ -64,7 +64,11 @@ interface UseWorkflowReturn {
   updateWorkflow: (workflow: Workflow) => void;
 
   addNode: (name: string, command: string, cwd?: string) => void;
-  addTriggerWorkflowNode: (name: string, targetWorkflowId: string, targetWorkflowName: string) => void;
+  addTriggerWorkflowNode: (
+    name: string,
+    targetWorkflowId: string,
+    targetWorkflowName: string
+  ) => void;
   updateNode: (nodeId: string, updates: Partial<Pick<WorkflowNode, 'name' | 'config'>>) => void;
   updateNodePosition: (nodeId: string, position: NodePosition) => Promise<Workflow | null>;
   deleteNode: (nodeId: string) => void;
@@ -90,7 +94,9 @@ export function useWorkflow(): UseWorkflowReturn {
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [executionStatus, setExecutionStatus] = useState<ExecutionStatus | null>(null);
   const [nodeStatuses, setNodeStatuses] = useState<Map<string, NodeStatus>>(new Map());
-  const [childProgressMap, setChildProgressMap] = useState<Map<string, ChildProgressInfo>>(new Map());
+  const [childProgressMap, setChildProgressMap] = useState<Map<string, ChildProgressInfo>>(
+    new Map()
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -125,7 +131,7 @@ export function useWorkflow(): UseWorkflowReturn {
 
       const response = await saveWorkflowApi(workflow);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       if (response.success && response.workflow && saveVersionRef.current === versionAtStart) {
         setWorkflow(response.workflow);
@@ -211,7 +217,7 @@ export function useWorkflow(): UseWorkflowReturn {
 
         // If workflow is running but no node is marked as running,
         // find the first pending node and mark it as running
-        const hasRunningNode = Array.from(restoredStatuses.values()).some(s => s === 'running');
+        const hasRunningNode = Array.from(restoredStatuses.values()).some((s) => s === 'running');
         if (!hasRunningNode) {
           // Find first pending node in order
           const sortedNodes = [...wf.nodes].sort((a, b) => a.order - b.order);
@@ -376,7 +382,13 @@ export function useWorkflow(): UseWorkflowReturn {
         if (!prev) return null;
         const targetNode = prev.nodes.find((n) => n.id === targetNodeId);
         if (!targetNode) return prev;
-        return insertNodeAtPosition(prev, name, command, targetNode.order, cwd ? { cwd } : undefined);
+        return insertNodeAtPosition(
+          prev,
+          name,
+          command,
+          targetNode.order,
+          cwd ? { cwd } : undefined
+        );
       });
     },
     []
@@ -388,7 +400,13 @@ export function useWorkflow(): UseWorkflowReturn {
         if (!prev) return null;
         const targetNode = prev.nodes.find((n) => n.id === targetNodeId);
         if (!targetNode) return prev;
-        return insertNodeAtPosition(prev, name, command, targetNode.order + 1, cwd ? { cwd } : undefined);
+        return insertNodeAtPosition(
+          prev,
+          name,
+          command,
+          targetNode.order + 1,
+          cwd ? { cwd } : undefined
+        );
       });
     },
     []
@@ -526,7 +544,7 @@ export function useWorkflow(): UseWorkflowReturn {
 
       setNodeStatuses((prev) => new Map(prev).set(event.nodeId, 'running'));
       // Also set execution status to running if not already set
-      setExecutionStatus((prev) => prev === null ? 'running' : prev);
+      setExecutionStatus((prev) => (prev === null ? 'running' : prev));
       // Update executionId if not set (for events from Context-initiated executions)
       if (!executionIdRef.current) {
         setExecutionId(event.executionId);
@@ -547,7 +565,13 @@ export function useWorkflow(): UseWorkflowReturn {
       // Filter by workflowId - only process events for the current workflow
       if (workflowIdRef.current && event.workflowId !== workflowIdRef.current) return;
 
-      console.log('[useWorkflow] handleExecutionCompleted:', event.executionId, event.status, 'current ref:', executionIdRef.current);
+      console.log(
+        '[useWorkflow] handleExecutionCompleted:',
+        event.executionId,
+        event.status,
+        'current ref:',
+        executionIdRef.current
+      );
       setExecutionStatus(event.status as ExecutionStatus);
       setExecutionId(null);
     };
@@ -634,7 +658,7 @@ export function useWorkflow(): UseWorkflowReturn {
 
     return () => {
       isMounted = false;
-      cleanupFns.forEach(fn => fn?.());
+      cleanupFns.forEach((fn) => fn?.());
     };
   }, []);
 

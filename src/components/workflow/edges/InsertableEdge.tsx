@@ -4,13 +4,7 @@
  */
 
 import { memo } from 'react';
-import {
-  BaseEdge,
-  EdgeLabelRenderer,
-  getBezierPath,
-  Position,
-  type Edge,
-} from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, getBezierPath, Position, type Edge } from '@xyflow/react';
 import { cn } from '../../../lib/utils';
 import { Button } from '../../ui/Button';
 import { Plus } from 'lucide-react';
@@ -154,10 +148,7 @@ export const InsertableEdge = memo(function InsertableEdge({
           strokeWidth: style.strokeWidth,
           strokeLinecap: 'round',
         }}
-        className={cn(
-          style.animated && 'animated-edge',
-          selected && 'edge-selected'
-        )}
+        className={cn(style.animated && 'animated-edge', selected && 'edge-selected')}
       />
 
       {/* Insert button - always visible with subtle opacity, more visible on hover */}

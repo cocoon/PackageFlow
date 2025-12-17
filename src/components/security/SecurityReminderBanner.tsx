@@ -48,10 +48,7 @@ export function SecurityReminderBanner({
 
   return (
     <div
-      className={cn(
-        'flex flex-col items-center justify-center py-12 text-center',
-        className
-      )}
+      className={cn('flex flex-col items-center justify-center py-12 text-center', className)}
       role="alert"
       aria-live="polite"
     >
@@ -61,9 +58,7 @@ export function SecurityReminderBanner({
       </div>
 
       {/* Title */}
-      <h3 className="text-lg font-medium text-foreground mb-2">
-        Security Scan Reminder
-      </h3>
+      <h3 className="text-lg font-medium text-foreground mb-2">Security Scan Reminder</h3>
 
       {/* Message */}
       <p className="text-sm text-muted-foreground max-w-md mb-6">{message}</p>

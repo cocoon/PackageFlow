@@ -61,18 +61,10 @@ export const SettingRow: React.FC<SettingRowProps> = ({
       )}
     >
       <div className="flex items-start gap-3 min-w-0 flex-1">
-        {icon && (
-          <span className="text-muted-foreground mt-0.5 flex-shrink-0">
-            {icon}
-          </span>
-        )}
+        {icon && <span className="text-muted-foreground mt-0.5 flex-shrink-0">{icon}</span>}
         <div className="min-w-0 flex-1">
           <div className="text-sm font-medium text-foreground">{label}</div>
-          {description && (
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {description}
-            </div>
-          )}
+          {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
           {children && <div className="mt-2">{children}</div>}
         </div>
       </div>

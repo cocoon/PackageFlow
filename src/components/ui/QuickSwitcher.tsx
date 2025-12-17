@@ -88,7 +88,8 @@ function scoreMatch(query: string, text: string): number {
 /** Theme color configuration */
 const themeColorConfig = {
   blue: {
-    gradient: 'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent from-blue-500/10 via-blue-600/5 to-transparent',
+    gradient:
+      'dark:from-blue-500/15 dark:via-blue-600/5 dark:to-transparent from-blue-500/10 via-blue-600/5 to-transparent',
     border: 'border-blue-500/30',
     iconBg: 'bg-blue-500/10 border-blue-500/20',
     iconColor: 'text-blue-400',
@@ -98,7 +99,8 @@ const themeColorConfig = {
     highlight: 'bg-blue-500/30 text-blue-300 dark:text-blue-200',
   },
   cyan: {
-    gradient: 'dark:from-cyan-500/15 dark:via-cyan-600/5 dark:to-transparent from-cyan-500/10 via-cyan-600/5 to-transparent',
+    gradient:
+      'dark:from-cyan-500/15 dark:via-cyan-600/5 dark:to-transparent from-cyan-500/10 via-cyan-600/5 to-transparent',
     border: 'border-cyan-500/30',
     iconBg: 'bg-cyan-500/10 border-cyan-500/20',
     iconColor: 'text-cyan-400',
@@ -108,7 +110,8 @@ const themeColorConfig = {
     highlight: 'bg-cyan-500/30 text-cyan-300 dark:text-cyan-200',
   },
   purple: {
-    gradient: 'dark:from-purple-500/15 dark:via-purple-600/5 dark:to-transparent from-purple-500/10 via-purple-600/5 to-transparent',
+    gradient:
+      'dark:from-purple-500/15 dark:via-purple-600/5 dark:to-transparent from-purple-500/10 via-purple-600/5 to-transparent',
     border: 'border-purple-500/30',
     iconBg: 'bg-purple-500/10 border-purple-500/20',
     iconColor: 'text-purple-400',
@@ -118,7 +121,8 @@ const themeColorConfig = {
     highlight: 'bg-purple-500/30 text-purple-300 dark:text-purple-200',
   },
   indigo: {
-    gradient: 'dark:from-indigo-500/15 dark:via-indigo-600/5 dark:to-transparent from-indigo-500/10 via-indigo-600/5 to-transparent',
+    gradient:
+      'dark:from-indigo-500/15 dark:via-indigo-600/5 dark:to-transparent from-indigo-500/10 via-indigo-600/5 to-transparent',
     border: 'border-indigo-500/30',
     iconBg: 'bg-indigo-500/10 border-indigo-500/20',
     iconColor: 'text-indigo-400',
@@ -133,10 +137,7 @@ const themeColorConfig = {
 function highlightText(text: string, query: string, highlightClass: string): React.ReactNode {
   if (!query.trim()) return text;
 
-  const regex = new RegExp(
-    `(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
-    'gi'
-  );
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   const parts = text.split(regex);
 
   return parts.map((part, i) =>
@@ -212,7 +213,7 @@ export function QuickSwitcher({
 
     // Apply category filter
     if (selectedCategory) {
-      result = result.filter(item => item.category === selectedCategory);
+      result = result.filter((item) => item.category === selectedCategory);
     }
 
     if (!query.trim()) {
@@ -252,7 +253,14 @@ export function QuickSwitcher({
       }
     }
     // Define category order
-    const categoryOrder = ['Recent', 'Worktrees', 'Sessions', 'Open in Editor', 'Run Script', 'Switch Directory'];
+    const categoryOrder = [
+      'Recent',
+      'Worktrees',
+      'Sessions',
+      'Open in Editor',
+      'Run Script',
+      'Switch Directory',
+    ];
     return Array.from(categorySet).sort((a, b) => {
       const aIndex = categoryOrder.indexOf(a);
       const bIndex = categoryOrder.indexOf(b);
@@ -346,29 +354,33 @@ export function QuickSwitcher({
   }, [groupedItems]);
 
   // Jump to next/previous category
-  const jumpToCategory = useCallback((direction: 'next' | 'prev') => {
-    const boundaries = getCategoryBoundaries();
-    if (boundaries.length === 0) return;
+  const jumpToCategory = useCallback(
+    (direction: 'next' | 'prev') => {
+      const boundaries = getCategoryBoundaries();
+      if (boundaries.length === 0) return;
 
-    // Find current category index
-    let currentBoundaryIndex = 0;
-    for (let i = boundaries.length - 1; i >= 0; i--) {
-      if (selectedIndex >= boundaries[i].startIndex) {
-        currentBoundaryIndex = i;
-        break;
+      // Find current category index
+      let currentBoundaryIndex = 0;
+      for (let i = boundaries.length - 1; i >= 0; i--) {
+        if (selectedIndex >= boundaries[i].startIndex) {
+          currentBoundaryIndex = i;
+          break;
+        }
       }
-    }
 
-    // Calculate next boundary index
-    let nextBoundaryIndex: number;
-    if (direction === 'next') {
-      nextBoundaryIndex = (currentBoundaryIndex + 1) % boundaries.length;
-    } else {
-      nextBoundaryIndex = currentBoundaryIndex === 0 ? boundaries.length - 1 : currentBoundaryIndex - 1;
-    }
+      // Calculate next boundary index
+      let nextBoundaryIndex: number;
+      if (direction === 'next') {
+        nextBoundaryIndex = (currentBoundaryIndex + 1) % boundaries.length;
+      } else {
+        nextBoundaryIndex =
+          currentBoundaryIndex === 0 ? boundaries.length - 1 : currentBoundaryIndex - 1;
+      }
 
-    setSelectedIndex(boundaries[nextBoundaryIndex].startIndex);
-  }, [selectedIndex, getCategoryBoundaries]);
+      setSelectedIndex(boundaries[nextBoundaryIndex].startIndex);
+    },
+    [selectedIndex, getCategoryBoundaries]
+  );
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -415,7 +427,12 @@ export function QuickSwitcher({
     if (!isOpen) return;
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !e.metaKey && !e.ctrlKey && document.activeElement !== inputRef.current) {
+      if (
+        e.key === '/' &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        document.activeElement !== inputRef.current
+      ) {
         e.preventDefault();
         inputRef.current?.focus();
       }
@@ -535,7 +552,9 @@ export function QuickSwitcher({
             role="searchbox"
             aria-label="Search actions"
             aria-controls="quick-switcher-results"
-            aria-activedescendant={filteredItems.length > 0 ? `quick-switcher-item-${selectedIndex}` : undefined}
+            aria-activedescendant={
+              filteredItems.length > 0 ? `quick-switcher-item-${selectedIndex}` : undefined
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -580,7 +599,7 @@ export function QuickSwitcher({
               All ({itemsWithRecent.length})
             </button>
             {categories.map((category) => {
-              const count = itemsWithRecent.filter(i => i.category === category).length;
+              const count = itemsWithRecent.filter((i) => i.category === category).length;
               return (
                 <button
                   key={category}
@@ -611,9 +630,7 @@ export function QuickSwitcher({
           className="flex-1 overflow-y-auto min-h-0"
         >
           {filteredItems.length === 0 ? (
-            <div className="px-4 py-8 text-center text-muted-foreground">
-              {emptyMessage}
-            </div>
+            <div className="px-4 py-8 text-center text-muted-foreground">{emptyMessage}</div>
           ) : (
             <>
               {/* Uncategorized items first */}
@@ -679,19 +696,27 @@ export function QuickSwitcher({
         {/* Footer with keyboard hints */}
         <div className="flex items-center gap-4 px-4 py-2 border-t border-border text-xs text-muted-foreground bg-card/50 flex-shrink-0">
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">↑↓</kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">
+              ↑↓
+            </kbd>
             navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">Tab</kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">
+              Tab
+            </kbd>
             category
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">↵</kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">
+              ↵
+            </kbd>
             select
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">esc</kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-foreground font-mono text-[10px]">
+              esc
+            </kbd>
             close
           </span>
         </div>
@@ -705,7 +730,7 @@ interface QuickSwitcherItemRowProps {
   isSelected: boolean;
   dataIndex: number;
   query: string;
-  theme: typeof themeColorConfig[keyof typeof themeColorConfig];
+  theme: (typeof themeColorConfig)[keyof typeof themeColorConfig];
   onClick: () => void;
   onMouseEnter: () => void;
 }
@@ -748,12 +773,7 @@ function QuickSwitcherItemRow({
     >
       {/* Icon */}
       {item.icon && (
-        <span
-          className={cn(
-            'shrink-0',
-            isSelected ? theme.iconColor : 'text-muted-foreground'
-          )}
-        >
+        <span className={cn('shrink-0', isSelected ? theme.iconColor : 'text-muted-foreground')}>
           {item.icon}
         </span>
       )}
@@ -767,10 +787,7 @@ function QuickSwitcherItemRow({
           {/* Status indicator */}
           {item.status && (
             <span
-              className={cn(
-                'w-2 h-2 rounded-full flex-shrink-0',
-                statusColors[item.status.type]
-              )}
+              className={cn('w-2 h-2 rounded-full flex-shrink-0', statusColors[item.status.type])}
               title={item.status.label}
             />
           )}

@@ -147,17 +147,20 @@ export function useSecurity(
 
       // Load saved scan for new project
       if (loadOnMount && projectId) {
-        securityAPI.getSecurityScan(projectId).then((response) => {
-          if (response.success && response.data) {
-            setScanData(response.data);
-            setPackageManager(response.data.packageManager);
-            if (response.data.lastScan) {
-              setScanResult(response.data.lastScan);
+        securityAPI
+          .getSecurityScan(projectId)
+          .then((response) => {
+            if (response.success && response.data) {
+              setScanData(response.data);
+              setPackageManager(response.data.packageManager);
+              if (response.data.lastScan) {
+                setScanResult(response.data.lastScan);
+              }
             }
-          }
-        }).catch((err) => {
-          console.error('Failed to load security scan:', err);
-        });
+          })
+          .catch((err) => {
+            console.error('Failed to load security scan:', err);
+          });
       }
     }
   }, [projectId, loadOnMount]);

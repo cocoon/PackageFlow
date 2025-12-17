@@ -54,9 +54,7 @@ function BaseBranchSelect({ branches, value, onValueChange }: BaseBranchSelectPr
 
   return (
     <div>
-      <label className="block text-sm font-medium text-foreground/90 mb-2">
-        Base Branch
-      </label>
+      <label className="block text-sm font-medium text-foreground/90 mb-2">Base Branch</label>
       <Select
         value={value}
         onValueChange={onValueChange}
@@ -89,9 +87,7 @@ function PreferredEditorSelect({ editors, value, onValueChange }: PreferredEdito
 
   return (
     <div>
-      <label className="block text-sm font-medium text-foreground/90 mb-2">
-        Preferred Editor
-      </label>
+      <label className="block text-sm font-medium text-foreground/90 mb-2">Preferred Editor</label>
       <Select
         value={value}
         onValueChange={onValueChange}
@@ -154,7 +150,7 @@ export function WorktreeTemplateDialog({
         setDefaultTemplates(defaultResult.templates);
       }
       if (editorsResult.success && editorsResult.editors) {
-        setAvailableEditors(editorsResult.editors.filter(e => e.isAvailable));
+        setAvailableEditors(editorsResult.editors.filter((e) => e.isAvailable));
       }
     } catch (err) {
       console.error('Failed to load templates:', err);
@@ -176,8 +172,9 @@ export function WorktreeTemplateDialog({
   }, [isOpen, loadTemplates, branches]);
 
   const isNumberedTemplate = Boolean(
-    selectedTemplate
-      && (selectedTemplate.branchPattern.includes('{num}') || selectedTemplate.pathPattern.includes('{num}'))
+    selectedTemplate &&
+    (selectedTemplate.branchPattern.includes('{num}') ||
+      selectedTemplate.pathPattern.includes('{num}'))
   );
 
   useEffect(() => {
@@ -208,29 +205,32 @@ export function WorktreeTemplateDialog({
   }, [isOpen, view, selectedTemplate, isNumberedTemplate, projectPath]);
 
   // Get all available templates (defaults + custom)
-  const allTemplates = [...defaultTemplates, ...templates.filter(
-    t => !defaultTemplates.some(d => d.id === t.id)
-  )];
+  const allTemplates = [
+    ...defaultTemplates,
+    ...templates.filter((t) => !defaultTemplates.some((d) => d.id === t.id)),
+  ];
 
   // Preview the generated branch and path names
   const previewNum = nextFeatureNumber || '###';
-  const previewBranchName = selectedTemplate && featureName
-    ? selectedTemplate.branchPattern
-        .replace('{name}', featureName)
-        .replace('{repo}', projectName)
-        .replace('{date}', new Date().toISOString().slice(0, 10).replace(/-/g, ''))
-        .replace('{user}', 'user')
-        .replace('{num}', previewNum)
-    : '';
+  const previewBranchName =
+    selectedTemplate && featureName
+      ? selectedTemplate.branchPattern
+          .replace('{name}', featureName)
+          .replace('{repo}', projectName)
+          .replace('{date}', new Date().toISOString().slice(0, 10).replace(/-/g, ''))
+          .replace('{user}', 'user')
+          .replace('{num}', previewNum)
+      : '';
 
-  const previewWorktreePath = selectedTemplate && featureName
-    ? selectedTemplate.pathPattern
-        .replace('{name}', featureName)
-        .replace('{repo}', projectName)
-        .replace('{date}', new Date().toISOString().slice(0, 10).replace(/-/g, ''))
-        .replace('{user}', 'user')
-        .replace('{num}', previewNum)
-    : '';
+  const previewWorktreePath =
+    selectedTemplate && featureName
+      ? selectedTemplate.pathPattern
+          .replace('{name}', featureName)
+          .replace('{repo}', projectName)
+          .replace('{date}', new Date().toISOString().slice(0, 10).replace(/-/g, ''))
+          .replace('{user}', 'user')
+          .replace('{num}', previewNum)
+      : '';
 
   // Create worktree from template
   const handleCreateFromTemplate = async () => {
@@ -255,9 +255,16 @@ export function WorktreeTemplateDialog({
           hasCallback: !!onRunPostCreateScript,
         });
 
-        if (result.executedScripts && result.executedScripts.length > 0 && result.worktree && onRunPostCreateScript) {
+        if (
+          result.executedScripts &&
+          result.executedScripts.length > 0 &&
+          result.worktree &&
+          onRunPostCreateScript
+        ) {
           for (const script of result.executedScripts) {
-            console.log(`[WorktreeTemplateDialog] Running post-create script: ${script} in ${result.worktree.path}`);
+            console.log(
+              `[WorktreeTemplateDialog] Running post-create script: ${script} in ${result.worktree.path}`
+            );
             onRunPostCreateScript(result.worktree.path, script);
           }
         }
@@ -285,7 +292,8 @@ export function WorktreeTemplateDialog({
 
   // Save custom template
   const handleSaveTemplate = async () => {
-    if (!editingTemplate?.name || !editingTemplate?.branchPattern || !editingTemplate?.pathPattern) return;
+    if (!editingTemplate?.name || !editingTemplate?.branchPattern || !editingTemplate?.pathPattern)
+      return;
 
     setIsSaving(true);
     setError(null);
@@ -414,7 +422,9 @@ export function WorktreeTemplateDialog({
                           )}
                         </div>
                         {template.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {template.description}
+                          </p>
                         )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground/70">
                           <span className="font-mono">{template.branchPattern}</span>
@@ -476,32 +486,35 @@ export function WorktreeTemplateDialog({
                   <span className="font-medium text-foreground">{selectedTemplate.name}</span>
                 </div>
                 {selectedTemplate.description && (
-                  <p className="text-xs text-muted-foreground mt-1">{selectedTemplate.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selectedTemplate.description}
+                  </p>
                 )}
               </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Feature Name
-              </label>
-              <input
-                type="text"
-                value={featureName}
-                onChange={(e) => setFeatureName(e.target.value)}
-                placeholder="my-new-feature"
-                autoFocus
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                className="w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500"
-              />
-              {isNumberedTemplate && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  This template will auto-assign the next available 3-digit number (e.g., {previewNum}-...).
-                </p>
-              )}
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Feature Name
+                </label>
+                <input
+                  type="text"
+                  value={featureName}
+                  onChange={(e) => setFeatureName(e.target.value)}
+                  placeholder="my-new-feature"
+                  autoFocus
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  className="w-full px-3 py-2 bg-background border border-border rounded text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-blue-500"
+                />
+                {isNumberedTemplate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This template will auto-assign the next available 3-digit number (e.g.,{' '}
+                    {previewNum}-...).
+                  </p>
+                )}
+              </div>
 
               <BaseBranchSelect
                 branches={branches}
@@ -517,18 +530,22 @@ export function WorktreeTemplateDialog({
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Path:</span>
-                    <span className="font-mono text-foreground truncate ml-4" title={previewWorktreePath}>
+                    <span
+                      className="font-mono text-foreground truncate ml-4"
+                      title={previewWorktreePath}
+                    >
                       {previewWorktreePath}
                     </span>
                   </div>
-                  {selectedTemplate.postCreateScripts && selectedTemplate.postCreateScripts.length > 0 && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Will run:</span>
-                      <span className="text-foreground">
-                        {selectedTemplate.postCreateScripts.join(', ')}
-                      </span>
-                    </div>
-                  )}
+                  {selectedTemplate.postCreateScripts &&
+                    selectedTemplate.postCreateScripts.length > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Will run:</span>
+                        <span className="text-foreground">
+                          {selectedTemplate.postCreateScripts.join(', ')}
+                        </span>
+                      </div>
+                    )}
                   {selectedTemplate.openInEditor && (
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Code2 className="w-3.5 h-3.5" />
@@ -596,7 +613,9 @@ export function WorktreeTemplateDialog({
                 <input
                   type="text"
                   value={editingTemplate.description || ''}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, description: e.target.value })}
+                  onChange={(e) =>
+                    setEditingTemplate({ ...editingTemplate, description: e.target.value })
+                  }
                   placeholder="Brief description of this template"
                   autoComplete="off"
                   autoCorrect="off"
@@ -616,7 +635,9 @@ export function WorktreeTemplateDialog({
                 <input
                   type="text"
                   value={editingTemplate.branchPattern || ''}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, branchPattern: e.target.value })}
+                  onChange={(e) =>
+                    setEditingTemplate({ ...editingTemplate, branchPattern: e.target.value })
+                  }
                   placeholder="feature/{name}"
                   autoComplete="off"
                   autoCorrect="off"
@@ -633,7 +654,9 @@ export function WorktreeTemplateDialog({
                 <input
                   type="text"
                   value={editingTemplate.pathPattern || ''}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, pathPattern: e.target.value })}
+                  onChange={(e) =>
+                    setEditingTemplate({ ...editingTemplate, pathPattern: e.target.value })
+                  }
                   placeholder="../{repo}-{name}"
                   autoComplete="off"
                   autoCorrect="off"
@@ -650,7 +673,9 @@ export function WorktreeTemplateDialog({
                 <input
                   type="text"
                   value={editingTemplate.baseBranch || ''}
-                  onChange={(e) => setEditingTemplate({ ...editingTemplate, baseBranch: e.target.value })}
+                  onChange={(e) =>
+                    setEditingTemplate({ ...editingTemplate, baseBranch: e.target.value })
+                  }
                   placeholder="main"
                   autoComplete="off"
                   autoCorrect="off"
@@ -667,10 +692,15 @@ export function WorktreeTemplateDialog({
                 <input
                   type="text"
                   value={(editingTemplate.postCreateScripts || []).join(', ')}
-                  onChange={(e) => setEditingTemplate({
-                    ...editingTemplate,
-                    postCreateScripts: e.target.value.split(',').map(s => s.trim()).filter(Boolean),
-                  })}
+                  onChange={(e) =>
+                    setEditingTemplate({
+                      ...editingTemplate,
+                      postCreateScripts: e.target.value
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
                   placeholder="install, build"
                   autoComplete="off"
                   autoCorrect="off"
@@ -682,7 +712,9 @@ export function WorktreeTemplateDialog({
 
               <Checkbox
                 checked={editingTemplate.openInEditor ?? true}
-                onCheckedChange={(checked) => setEditingTemplate({ ...editingTemplate, openInEditor: checked })}
+                onCheckedChange={(checked) =>
+                  setEditingTemplate({ ...editingTemplate, openInEditor: checked })
+                }
                 label="Open in editor after creation"
               />
 
@@ -725,7 +757,12 @@ export function WorktreeTemplateDialog({
                 <Button
                   variant="default"
                   onClick={handleSaveTemplate}
-                  disabled={isSaving || !editingTemplate.name || !editingTemplate.branchPattern || !editingTemplate.pathPattern}
+                  disabled={
+                    isSaving ||
+                    !editingTemplate.name ||
+                    !editingTemplate.branchPattern ||
+                    !editingTemplate.pathPattern
+                  }
                 >
                   {isSaving ? 'Saving...' : 'Save Template'}
                 </Button>
@@ -744,7 +781,7 @@ export function WorktreeTemplateDialog({
           }
         }}
         itemType="template"
-        itemName={templates.find(t => t.id === templateToDelete)?.name || ''}
+        itemName={templates.find((t) => t.id === templateToDelete)?.name || ''}
         onConfirm={() => templateToDelete && handleDeleteTemplate(templateToDelete)}
         isLoading={isDeleting}
       />

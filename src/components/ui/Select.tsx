@@ -111,7 +111,12 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number; openUpward: boolean } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    openUpward: boolean;
+  } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -397,7 +402,8 @@ export function Select({
         </button>
 
         {/* Dropdown List - rendered via Portal to avoid clipping */}
-        {open && dropdownPosition &&
+        {open &&
+          dropdownPosition &&
           createPortal(
             <div
               ref={listRef}
@@ -424,26 +430,20 @@ export function Select({
               )}
               onKeyDown={handleKeyDown}
             >
-              {isGroupedOptions(options) ? (
-                options.map((group, groupIndex) => (
-                  <SelectGroupComponent
-                    key={group.label}
-                    label={group.label}
-                    options={group.options}
-                    startIndex={options
-                      .slice(0, groupIndex)
-                      .reduce((acc, g) => acc + g.options.length, 0)}
-                  />
-                ))
-              ) : (
-                options.map((option, index) => (
-                  <SelectOptionComponent
-                    key={option.value}
-                    option={option}
-                    index={index}
-                  />
-                ))
-              )}
+              {isGroupedOptions(options)
+                ? options.map((group, groupIndex) => (
+                    <SelectGroupComponent
+                      key={group.label}
+                      label={group.label}
+                      options={group.options}
+                      startIndex={options
+                        .slice(0, groupIndex)
+                        .reduce((acc, g) => acc + g.options.length, 0)}
+                    />
+                  ))
+                : options.map((option, index) => (
+                    <SelectOptionComponent key={option.value} option={option} index={index} />
+                  ))}
 
               {flatOptions.length === 0 && (
                 <div className="px-3 py-2 text-sm text-muted-foreground text-center">
@@ -475,11 +475,7 @@ function SelectGroupComponent({ label, options, startIndex }: SelectGroupProps) 
         {label}
       </div>
       {options.map((option, index) => (
-        <SelectOptionComponent
-          key={option.value}
-          option={option}
-          index={startIndex + index}
-        />
+        <SelectOptionComponent key={option.value} option={option} index={startIndex + index} />
       ))}
     </div>
   );
@@ -491,12 +487,7 @@ interface SelectOptionProps {
 }
 
 function SelectOptionComponent({ option, index }: SelectOptionProps) {
-  const {
-    value,
-    onValueChange,
-    highlightedIndex,
-    setHighlightedIndex,
-  } = useSelectContext();
+  const { value, onValueChange, highlightedIndex, setHighlightedIndex } = useSelectContext();
 
   const isSelected = value === option.value;
   const isHighlighted = highlightedIndex === index;
@@ -547,9 +538,7 @@ function SelectOptionComponent({ option, index }: SelectOptionProps) {
           <span className="truncate">{option.label}</span>
         </div>
         {option.description && (
-          <p className="text-xs text-muted-foreground mt-0.5 truncate">
-            {option.description}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">{option.description}</p>
         )}
       </div>
     </div>
@@ -560,8 +549,10 @@ function SelectOptionComponent({ option, index }: SelectOptionProps) {
 // Native Select (fallback for simple use cases)
 // ============================================================================
 
-export interface NativeSelectProps
-  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+export interface NativeSelectProps extends Omit<
+  React.SelectHTMLAttributes<HTMLSelectElement>,
+  'size'
+> {
   /** Size variant */
   size?: 'sm' | 'default' | 'lg';
 }
@@ -610,9 +601,7 @@ NativeSelect.displayName = 'NativeSelect';
 export function createOptions(
   items: Array<{ value: string; label: string } | string>
 ): SelectOption[] {
-  return items.map((item) =>
-    typeof item === 'string' ? { value: item, label: item } : item
-  );
+  return items.map((item) => (typeof item === 'string' ? { value: item, label: item } : item));
 }
 
 export default Select;

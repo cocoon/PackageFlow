@@ -84,10 +84,7 @@ function Section({
         variant="ghost"
         onClick={() => collapsible && setIsExpanded(!isExpanded)}
         disabled={!collapsible}
-        className={cn(
-          'h-auto justify-start gap-3 w-full p-0',
-          collapsible && 'cursor-pointer'
-        )}
+        className={cn('h-auto justify-start gap-3 w-full p-0', collapsible && 'cursor-pointer')}
       >
         {/* Icon badge */}
         <div
@@ -102,9 +99,7 @@ function Section({
 
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          {description && (
-            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-          )}
+          {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
         </div>
 
         {collapsible && (
@@ -138,12 +133,7 @@ interface PlatformCardProps {
   onClick: () => void;
 }
 
-function PlatformCard({
-  platform,
-  isSelected,
-  isConnected,
-  onClick,
-}: PlatformCardProps) {
+function PlatformCard({ platform, isSelected, isConnected, onClick }: PlatformCardProps) {
   const getPlatformConfig = () => {
     switch (platform) {
       case 'github_pages':
@@ -296,11 +286,7 @@ function EnvVariableRow({
             className="absolute right-1.5 top-1/2 -translate-y-1/2 h-auto w-auto p-1"
             title={showSecret ? 'Hide value' : 'Show value'}
           >
-            {showSecret ? (
-              <EyeOff className="h-3.5 w-3.5" />
-            ) : (
-              <Eye className="h-3.5 w-3.5" />
-            )}
+            {showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </Button>
         )}
       </div>
@@ -310,9 +296,7 @@ function EnvVariableRow({
         onClick={() => onUpdate('isSecret', !env.isSecret)}
         className={cn(
           'h-8 gap-1.5 px-2 text-xs',
-          env.isSecret
-            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-            : ''
+          env.isSecret ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : ''
         )}
         title={env.isSecret ? 'Secret (hidden in logs)' : 'Mark as secret'}
       >
@@ -349,8 +333,7 @@ export function DeploymentSettingsDialog({
   const modalId = useId();
   const [platform, setPlatform] = useState<PlatformType>('github_pages');
   const [accountId, setAccountId] = useState<string | undefined>(undefined);
-  const [environment, setEnvironment] =
-    useState<DeploymentEnvironment>('production');
+  const [environment, setEnvironment] = useState<DeploymentEnvironment>('production');
   const [framework, setFramework] = useState<string>('');
   const [rootDirectory, setRootDirectory] = useState<string>('');
   const [installCommand, setInstallCommand] = useState<string>('');
@@ -385,13 +368,8 @@ export function DeploymentSettingsDialog({
   }, [modalId, isOpen, onClose]);
 
   // Get accounts from multi-account system
-  const {
-    accounts,
-    preferences,
-    isLoadingAccounts,
-    isLoadingPreferences,
-    getAccountsByPlatform,
-  } = useDeployAccounts();
+  const { accounts, preferences, isLoadingAccounts, isLoadingPreferences, getAccountsByPlatform } =
+    useDeployAccounts();
 
   // Filter accounts by the selected platform
   const platformAccounts = useMemo(
@@ -700,8 +678,7 @@ export function DeploymentSettingsDialog({
                 >
                   <AlertCircle className="h-4 w-4 shrink-0 text-destructive" />
                   <span className="text-sm text-destructive">
-                    Please connect your{' '}
-                    {platform === 'netlify' ? 'Netlify' : 'Cloudflare Pages'}{' '}
+                    Please connect your {platform === 'netlify' ? 'Netlify' : 'Cloudflare Pages'}{' '}
                     account first
                   </span>
                 </div>
@@ -710,9 +687,7 @@ export function DeploymentSettingsDialog({
               {/* Account Selector - for Netlify and Cloudflare */}
               {(platform === 'netlify' || platform === 'cloudflare_pages') && (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
-                    Deploy Account
-                  </label>
+                  <label className="text-sm font-medium text-foreground">Deploy Account</label>
                   <AccountSelector
                     platform={platform}
                     accounts={platformAccounts}
@@ -729,18 +704,14 @@ export function DeploymentSettingsDialog({
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">
                     Site Name
-                    <span className="ml-1.5 font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                   </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={netlifySiteName}
                       onChange={(e) =>
-                        setNetlifySiteName(
-                          e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')
-                        )
+                        setNetlifySiteName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))
                       }
                       placeholder="my-awesome-app"
                       autoComplete="off"
@@ -754,9 +725,7 @@ export function DeploymentSettingsDialog({
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                       )}
                     />
-                    <span className="text-sm text-muted-foreground">
-                      .netlify.app
-                    </span>
+                    <span className="text-sm text-muted-foreground">.netlify.app</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Custom subdomain for your site. Leave empty to auto-generate.
@@ -769,9 +738,7 @@ export function DeploymentSettingsDialog({
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">
                     Project Name
-                    <span className="ml-1.5 font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -794,9 +761,7 @@ export function DeploymentSettingsDialog({
                         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
                       )}
                     />
-                    <span className="text-sm text-muted-foreground">
-                      .pages.dev
-                    </span>
+                    <span className="text-sm text-muted-foreground">.pages.dev</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Custom project name for your site. Leave empty to auto-generate.
@@ -816,12 +781,10 @@ export function DeploymentSettingsDialog({
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="space-y-1 text-sm">
-                    <p className="text-foreground font-medium">
-                      GitHub Actions Workflow
-                    </p>
+                    <p className="text-foreground font-medium">GitHub Actions Workflow</p>
                     <p className="text-muted-foreground text-xs">
-                      PackageFlow will generate a workflow file. You can override
-                      build settings below.
+                      PackageFlow will generate a workflow file. You can override build settings
+                      below.
                     </p>
                   </div>
                 </div>
@@ -837,9 +800,7 @@ export function DeploymentSettingsDialog({
               iconBgClass="bg-emerald-500/10"
               iconColorClass="text-emerald-500 dark:text-emerald-400"
               title={
-                platform === 'github_pages'
-                  ? 'Workflow Build Configuration'
-                  : 'Build Configuration'
+                platform === 'github_pages' ? 'Workflow Build Configuration' : 'Build Configuration'
               }
               description={
                 platform === 'github_pages'
@@ -852,14 +813,10 @@ export function DeploymentSettingsDialog({
               {/* Environment - Only for Netlify and Cloudflare */}
               {platform !== 'github_pages' && (
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">
-                    Environment
-                  </label>
+                  <label className="text-sm font-medium text-foreground">Environment</label>
                   <Select
                     value={environment}
-                    onValueChange={(v) =>
-                      setEnvironment(v as DeploymentEnvironment)
-                    }
+                    onValueChange={(v) => setEnvironment(v as DeploymentEnvironment)}
                     options={environmentOptions}
                     aria-label="Deployment environment"
                   />
@@ -869,9 +826,7 @@ export function DeploymentSettingsDialog({
               {/* Framework */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">
-                    Framework
-                  </label>
+                  <label className="text-sm font-medium text-foreground">Framework</label>
                   <Button
                     variant="link"
                     size="sm"
@@ -903,9 +858,7 @@ export function DeploymentSettingsDialog({
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">
                     Install Command
-                    <span className="ml-1.5 font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -924,8 +877,8 @@ export function DeploymentSettingsDialog({
                     )}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Used in the generated workflow. Leave empty to auto-detect
-                    based on your lockfile.
+                    Used in the generated workflow. Leave empty to auto-detect based on your
+                    lockfile.
                   </p>
                 </div>
               )}
@@ -934,9 +887,7 @@ export function DeploymentSettingsDialog({
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">
                   Build Command
-                  <span className="ml-1.5 font-normal text-muted-foreground">
-                    (optional)
-                  </span>
+                  <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -965,9 +916,7 @@ export function DeploymentSettingsDialog({
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">
                   Output Directory
-                  <span className="ml-1.5 font-normal text-muted-foreground">
-                    (optional)
-                  </span>
+                  <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -975,8 +924,8 @@ export function DeploymentSettingsDialog({
                   onChange={(e) => setOutputDirectory(e.target.value)}
                   placeholder={
                     framework
-                      ? FRAMEWORK_PRESETS.find((p) => p.key === framework)
-                          ?.outputDirectory ?? 'dist'
+                      ? (FRAMEWORK_PRESETS.find((p) => p.key === framework)?.outputDirectory ??
+                        'dist')
                       : 'dist'
                   }
                   autoComplete="off"
@@ -1000,9 +949,7 @@ export function DeploymentSettingsDialog({
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-foreground">
                     Root Directory
-                    <span className="ml-1.5 font-normal text-muted-foreground">
-                      (optional)
-                    </span>
+                    <span className="ml-1.5 font-normal text-muted-foreground">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -1049,9 +996,7 @@ export function DeploymentSettingsDialog({
                           key={index}
                           env={env}
                           showSecret={showSecrets[index] ?? false}
-                          onUpdate={(field, value) =>
-                            updateEnvVariable(index, field, value)
-                          }
+                          onUpdate={(field, value) => updateEnvVariable(index, field, value)}
                           onToggleSecret={() => toggleSecretVisibility(index)}
                           onRemove={() => removeEnvVariable(index)}
                         />
@@ -1093,12 +1038,7 @@ export function DeploymentSettingsDialog({
           </div>
 
           {/* Footer */}
-          <div
-            className={cn(
-              'px-6 py-4 border-t border-border',
-              'bg-card/50 flex-shrink-0'
-            )}
-          >
+          <div className={cn('px-6 py-4 border-t border-border', 'bg-card/50 flex-shrink-0')}>
             {/* Validation Error */}
             {validationError && (
               <div className="mb-4 flex items-center gap-2 text-sm text-destructive">

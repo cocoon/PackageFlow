@@ -52,9 +52,7 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
         aria-hidden="true"
       />
       {/* Dialog container */}
-      <div className="fixed inset-0 flex items-center justify-center p-4">
-        {children}
-      </div>
+      <div className="fixed inset-0 flex items-center justify-center p-4">{children}</div>
     </div>
   );
 };
@@ -87,7 +85,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
 );
 DialogContent.displayName = 'DialogContent';
 
-interface DialogHeaderProps extends React.HTMLAttributes<HTMLDivElement> {}
+type DialogHeaderProps = React.HTMLAttributes<HTMLDivElement>;
 
 const DialogHeader: React.FC<DialogHeaderProps> = ({ className, ...props }) => (
   <div
@@ -100,20 +98,16 @@ const DialogHeader: React.FC<DialogHeaderProps> = ({ className, ...props }) => (
   />
 );
 
-interface DialogTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {}
+type DialogTitleProps = React.HTMLAttributes<HTMLHeadingElement>;
 
 const DialogTitle: React.FC<DialogTitleProps> = ({ className, ...props }) => (
   <h3
-    className={cn(
-      'text-lg font-semibold leading-none tracking-tight text-foreground',
-      className
-    )}
+    className={cn('text-lg font-semibold leading-none tracking-tight text-foreground', className)}
     {...props}
   />
 );
 
-interface DialogCloseProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+type DialogCloseProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const DialogClose: React.FC<DialogCloseProps> = ({ className, ...props }) => (
   <button
@@ -138,7 +132,7 @@ const DialogClose: React.FC<DialogCloseProps> = ({ className, ...props }) => (
  * Footer component for dialog action buttons
  * Provides consistent styling for button areas
  */
-interface DialogFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
+type DialogFooterProps = React.HTMLAttributes<HTMLDivElement>;
 
 const DialogFooter: React.FC<DialogFooterProps> = ({ className, ...props }) => (
   <div
@@ -152,11 +146,4 @@ const DialogFooter: React.FC<DialogFooterProps> = ({ className, ...props }) => (
   />
 );
 
-export {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-  DialogFooter,
-};
+export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose, DialogFooter };

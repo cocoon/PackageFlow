@@ -4,7 +4,16 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Terminal, Settings2, Copy, Check, ChevronDown, ExternalLink, Bot, Monitor } from 'lucide-react';
+import {
+  Terminal,
+  Settings2,
+  Copy,
+  Check,
+  ChevronDown,
+  ExternalLink,
+  Bot,
+  Monitor,
+} from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { cn } from '../../../lib/utils';
 import { openUrl } from '../../../lib/tauri-api';
@@ -42,10 +51,7 @@ const CLIENT_CONFIGS: ClientConfig[] = [
     name: 'Claude Code',
     icon: <Bot className="w-4 h-4" />,
     configFormat: 'json',
-    steps: [
-      'Run the command below in your terminal',
-      'Restart Claude Code to apply changes',
-    ],
+    steps: ['Run the command below in your terminal', 'Restart Claude Code to apply changes'],
     docsUrl: 'https://docs.anthropic.com/claude-code',
   },
   {
@@ -60,7 +66,8 @@ const CLIENT_CONFIGS: ClientConfig[] = [
       'Restart Claude Desktop completely (quit and reopen)',
     ],
     hint: 'Config: ~/Library/Application Support/Claude/claude_desktop_config.json',
-    docsUrl: 'https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop',
+    docsUrl:
+      'https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop',
   },
   {
     id: 'chatgpt-desktop',
@@ -253,10 +260,7 @@ const ClientSetupCard: React.FC<{
             <label className="text-xs font-medium text-foreground">
               {client.configFormat === 'json' ? 'JSON Configuration' : 'TOML Configuration'}
             </label>
-            <CodeBlock
-              code={config}
-              label={`Copy ${client.configFormat.toUpperCase()}`}
-            />
+            <CodeBlock code={config} label={`Copy ${client.configFormat.toUpperCase()}`} />
           </div>
 
           {/* Docs link */}
@@ -292,9 +296,7 @@ export const QuickSetupSection: React.FC<QuickSetupSectionProps> = ({
       <div className="flex items-center gap-2">
         <Terminal className="w-4 h-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">Choose your AI assistant</span>
-        <span className="text-xs text-muted-foreground">
-          ({CLIENT_CONFIGS.length} clients)
-        </span>
+        <span className="text-xs text-muted-foreground">({CLIENT_CONFIGS.length} clients)</span>
       </div>
 
       {/* Client Setup Cards */}
@@ -307,9 +309,7 @@ export const QuickSetupSection: React.FC<QuickSetupSectionProps> = ({
             configJson={configJson}
             configToml={configToml}
             isExpanded={expandedClient === client.id}
-            onToggle={() =>
-              setExpandedClient(expandedClient === client.id ? null : client.id)
-            }
+            onToggle={() => setExpandedClient(expandedClient === client.id ? null : client.id)}
           />
         ))}
       </div>

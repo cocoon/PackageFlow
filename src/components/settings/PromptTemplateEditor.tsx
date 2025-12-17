@@ -145,16 +145,19 @@ export function PromptTemplateEditor({ isOpen, onClose }: PromptTemplateEditorPr
   }, [isOpen]);
 
   // Validate template content - check if at least one variable is used
-  const validateTemplate = useCallback((content: string, category: TemplateCategory): string | null => {
-    const categoryInfo = getCategoryInfo(category);
-    if (!categoryInfo) return null;
+  const validateTemplate = useCallback(
+    (content: string, category: TemplateCategory): string | null => {
+      const categoryInfo = getCategoryInfo(category);
+      if (!categoryInfo) return null;
 
-    const hasVariable = categoryInfo.variables.some((v) => content.includes(`{${v}}`));
-    if (!hasVariable && categoryInfo.variables.length > 0) {
-      return `Template must contain at least one of: ${categoryInfo.variables.map((v) => `{${v}}`).join(', ')}`;
-    }
-    return null;
-  }, []);
+      const hasVariable = categoryInfo.variables.some((v) => content.includes(`{${v}}`));
+      if (!hasVariable && categoryInfo.variables.length > 0) {
+        return `Template must contain at least one of: ${categoryInfo.variables.map((v) => `{${v}}`).join(', ')}`;
+      }
+      return null;
+    },
+    []
+  );
 
   // Get preview content
   const getPreviewContent = useCallback((template: string): string => {
@@ -355,14 +358,17 @@ ${outputInstructions}`;
   }, [deleteTarget, deleteTemplate]);
 
   // Set as default
-  const handleSetDefault = useCallback(async (id: string) => {
-    await setDefaultTemplate(id);
-  }, [setDefaultTemplate]);
+  const handleSetDefault = useCallback(
+    async (id: string) => {
+      await setDefaultTemplate(id);
+    },
+    [setDefaultTemplate]
+  );
 
   // Get preview template
   const previewTemplate = useMemo(() => {
     if (!previewTemplateId) return null;
-    return templates.find(t => t.id === previewTemplateId);
+    return templates.find((t) => t.id === previewTemplateId);
   }, [previewTemplateId, templates]);
 
   // Count templates per category
@@ -376,7 +382,7 @@ ${outputInstructions}`;
       security_advisory: 0,
       custom: 0,
     };
-    templates.forEach(t => {
+    templates.forEach((t) => {
       counts[t.category]++;
     });
     return counts;
@@ -522,9 +528,7 @@ ${outputInstructions}`;
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-medium text-foreground">
-                  Expanded Prompt
-                </h4>
+                <h4 className="text-sm font-medium text-foreground">Expanded Prompt</h4>
                 <span className="text-xs text-muted-foreground bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">
                   with sample diff
                 </span>
@@ -536,10 +540,7 @@ ${outputInstructions}`;
           </div>
 
           <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={() => setPreviewTemplateId(null)}
-            >
+            <Button variant="secondary" onClick={() => setPreviewTemplateId(null)}>
               Close
             </Button>
           </DialogFooter>
@@ -579,15 +580,11 @@ function CategorySection({ category, defaultTemplateName, count, children }: Cat
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">
-            {CATEGORY_ICONS[category.id]}
-          </span>
+          <span className="text-muted-foreground">{CATEGORY_ICONS[category.id]}</span>
           <div>
             <h3 className="text-sm font-medium flex items-center gap-2">
               {category.name}
-              <span className="text-xs text-muted-foreground font-normal">
-                ({count})
-              </span>
+              <span className="text-xs text-muted-foreground font-normal">({count})</span>
             </h3>
             <p className="text-xs text-muted-foreground">{category.description}</p>
           </div>
@@ -599,9 +596,7 @@ function CategorySection({ category, defaultTemplateName, count, children }: Cat
           </span>
         )}
       </div>
-      <div className="space-y-2 pl-6 border-l-2 border-muted">
-        {children}
-      </div>
+      <div className="space-y-2 pl-6 border-l-2 border-muted">{children}</div>
     </div>
   );
 }
@@ -614,25 +609,23 @@ interface TemplateCardProps {
   onPreview: () => void;
 }
 
-function TemplateCard({
-  template,
-  onEdit,
-  onDelete,
-  onSetDefault,
-  onPreview,
-}: TemplateCardProps) {
+function TemplateCard({ template, onEdit, onDelete, onSetDefault, onPreview }: TemplateCardProps) {
   return (
-    <div className={cn(
-      'bg-card border rounded-lg p-3 space-y-2',
-      template.isDefault ? 'border-yellow-500/50 ring-1 ring-yellow-500/20' : 'border-border'
-    )}>
+    <div
+      className={cn(
+        'bg-card border rounded-lg p-3 space-y-2',
+        template.isDefault ? 'border-yellow-500/50 ring-1 ring-yellow-500/20' : 'border-border'
+      )}
+    >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <FileText className={cn(
-            'w-4 h-4 shrink-0',
-            template.isDefault ? 'text-yellow-500' : 'text-muted-foreground'
-          )} />
+          <FileText
+            className={cn(
+              'w-4 h-4 shrink-0',
+              template.isDefault ? 'text-yellow-500' : 'text-muted-foreground'
+            )}
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-sm truncate">{template.name}</span>
@@ -676,11 +669,7 @@ function TemplateCard({
             title={template.isBuiltin ? 'Copy template' : 'Edit template'}
             aria-label={template.isBuiltin ? `Copy ${template.name}` : `Edit ${template.name}`}
           >
-            {template.isBuiltin ? (
-              <Copy className="w-4 h-4" />
-            ) : (
-              <Edit2 className="w-4 h-4" />
-            )}
+            {template.isBuiltin ? <Copy className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
           </Button>
           {!template.isBuiltin && (
             <Button
@@ -704,11 +693,7 @@ function TemplateCard({
 
       {/* Set as default for this category */}
       {!template.isDefault && (
-        <Button
-          variant="link"
-          onClick={onSetDefault}
-          className="h-auto p-0 text-xs"
-        >
+        <Button variant="link" onClick={onSetDefault} className="h-auto p-0 text-xs">
           <Star className="w-3 h-3" />
           Set as Default for this category
         </Button>
@@ -751,38 +736,44 @@ function TemplateForm({
   const hasRequiredVariable = availableVars.some((v) => formData.template.includes(`{${v}}`));
 
   // Insert variable at cursor position
-  const insertVariable = useCallback((variable: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      // Fallback: append to end
-      setFormData((prev) => ({ ...prev, template: prev.template + `{${variable}}` }));
-      return;
-    }
+  const insertVariable = useCallback(
+    (variable: string) => {
+      const textarea = textareaRef.current;
+      if (!textarea) {
+        // Fallback: append to end
+        setFormData((prev) => ({ ...prev, template: prev.template + `{${variable}}` }));
+        return;
+      }
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = formData.template;
-    const newText = text.substring(0, start) + `{${variable}}` + text.substring(end);
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = formData.template;
+      const newText = text.substring(0, start) + `{${variable}}` + text.substring(end);
 
-    setFormData((prev) => ({ ...prev, template: newText }));
+      setFormData((prev) => ({ ...prev, template: newText }));
 
-    // Restore cursor position after the inserted text
-    setTimeout(() => {
-      textarea.focus();
-      const newPosition = start + variable.length + 2; // +2 for { and }
-      textarea.setSelectionRange(newPosition, newPosition);
-    }, 0);
-  }, [formData.template, setFormData]);
+      // Restore cursor position after the inserted text
+      setTimeout(() => {
+        textarea.focus();
+        const newPosition = start + variable.length + 2; // +2 for { and }
+        textarea.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    },
+    [formData.template, setFormData]
+  );
 
   // Handle category change - update template content with default
-  const handleCategoryChange = useCallback((category: TemplateCategory) => {
-    if (isEditing) return;
-    setFormData((prev) => ({
-      ...prev,
-      category,
-      template: getDefaultTemplateContent(category),
-    }));
-  }, [isEditing, getDefaultTemplateContent, setFormData]);
+  const handleCategoryChange = useCallback(
+    (category: TemplateCategory) => {
+      if (isEditing) return;
+      setFormData((prev) => ({
+        ...prev,
+        category,
+        template: getDefaultTemplateContent(category),
+      }));
+    },
+    [isEditing, getDefaultTemplateContent, setFormData]
+  );
 
   return (
     <div className="bg-card border border-border rounded-lg p-4 space-y-4">
@@ -811,13 +802,16 @@ function TemplateForm({
                 formData.category === cat.id
                   ? 'border-primary bg-primary/10 ring-1 ring-primary/50'
                   : 'border-border hover:border-muted-foreground hover:bg-accent/50',
-                isEditing && 'opacity-50 cursor-not-allowed hover:border-border hover:bg-transparent'
+                isEditing &&
+                  'opacity-50 cursor-not-allowed hover:border-border hover:bg-transparent'
               )}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className={cn(
-                  formData.category === cat.id ? 'text-primary' : 'text-muted-foreground'
-                )}>
+                <span
+                  className={cn(
+                    formData.category === cat.id ? 'text-primary' : 'text-muted-foreground'
+                  )}
+                >
                   {CATEGORY_ICONS[cat.id]}
                 </span>
                 <span className="font-medium text-sm">{cat.name}</span>
@@ -866,10 +860,12 @@ function TemplateForm({
           <label htmlFor={templateId} className="block text-sm font-medium text-foreground">
             Template Content
           </label>
-          <span className={cn(
-            'flex items-center gap-1 text-xs',
-            hasRequiredVariable ? 'text-green-500' : 'text-red-500'
-          )}>
+          <span
+            className={cn(
+              'flex items-center gap-1 text-xs',
+              hasRequiredVariable ? 'text-green-500' : 'text-red-500'
+            )}
+          >
             {hasRequiredVariable ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -921,17 +917,10 @@ function TemplateForm({
 
       {/* Actions */}
       <DialogFooter className="border-t-0 pt-2 mt-4">
-        <Button
-          variant="ghost"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
+        <Button variant="ghost" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button
-          onClick={onSubmit}
-          disabled={isSubmitting || !hasRequiredVariable}
-        >
+        <Button onClick={onSubmit} disabled={isSubmitting || !hasRequiredVariable}>
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (

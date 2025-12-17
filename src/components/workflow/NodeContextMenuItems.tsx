@@ -115,11 +115,7 @@ export const NodeContextMenuItems: React.FC<NodeContextMenuItemsProps> = ({
             </ContextMenuItem>
           )}
           {onSaveAsTemplate && (
-            <ContextMenuItem
-              onClick={onSaveAsTemplate}
-              icon={<Star className="w-4 h-4" />}
-              warning
-            >
+            <ContextMenuItem onClick={onSaveAsTemplate} icon={<Star className="w-4 h-4" />} warning>
               Save as Template
             </ContextMenuItem>
           )}

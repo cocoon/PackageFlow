@@ -76,10 +76,7 @@ export function ListSidebarHeader({
           {/* Sort dropdown menu */}
           {showSortMenu && (
             <>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowSortMenu(false)}
-              />
+              <div className="fixed inset-0 z-40" onClick={() => setShowSortMenu(false)} />
               <div
                 className={cn(
                   'absolute left-0 top-full mt-1 z-50',

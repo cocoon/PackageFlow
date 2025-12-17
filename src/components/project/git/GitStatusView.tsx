@@ -4,15 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  GitBranch,
-  ArrowUp,
-  ArrowDown,
-  Cloud,
-  CloudOff,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react';
+import { GitBranch, ArrowUp, ArrowDown, Cloud, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import { gitAPI } from '../../../lib/tauri-api';
 import { Button } from '../../ui/Button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../ui/Dialog';
@@ -104,16 +96,31 @@ export function GitStatusView({
       : trimmed;
     const lower = withoutPrefix.toLowerCase();
 
-    if (lower.includes('could not read username') || lower.includes('auth_failed') || lower.includes('permission denied')) {
+    if (
+      lower.includes('could not read username') ||
+      lower.includes('auth_failed') ||
+      lower.includes('permission denied')
+    ) {
       return 'Authentication failed. Check Settings > Authentication.';
     }
-    if (lower.includes('network_error') || lower.includes('could not resolve') || lower.includes('connection refused')) {
+    if (
+      lower.includes('network_error') ||
+      lower.includes('could not resolve') ||
+      lower.includes('connection refused')
+    ) {
       return 'Network error. Check your internet connection.';
     }
-    if (lower.includes('no configured push destination') || lower.includes('no remote repository specified')) {
+    if (
+      lower.includes('no configured push destination') ||
+      lower.includes('no remote repository specified')
+    ) {
       return 'No remote configured. Go to Settings tab to add one.';
     }
-    if (lower.includes('no upstream') || lower.includes('no tracking information') || lower.includes('there is no tracking information')) {
+    if (
+      lower.includes('no upstream') ||
+      lower.includes('no tracking information') ||
+      lower.includes('there is no tracking information')
+    ) {
       return 'No upstream branch. Set upstream (e.g. "git push -u <remote> <branch>").';
     }
     if (lower.includes('does not appear to be a git repository')) {
@@ -254,7 +261,9 @@ export function GitStatusView({
       if (response.success) {
         onRemotesChange?.();
       } else {
-        setOperationError(response.error ? getUserFriendlyError(response.error) : 'Failed to fetch');
+        setOperationError(
+          response.error ? getUserFriendlyError(response.error) : 'Failed to fetch'
+        );
       }
     } catch (err) {
       setOperationError('Failed to fetch');
@@ -362,8 +371,16 @@ export function GitStatusView({
             variant="default"
             size="sm"
             onClick={handlePush}
-            disabled={isPushing || isPulling || isFetching || isLoading || !hasRemotes || ahead === 0}
-            title={!hasRemotes ? 'Configure remote in Settings' : ahead === 0 ? 'Nothing to push' : 'Push to remote'}
+            disabled={
+              isPushing || isPulling || isFetching || isLoading || !hasRemotes || ahead === 0
+            }
+            title={
+              !hasRemotes
+                ? 'Configure remote in Settings'
+                : ahead === 0
+                  ? 'Nothing to push'
+                  : 'Push to remote'
+            }
           >
             {isPushing ? (
               <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
@@ -377,9 +394,7 @@ export function GitStatusView({
 
       {/* Error Message */}
       {operationError && (
-        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">
-          {operationError}
-        </div>
+        <div className="text-sm text-red-400 bg-red-500/10 px-3 py-2 rounded">{operationError}</div>
       )}
 
       <Dialog open={isUpstreamDialogOpen} onOpenChange={setIsUpstreamDialogOpen}>
@@ -404,13 +419,19 @@ export function GitStatusView({
                 aria-label="Remote"
               />
               {selectedRemoteInfo?.url && (
-                <div className="text-xs text-muted-foreground truncate" title={selectedRemoteInfo.url}>
+                <div
+                  className="text-xs text-muted-foreground truncate"
+                  title={selectedRemoteInfo.url}
+                >
                   {selectedRemoteInfo.url}
                 </div>
               )}
               {selectedRemote && (
                 <div className="text-xs text-muted-foreground">
-                  Target: <span className="text-foreground">{selectedRemote}/{branch}</span>
+                  Target:{' '}
+                  <span className="text-foreground">
+                    {selectedRemote}/{branch}
+                  </span>
                 </div>
               )}
             </div>
@@ -434,7 +455,9 @@ export function GitStatusView({
               variant="default"
               onClick={handleSetUpstream}
               disabled={!selectedRemote || isPushing || isPulling || isFetching || isLoading}
-              title={!selectedRemote ? 'Select a remote' : `Set upstream to ${selectedRemote}/${branch}`}
+              title={
+                !selectedRemote ? 'Select a remote' : `Set upstream to ${selectedRemote}/${branch}`
+              }
             >
               {isPushing ? (
                 <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />

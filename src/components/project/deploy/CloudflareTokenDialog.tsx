@@ -5,16 +5,7 @@
  */
 
 import { useState, useEffect, useId } from 'react';
-import {
-  Key,
-  AlertCircle,
-  Loader2,
-  ExternalLink,
-  Check,
-  Eye,
-  EyeOff,
-  X,
-} from 'lucide-react';
+import { Key, AlertCircle, Loader2, ExternalLink, Check, Eye, EyeOff, X } from 'lucide-react';
 import { open as shellOpen } from '@tauri-apps/plugin-shell';
 import { CloudflareIcon } from '../../ui/icons';
 import { Button } from '../../ui/Button';
@@ -29,11 +20,7 @@ interface CloudflareTokenDialogProps {
   onSuccess: (account: DeployAccount) => void | Promise<void>;
 }
 
-export function CloudflareTokenDialog({
-  isOpen,
-  onClose,
-  onSuccess,
-}: CloudflareTokenDialogProps) {
+export function CloudflareTokenDialog({ isOpen, onClose, onSuccess }: CloudflareTokenDialogProps) {
   const modalId = useId();
   const [apiToken, setApiToken] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -135,10 +122,7 @@ export function CloudflareTokenDialog({
               variant="ghost"
               size="icon"
               onClick={handleClose}
-              className={cn(
-                'absolute right-4 top-4',
-                'h-auto w-auto rounded-lg p-2'
-              )}
+              className={cn('absolute right-4 top-4', 'h-auto w-auto rounded-lg p-2')}
               aria-label="Close dialog"
             >
               <X className="h-4 w-4" />
@@ -158,10 +142,7 @@ export function CloudflareTokenDialog({
                 <CloudflareIcon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2
-                  id="cloudflare-dialog-title"
-                  className="text-lg font-semibold text-foreground"
-                >
+                <h2 id="cloudflare-dialog-title" className="text-lg font-semibold text-foreground">
                   Connect Cloudflare Pages
                 </h2>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -189,9 +170,7 @@ export function CloudflareTokenDialog({
                 </p>
                 <Button
                   variant="link"
-                  onClick={() =>
-                    shellOpen('https://dash.cloudflare.com/profile/api-tokens')
-                  }
+                  onClick={() => shellOpen('https://dash.cloudflare.com/profile/api-tokens')}
                   className={cn(
                     'h-auto p-0 text-orange-500 hover:text-orange-400 no-underline hover:underline',
                     'inline-flex items-center gap-1.5'
@@ -205,10 +184,7 @@ export function CloudflareTokenDialog({
 
             {/* API Token Input */}
             <div className="space-y-2">
-              <label
-                htmlFor="api-token"
-                className="text-sm font-medium text-foreground"
-              >
+              <label htmlFor="api-token" className="text-sm font-medium text-foreground">
                 API Token
               </label>
               <div className="relative">
@@ -228,9 +204,7 @@ export function CloudflareTokenDialog({
                     'placeholder:text-muted-foreground',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
                     'transition-colors duration-150',
-                    error
-                      ? 'border-destructive focus:ring-destructive'
-                      : 'border-border'
+                    error ? 'border-destructive focus:ring-destructive' : 'border-border'
                   )}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && apiToken.trim()) {
@@ -248,25 +222,16 @@ export function CloudflareTokenDialog({
                   )}
                   aria-label={showToken ? 'Hide token' : 'Show token'}
                 >
-                  {showToken ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
 
             {/* Display Name */}
             <div className="space-y-2">
-              <label
-                htmlFor="display-name"
-                className="text-sm font-medium text-foreground"
-              >
+              <label htmlFor="display-name" className="text-sm font-medium text-foreground">
                 Display Name
-                <span className="ml-1.5 text-muted-foreground font-normal">
-                  (optional)
-                </span>
+                <span className="ml-1.5 text-muted-foreground font-normal">(optional)</span>
               </label>
               <input
                 id="display-name"

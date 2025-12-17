@@ -2,7 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Loader2, X, CheckCircle, XCircle, Play, Shield, Rocket } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
-import { useBackgroundTasks, type BackgroundTask, type BackgroundTaskType } from '../../hooks/useBackgroundTasks';
+import {
+  useBackgroundTasks,
+  type BackgroundTask,
+  type BackgroundTaskType,
+} from '../../hooks/useBackgroundTasks';
 
 // Task type icons
 const getTaskIcon = (type: BackgroundTaskType) => {
@@ -70,18 +74,18 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
       <div className="flex items-start gap-3">
         {/* Icon with status indicator */}
         <div className="relative mt-0.5">
-          <div className={cn(
-            'p-1.5 rounded-lg',
-            isComplete ? 'bg-green-500/20' :
-            isFailed ? 'bg-red-500/20' :
-            'bg-blue-500/20'
-          )}>
-            <TaskIcon className={cn(
-              'w-4 h-4',
-              isComplete ? 'text-green-400' :
-              isFailed ? 'text-red-400' :
-              'text-blue-400'
-            )} />
+          <div
+            className={cn(
+              'p-1.5 rounded-lg',
+              isComplete ? 'bg-green-500/20' : isFailed ? 'bg-red-500/20' : 'bg-blue-500/20'
+            )}
+          >
+            <TaskIcon
+              className={cn(
+                'w-4 h-4',
+                isComplete ? 'text-green-400' : isFailed ? 'text-red-400' : 'text-blue-400'
+              )}
+            />
           </div>
           {task.status === 'running' && (
             <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
@@ -92,9 +96,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium text-foreground">
-                {task.name}
-              </span>
+              <span className="text-sm font-medium text-foreground">{task.name}</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                 {getTaskLabel(task.type)}
               </span>
@@ -110,9 +112,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
 
           {/* Current step */}
           {task.currentStep && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {task.currentStep}
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.currentStep}</p>
           )}
 
           {/* Progress bar */}
@@ -127,13 +127,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
 
           {/* Elapsed time */}
           <div className="flex items-center justify-between mt-1">
-            <span className="text-[10px] text-muted-foreground/60">
-              {elapsed}
-            </span>
+            <span className="text-[10px] text-muted-foreground/60">{elapsed}</span>
             {task.progress !== undefined && (
-              <span className="text-[10px] text-muted-foreground/60">
-                {task.progress}%
-              </span>
+              <span className="text-[10px] text-muted-foreground/60">{task.progress}%</span>
             )}
           </div>
         </div>
@@ -222,9 +218,7 @@ export const BackgroundTasksButton: React.FC = () => {
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-sm text-foreground">Background Tasks</h3>
               {runningCount > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  ({runningCount} running)
-                </span>
+                <span className="text-xs text-muted-foreground">({runningCount} running)</span>
               )}
             </div>
             <button

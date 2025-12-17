@@ -75,9 +75,7 @@ export const PermissionQuickModeSelector: React.FC<PermissionQuickModeSelectorPr
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-foreground">Quick Mode</label>
         {value === 'custom' && (
-          <span className="text-xs text-muted-foreground">
-            Customize in Permissions tab
-          </span>
+          <span className="text-xs text-muted-foreground">Customize in Permissions tab</span>
         )}
       </div>
 
@@ -97,7 +95,9 @@ export const PermissionQuickModeSelector: React.FC<PermissionQuickModeSelectorPr
                 'flex flex-col items-center gap-2 p-3 rounded-xl',
                 'border-2 transition-all duration-200',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                isSelected ? colorScheme.selected : 'border-border bg-card/50 text-muted-foreground',
+                isSelected
+                  ? colorScheme.selected
+                  : 'border-border bg-card/50 text-muted-foreground',
                 !isSelected && !disabled && colorScheme.unselected,
                 isSelected && colorScheme.ring,
                 disabled && 'opacity-50 cursor-not-allowed'
@@ -136,21 +136,34 @@ export const PermissionQuickModeSelector: React.FC<PermissionQuickModeSelectorPr
         className={cn(
           'p-3 rounded-lg text-sm',
           'bg-muted/50 border border-border',
-          value === 'full_access' && 'bg-rose-500/5 border-rose-500/20 text-rose-700 dark:text-rose-300',
+          value === 'full_access' &&
+            'bg-rose-500/5 border-rose-500/20 text-rose-700 dark:text-rose-300',
           value === 'custom' && 'bg-muted border-muted-foreground/20'
         )}
       >
         {value === 'read_only' && (
-          <p>AI assistants can only view project information, worktrees, and workflows. No modifications or executions are allowed.</p>
+          <p>
+            AI assistants can only view project information, worktrees, and workflows. No
+            modifications or executions are allowed.
+          </p>
         )}
         {value === 'standard' && (
-          <p>AI assistants can view information and execute existing workflows, but cannot create or modify workflows.</p>
+          <p>
+            AI assistants can view information and execute existing workflows, but cannot create or
+            modify workflows.
+          </p>
         )}
         {value === 'full_access' && (
-          <p className="font-medium">AI assistants have full access including creating and modifying workflows. Use with caution.</p>
+          <p className="font-medium">
+            AI assistants have full access including creating and modifying workflows. Use with
+            caution.
+          </p>
         )}
         {value === 'custom' && (
-          <p>You have customized the permissions. Use the tool matrix below to fine-tune access for each tool.</p>
+          <p>
+            You have customized the permissions. Use the tool matrix below to fine-tune access for
+            each tool.
+          </p>
         )}
       </div>
     </div>
