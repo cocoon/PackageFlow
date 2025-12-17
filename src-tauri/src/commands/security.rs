@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::Path;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 
 use crate::models::{
     CvssInfo, DependencyCount, FixInfo, PackageManager, ScanError, ScanStatus, SecurityScanData,
@@ -518,7 +518,7 @@ fn parse_npm_audit(
             // Extract advisory info from via
             let mut advisory_url: Option<String> = None;
             let mut title = pkg_name.clone();
-            let mut cves: Vec<String> = Vec::new();
+            let cves: Vec<String> = Vec::new();
             let mut cwes: Vec<String> = Vec::new();
             let mut cvss_info: Option<CvssInfo> = None;
 

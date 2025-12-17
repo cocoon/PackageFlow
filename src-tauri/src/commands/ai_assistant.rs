@@ -15,7 +15,7 @@ use crate::models::ai_assistant::{
     MessageStatus, MessageRole, ToolCall, ToolResult, ToolCallStatus, AvailableTools, SuggestionsResponse,
     ProjectContext,
 };
-use crate::models::ai::{ChatMessage, ChatOptions, ChatToolCall, FinishReason};
+use crate::models::ai::{ChatMessage, ChatOptions, ChatToolCall};
 use crate::repositories::{AIConversationRepository, AIRepository};
 use crate::services::ai::{create_provider, AIKeychain};
 use crate::services::ai_assistant::{StreamManager, StreamContext, MCPToolHandler, ProjectContextBuilder};
@@ -304,7 +304,6 @@ pub async fn ai_assistant_send_message(
         // Agentic loop - continue until we get a final text response
         let mut messages = chat_messages;
         let mut total_tokens: i64 = 0;
-        let mut final_content = String::new();
         let mut iteration = 0;
         // Track all tool results for fallback (in case AI returns empty content)
         let mut all_tool_results: Vec<(String, bool, String)> = Vec::new(); // (name, success, output)
@@ -326,7 +325,6 @@ pub async fn ai_assistant_send_message(
                 // Generate a message informing the user
                 let warning_msg = "I've reached the maximum number of tool calls for this response. Please let me know if you'd like me to continue with a new request.";
                 let _ = ctx.emit_token(warning_msg);
-                final_content = ctx.get_content().to_string();
                 break;
             }
 
@@ -352,7 +350,6 @@ pub async fn ai_assistant_send_message(
                             if ctx.get_content().is_empty() {
                                 let _ = ctx.emit_token("I notice I'm repeating myself. Let me stop here.");
                             }
-                            final_content = ctx.get_content().to_string();
                             break;
                         }
                     }
@@ -426,7 +423,6 @@ pub async fn ai_assistant_send_message(
                                     log::warn!("All tool calls were filtered as duplicates - breaking loop");
                                     let warning_msg = "I notice I'm trying to repeat the same action. Let me provide you with the results I already have.";
                                     let _ = ctx.emit_token(warning_msg);
-                                    final_content = ctx.get_content().to_string();
                                     break;
                                 }
 
@@ -476,7 +472,6 @@ pub async fn ai_assistant_send_message(
                                         tool_call.function.name
                                     );
                                     let _ = ctx.emit_token(&tool_msg);
-                                    final_content = ctx.get_content().to_string();
 
                                     // Emit tool_call event to frontend so it shows the approval UI
                                     if let Err(e) = ctx.emit_tool_call(&internal_tool_call) {
@@ -491,7 +486,7 @@ pub async fn ai_assistant_send_message(
                                     let repo = AIConversationRepository::new(db_state.0.as_ref().clone());
                                     let _ = repo.update_message_completion(
                                         &assistant_message_id,
-                                        &final_content,
+                                        ctx.get_content(),
                                         Some(total_tokens),
                                         Some(&model_name),
                                         Some(&tool_calls_for_db),
@@ -639,7 +634,6 @@ pub async fn ai_assistant_send_message(
                         }
                     }
 
-                    final_content = ctx.get_content().to_string();
                     let finish_reason = response.finish_reason
                         .map(|r| format!("{:?}", r).to_lowercase())
                         .unwrap_or_else(|| "stop".to_string());
@@ -653,7 +647,7 @@ pub async fn ai_assistant_send_message(
                     let repo = AIConversationRepository::new(db_state.0.as_ref().clone());
                     let _ = repo.update_message_completion(
                         &assistant_message_id,
-                        &final_content,
+                        ctx.get_content(),
                         Some(total_tokens),
                         Some(&model_name),
                         None,
@@ -923,7 +917,7 @@ pub async fn ai_assistant_approve_tool_call(
 #[tauri::command]
 pub async fn ai_assistant_deny_tool_call(
     db: State<'_, DatabaseState>,
-    conversation_id: String,
+    _conversation_id: String,
     message_id: String,
     tool_call_id: String,
     reason: Option<String>,
@@ -1115,7 +1109,6 @@ pub async fn ai_assistant_continue_after_tool(
 
         // Agentic loop - continue until we get a final text response
         let mut messages = chat_messages;
-        let mut final_content = String::new();
         let mut total_tokens: i64 = 0;
         let mut iteration = 0;
         // Track all tool results for fallback (in case AI returns empty content)
@@ -1137,7 +1130,6 @@ pub async fn ai_assistant_continue_after_tool(
                 // Generate a message informing the user
                 let warning_msg = "I've reached the maximum number of tool calls for this response. Please let me know if you'd like me to continue with a new request.";
                 let _ = ctx.emit_token(warning_msg);
-                final_content = ctx.get_content().to_string();
                 break;
             }
 
@@ -1163,7 +1155,6 @@ pub async fn ai_assistant_continue_after_tool(
                             if ctx.get_content().is_empty() {
                                 let _ = ctx.emit_token("I notice I'm repeating myself. Let me stop here.");
                             }
-                            final_content = ctx.get_content().to_string();
                             break;
                         }
                     }
@@ -1198,7 +1189,6 @@ pub async fn ai_assistant_continue_after_tool(
                                 log::warn!("All tool calls were filtered as duplicates - breaking continuation loop");
                                 let warning_msg = "I notice I'm trying to repeat the same action. Let me provide you with the results I already have.";
                                 let _ = ctx.emit_token(warning_msg);
-                                final_content = ctx.get_content().to_string();
                                 break;
                             }
 
@@ -1324,7 +1314,6 @@ pub async fn ai_assistant_continue_after_tool(
                         }
                     }
 
-                    final_content = ctx.get_content().to_string();
                     let finish_reason = response.finish_reason
                         .map(|r| format!("{:?}", r).to_lowercase())
                         .unwrap_or_else(|| "stop".to_string());
@@ -1338,7 +1327,7 @@ pub async fn ai_assistant_continue_after_tool(
                     let repo = AIConversationRepository::new(db_state.0.as_ref().clone());
                     let _ = repo.update_message_completion(
                         &assistant_message_id,
-                        &final_content,
+                        ctx.get_content(),
                         Some(total_tokens),
                         Some(&model_name),
                         None,
@@ -1371,7 +1360,7 @@ pub async fn ai_assistant_continue_after_tool(
 /// Get suggestions for the current context
 #[tauri::command]
 pub async fn ai_assistant_get_suggestions(
-    conversation_id: Option<String>,
+    _conversation_id: Option<String>,
     project_path: Option<String>,
 ) -> Result<SuggestionsResponse, String> {
     use crate::models::ai_assistant::SuggestedAction;
@@ -1486,20 +1475,6 @@ pub async fn ai_assistant_get_suggestions(
 }
 
 // ============================================================================
-// Project Context Commands
-// ============================================================================
-
-/// Get project context for AI assistant
-#[tauri::command]
-pub async fn ai_assistant_get_project_context(
-    project_path: String,
-) -> Result<ProjectContext, String> {
-    let context = ProjectContextBuilder::build_from_path(&project_path)?;
-    let sanitized = ProjectContextBuilder::sanitize_context(&context);
-    Ok(sanitized)
-}
-
-// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -1541,39 +1516,6 @@ fn generate_tool_results_summary(results: &[(String, bool, String)]) -> String {
 
     summary.push_str("Is there anything specific you'd like me to help you with based on these results?");
     summary
-}
-
-/// Generate placeholder response for Phase 1 testing
-fn generate_placeholder_response(user_message: &str) -> String {
-    let lower = user_message.to_lowercase();
-
-    if lower.contains("hello") || lower.contains("hi") {
-        return "Hello! I'm the AI Assistant for PackageFlow. I can help you with:\n\n- Running project scripts\n- Managing workflows\n- Generating commit messages\n- Answering questions about your project\n\nWhat would you like help with today?".to_string();
-    }
-
-    if lower.contains("what can you") || lower.contains("help") {
-        return "I can assist you with various development tasks:\n\n**Project Management**\n- Run npm/yarn/pnpm scripts\n- Execute workflows\n- Check project status\n\n**Git Operations**\n- Generate commit messages\n- Review staged changes\n- Analyze code changes\n\n**General Assistance**\n- Answer questions about your project\n- Suggest optimizations\n- Help with troubleshooting\n\nJust ask me what you need!".to_string();
-    }
-
-    if lower.contains("commit") || lower.contains("message") {
-        return "I'd be happy to help generate a commit message! To do this effectively, I'll need to:\n\n1. Check your staged changes using `git diff --staged`\n2. Analyze the modifications\n3. Generate a descriptive commit message\n\nWould you like me to proceed with analyzing your staged changes?".to_string();
-    }
-
-    if lower.contains("test") || lower.contains("run") {
-        return "I can help you run tests or scripts. Here are some common options:\n\n```bash\n# Run tests\nnpm test\n\n# Run build\nnpm run build\n\n# Run development server\nnpm run dev\n```\n\nWhich script would you like me to run? I'll need your confirmation before executing any commands.".to_string();
-    }
-
-    // Default response (handle UTF-8 for message truncation)
-    let truncated_msg = if user_message.chars().count() > 50 {
-        let truncated: String = user_message.chars().take(50).collect();
-        format!("{}...", truncated)
-    } else {
-        user_message.to_string()
-    };
-    format!(
-        "I received your message: \"{}\"\n\nThis is a placeholder response from Phase 1 implementation. In the full version, I'll be connected to your configured AI service and can:\n\n- Provide intelligent responses based on your project context\n- Execute MCP actions with your approval\n- Remember our conversation history\n\nFor now, try asking me about what I can help with!",
-        truncated_msg
-    )
 }
 
 // ============================================================================

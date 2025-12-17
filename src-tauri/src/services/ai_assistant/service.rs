@@ -299,7 +299,7 @@ impl AIAssistantService {
     /// Regenerate a response from a specific message
     pub async fn regenerate_response(
         &self,
-        app: AppHandle,
+        _app: AppHandle,
         conversation_id: String,
         message_id: String,
     ) -> Result<SendMessageResponse, String> {

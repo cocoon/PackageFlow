@@ -19,16 +19,13 @@ use mcp::{
     get_builtin_templates,
     // Store (database access and local types)
     read_store_data, write_store_data, log_request, open_database, get_database_path,
-    StoreData, Project, Workflow, WorkflowNode, NodePosition, CustomStepTemplate,
+    Project, Workflow, WorkflowNode, CustomStepTemplate,
     // Background process management
-    BackgroundProcessManager, BackgroundProcessStatus, BackgroundProcessInfo, ProcessOutput,
-    BACKGROUND_PROCESS_MANAGER, CLEANUP_INTERVAL_SECS,
+    BackgroundProcessStatus, BACKGROUND_PROCESS_MANAGER, CLEANUP_INTERVAL_SECS,
 };
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use tokio::time::timeout as tokio_timeout;
@@ -43,7 +40,6 @@ use rmcp::{
     service::RequestContext,
     tool, tool_router,
 };
-use serde::{Deserialize, Serialize};
 use tokio::io::{stdin, stdout};
 #[cfg(unix)]
 use tokio::signal::unix::{signal, SignalKind};
@@ -52,11 +48,10 @@ use uuid::Uuid;
 // Import SQLite database and repositories
 use packageflow_lib::utils::database::Database;
 use packageflow_lib::repositories::{
-    ProjectRepository, WorkflowRepository, SettingsRepository,
-    TemplateRepository, MCPRepository, McpLogEntry, MCPActionRepository,
+    MCPActionRepository,
     // New repositories for enhanced MCP tools
     AIRepository, AIConversationRepository, NotificationRepository,
-    NotificationListResponse, SecurityRepository, DeployRepository,
+    SecurityRepository, DeployRepository,
 };
 
 // Import MCP action models and services
@@ -68,8 +63,6 @@ use rusqlite::params;
 
 // Import shared store utilities (for validation, etc.)
 use packageflow_lib::utils::shared_store::{
-    // Path utilities
-    get_app_data_dir,
     // Error handling
     sanitize_error,
     // Input validation

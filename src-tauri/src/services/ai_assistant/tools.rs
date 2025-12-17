@@ -2076,7 +2076,7 @@ impl MCPToolHandler {
             .ok_or_else(|| format!("Unknown tool: {}", tool_call.name))?;
 
         // Validate required parameters
-        if let Some(properties) = tool_def.parameters.get("properties") {
+        if tool_def.parameters.get("properties").is_some() {
             if let Some(required) = tool_def.parameters.get("required") {
                 if let Some(required_arr) = required.as_array() {
                     for req in required_arr {
@@ -2117,6 +2117,11 @@ fn parse_git_status(output: &str) -> serde_json::Value {
             let file = line[3..].to_string();
 
             match status.chars().collect::<Vec<_>>().as_slice() {
+                ['M', 'M'] | ['A', 'M'] => {
+                    // Both staged and modified
+                    staged.push(file.clone());
+                    modified.push(file);
+                }
                 ['A', _] | ['M', ' '] | ['D', ' '] | ['R', _] | ['C', _] => {
                     staged.push(file);
                 }
@@ -2125,11 +2130,6 @@ fn parse_git_status(output: &str) -> serde_json::Value {
                 }
                 ['?', '?'] => {
                     untracked.push(file);
-                }
-                ['M', 'M'] | ['A', 'M'] => {
-                    // Both staged and modified
-                    staged.push(file.clone());
-                    modified.push(file);
                 }
                 _ => {}
             }

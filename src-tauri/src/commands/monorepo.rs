@@ -741,7 +741,6 @@ pub fn clear_turbo_cache(project_path: String) -> ClearTurboCacheResponse {
         path.join("node_modules").join(".cache").join("turbo"),
     ];
 
-    let mut cleared_any = false;
     for cache_path in &cache_locations {
         if cache_path.exists() {
             if let Err(_) = fs::remove_dir_all(cache_path) {
@@ -750,7 +749,6 @@ pub fn clear_turbo_cache(project_path: String) -> ClearTurboCacheResponse {
                     error: Some("PERMISSION_DENIED".to_string()),
                 };
             }
-            cleared_any = true;
         }
     }
 
@@ -1261,7 +1259,6 @@ fn get_workspace_dependency_graph(
     _include_affected: Option<bool>,
     _base: Option<String>,
 ) -> GetDependencyGraphResponse {
-    let path = Path::new(project_path);
     let mut nodes: Vec<DependencyNode> = Vec::new();
     let mut edges: Vec<DependencyEdge> = Vec::new();
     let mut package_map: HashMap<String, String> = HashMap::new();

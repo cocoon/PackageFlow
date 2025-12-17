@@ -130,18 +130,6 @@ struct OpenAIUsage {
 }
 
 #[derive(Debug, Deserialize)]
-struct OpenAIModelsResponse {
-    data: Vec<OpenAIModel>,
-}
-
-#[derive(Debug, Deserialize)]
-struct OpenAIModel {
-    id: String,
-    #[serde(default)]
-    owned_by: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 struct OpenAIError {
     error: OpenAIErrorDetail,
 }

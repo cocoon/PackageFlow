@@ -125,7 +125,6 @@ impl ProcessManager {
                 // Try graceful termination first
                 #[cfg(unix)]
                 {
-                    use std::os::unix::process::CommandExt;
                     if let Some(pid) = child.id() {
                         // Send SIGTERM
                         unsafe {

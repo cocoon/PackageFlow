@@ -885,8 +885,6 @@ pub async fn get_worktree_status(
 pub async fn get_all_worktree_statuses(
     project_path: String,
 ) -> Result<GetAllWorktreeStatusesResponse, String> {
-    let path = Path::new(&project_path);
-
     // Check if git repo
     if !is_git_repo(project_path.clone()).await? {
         return Ok(GetAllWorktreeStatusesResponse {
@@ -947,8 +945,8 @@ pub async fn get_all_worktree_statuses(
 #[tauri::command]
 pub async fn execute_script_in_worktree(
     worktree_path: String,
-    script_name: String,
-    package_manager: String,
+    _script_name: String,
+    _package_manager: String,
 ) -> Result<ExecuteScriptInWorktreeResponse, String> {
     let path = Path::new(&worktree_path);
 
@@ -1244,7 +1242,7 @@ pub async fn get_available_editors() -> Result<GetAvailableEditorsResponse, Stri
     editors.push(vscode_insiders);
 
     // Check Zed
-    let mut zed = EditorDefinition {
+    let zed = EditorDefinition {
         id: "zed".to_string(),
         name: "Zed".to_string(),
         command: "zed".to_string(),
@@ -1254,7 +1252,7 @@ pub async fn get_available_editors() -> Result<GetAvailableEditorsResponse, Stri
     editors.push(zed);
 
     // Check Sublime Text
-    let mut sublime = EditorDefinition {
+    let sublime = EditorDefinition {
         id: "sublime".to_string(),
         name: "Sublime Text".to_string(),
         command: "subl".to_string(),
@@ -1264,7 +1262,7 @@ pub async fn get_available_editors() -> Result<GetAvailableEditorsResponse, Stri
     editors.push(sublime);
 
     // Check WebStorm
-    let mut webstorm = EditorDefinition {
+    let webstorm = EditorDefinition {
         id: "webstorm".to_string(),
         name: "WebStorm".to_string(),
         command: "webstorm".to_string(),
@@ -1817,7 +1815,7 @@ pub async fn add_worktrees_to_gitignore(
 /// T050: Create a worktree from a template
 #[tauri::command]
 pub async fn create_worktree_from_template(
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
     db: tauri::State<'_, DatabaseState>,
     project_path: String,
     template_id: String,

@@ -12,7 +12,7 @@ use crate::models::deploy::{
 use crate::repositories::DeployRepository;
 use crate::services::crypto;
 use crate::services::crypto::EncryptedData;
-use crate::services::deploy::{self as deploy_service, DeploymentProvider};
+use crate::services::deploy as deploy_service;
 use crate::services::notification::{send_notification, NotificationType};
 use crate::utils::database::Database;
 use crate::DatabaseState;
@@ -221,6 +221,7 @@ const MAX_ACCOUNTS_PER_PLATFORM: usize = 5;
 
 /// Deployment result with optional platform-specific metadata
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 struct DeployResult {
     url: String,
     deploy_id: String,
@@ -1058,23 +1059,12 @@ fn calculate_sha1(content: &[u8]) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-/// Calculate SHA-256 hash of content and return first 32 hex characters
-/// This is used for Cloudflare Pages file manifest
-fn calculate_sha256_short(content: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let mut hasher = Sha256::new();
-    hasher.update(content);
-    let result = format!("{:x}", hasher.finalize());
-    // Cloudflare uses first 32 hex characters
-    result[..32].to_string()
-}
-
 /// Deploy to GitHub Pages by pushing to gh-pages branch
 async fn deploy_to_github_pages(
     app: &AppHandle,
     deployment_id: &str,
     project_path: &str,
-    config: &DeploymentConfig,
+    _config: &DeploymentConfig,
     build_path: &std::path::Path,
 ) -> Result<(String, String), String> {
     use crate::utils::path_resolver;
@@ -1940,7 +1930,7 @@ pub async fn add_deploy_account(
     let new_account = DeployAccount::from_connected_platform(connected_platform.clone());
 
     // Check for duplicate account (same platform + platform_user_id)
-    let mut accounts = get_accounts_from_store(&app)?;
+    let accounts = get_accounts_from_store(&app)?;
     if accounts
         .iter()
         .any(|a| a.platform == platform && a.platform_user_id == new_account.platform_user_id)
@@ -2281,53 +2271,6 @@ fn generate_workflow_content(
         .replace("{{INSTALL_COMMAND}}", install_command)
         .replace("{{BUILD_COMMAND}}", build_command)
         .replace("{{OUTPUT_DIRECTORY}}", output_directory)
-}
-
-fn normalize_install_command(project_path: &str, install_command: &str) -> String {
-    use std::path::Path;
-
-    let trimmed = install_command.trim();
-    let lower = trimmed.to_lowercase();
-    let path = Path::new(project_path);
-
-    match lower.as_str() {
-        "npm" => {
-            let has_package_lock = path.join("package-lock.json").exists()
-                || path.join("npm-shrinkwrap.json").exists();
-            if has_package_lock {
-                "npm ci".to_string()
-            } else {
-                "npm install".to_string()
-            }
-        }
-        "pnpm" => {
-            if path.join("pnpm-lock.yaml").exists() {
-                "pnpm install --frozen-lockfile".to_string()
-            } else {
-                "pnpm install".to_string()
-            }
-        }
-        "yarn" => {
-            if path.join("yarn.lock").exists() {
-                "yarn install --frozen-lockfile".to_string()
-            } else {
-                "yarn install".to_string()
-            }
-        }
-        "bun" => {
-            if path.join("bun.lockb").exists() {
-                "bun install --frozen-lockfile".to_string()
-            } else {
-                "bun install".to_string()
-            }
-        }
-        _ => trimmed.to_string(),
-    }
-}
-
-fn needs_bun_setup(command: &str) -> bool {
-    let lower = command.trim_start().to_lowercase();
-    lower == "bun" || lower.starts_with("bun ")
 }
 
 #[tauri::command]
@@ -2753,7 +2696,7 @@ fn derive_password_key(password: &str) -> [u8; 32] {
 // ============================================================================
 
 use crate::models::deploy::{
-    CloudflareProjectInfo, DeploymentProgressEvent, DeploymentStats, LastSuccessfulDeployment,
+    CloudflareProjectInfo, DeploymentStats, LastSuccessfulDeployment,
     NetlifySiteInfo, PlatformSiteInfo,
 };
 
@@ -3019,30 +2962,4 @@ async fn fetch_cloudflare_project_info(
         created_at,
         deployments_count: None, // Would need to count from deployments list
     })
-}
-
-/// Emit deployment progress event with extended info
-pub fn emit_deployment_progress(
-    app: &AppHandle,
-    deployment_id: &str,
-    status: DeploymentStatus,
-    progress: Option<u8>,
-    current_step: Option<&str>,
-    current_step_index: Option<u8>,
-    total_steps: Option<u8>,
-    elapsed_seconds: Option<u64>,
-) {
-    let event = DeploymentProgressEvent {
-        deployment_id: deployment_id.to_string(),
-        status,
-        progress,
-        current_step: current_step.map(|s| s.to_string()),
-        total_steps,
-        current_step_index,
-        elapsed_seconds,
-        url: None,
-        error_message: None,
-    };
-
-    let _ = app.emit("deployment:progress", event);
 }

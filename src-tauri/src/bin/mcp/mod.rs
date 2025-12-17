@@ -27,22 +27,16 @@ pub mod background;
 pub mod tools_registry;
 
 // Re-export commonly used items
-pub use types::*;
 pub use security::{ToolCategory, get_tool_category, is_tool_allowed};
-pub use tools_registry::{
-    ToolDefinition, PermissionCategory, ALL_TOOLS,
-    get_permission_category, get_tool, get_display_categories,
-};
+pub use tools_registry::{ALL_TOOLS, PermissionCategory, get_permission_category};
 pub use state::{RATE_LIMITER, TOOL_RATE_LIMITERS, ACTION_SEMAPHORE};
 pub use templates::get_builtin_templates;
 pub use store::{
     read_store_data, write_store_data, log_request, open_database, get_database_path,
-    StoreData, Project, Workflow, WorkflowNode, NodePosition, CustomStepTemplate,
+    Project, Workflow, WorkflowNode, CustomStepTemplate,
 };
 pub use background::{
-    BackgroundProcessManager, BackgroundProcessStatus, BackgroundProcessInfo, ProcessOutput,
-    CircularBuffer, BackgroundProcessState, BACKGROUND_PROCESS_MANAGER,
-    CLEANUP_INTERVAL_SECS,
+    BackgroundProcessStatus, BACKGROUND_PROCESS_MANAGER, CLEANUP_INTERVAL_SECS,
 };
 
 // Test module (only compiled in test builds)

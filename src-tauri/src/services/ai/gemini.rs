@@ -134,19 +134,6 @@ struct GeminiUsageMetadata {
 }
 
 #[derive(Debug, Deserialize)]
-struct GeminiModelsResponse {
-    models: Vec<GeminiModelInfo>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct GeminiModelInfo {
-    name: String,
-    display_name: Option<String>,
-    supported_generation_methods: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize)]
 struct GeminiErrorDetail {
     code: Option<u32>,
     message: String,

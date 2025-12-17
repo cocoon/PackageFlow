@@ -762,7 +762,7 @@ pub async fn clear_toolchain_preference(
 /// Get environment diagnostics
 #[tauri::command]
 pub async fn get_environment_diagnostics(
-    project_path: Option<String>,
+    _project_path: Option<String>,
 ) -> Result<EnvironmentDiagnostics, String> {
     use crate::models::toolchain::{
         CorepackInfo, PackageManagersInfo, PathAnalysis, SystemNodeInfo, ToolVersionInfo, VoltaInfo,
@@ -829,10 +829,6 @@ pub async fn get_environment_diagnostics(
     // Analyze PATH order
     let path_env = std::env::var("PATH").unwrap_or_default();
     let path_entries: Vec<String> = path_env.split(':').map(String::from).collect();
-
-    let volta_shim = dirs::home_dir()
-        .map(|h| h.join(".volta").join("bin").to_string_lossy().to_string())
-        .unwrap_or_default();
 
     let volta_idx = path_entries.iter().position(|p| p.contains(".volta"));
     let corepack_idx = path_entries

@@ -677,9 +677,6 @@ impl AIRepository {
 
     /// List all CLI tool configurations
     pub fn list_cli_tools(&self) -> Result<Vec<crate::models::cli_tool::CLIToolConfig>, String> {
-        use crate::models::cli_tool::{CLIAuthMode, CLIToolConfig, CLIToolType};
-        use chrono::{DateTime, Utc};
-
         self.db.with_connection(|conn| {
             let mut stmt = conn
                 .prepare(
@@ -1131,7 +1128,7 @@ struct CLIToolRow {
 
 impl CLIToolRow {
     fn into_config(self) -> Result<crate::models::cli_tool::CLIToolConfig, String> {
-        use crate::models::cli_tool::{CLIAuthMode, CLIToolConfig, CLIToolType};
+        use crate::models::cli_tool::CLIToolConfig;
         use chrono::{DateTime, Utc};
 
         let tool_type = string_to_cli_tool_type(&self.tool_type)?;

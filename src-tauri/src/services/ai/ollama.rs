@@ -323,7 +323,7 @@ impl AIProvider for OllamaProvider {
 
         // Convert tool_calls to our format
         let tool_calls = ollama_response.message.tool_calls.map(|calls| {
-            calls.into_iter().enumerate().map(|(idx, tc)| {
+            calls.into_iter().map(|tc| {
                 // Generate a unique ID for the tool call
                 let id = format!("call_ollama_{}", uuid::Uuid::new_v4().to_string().replace("-", "")[..12].to_string());
 

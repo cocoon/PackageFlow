@@ -6,12 +6,13 @@
 // Re-export from packageflow_lib
 pub use packageflow_lib::models::mcp::{
     MCPToolPermissionCategory as PermissionCategory,
-    MCPToolDefinition as ToolDefinition,
     MCP_ALL_TOOLS as ALL_TOOLS,
     get_mcp_tool_permission_category as get_permission_category,
-    get_mcp_tool as get_tool,
-    get_mcp_display_categories as get_display_categories,
 };
+
+// Additional re-exports used by tests
+#[cfg(test)]
+pub use packageflow_lib::models::mcp::get_mcp_tool as get_tool;
 
 #[cfg(test)]
 mod tests {

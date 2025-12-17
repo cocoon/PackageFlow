@@ -1,6 +1,10 @@
 // PackageFlow - Tauri Application
 // Migrated from Electron version
 
+// Allow shadowing of model modules by command modules - commands are internal use only
+// while models need to be publicly exported for the MCP binary
+#![allow(hidden_glob_reexports)]
+
 mod commands;
 pub mod models;
 pub mod repositories;

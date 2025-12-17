@@ -325,7 +325,6 @@ impl BackgroundProcessManager {
                 // Send SIGTERM on Unix
                 #[cfg(unix)]
                 {
-                    use std::os::unix::process::CommandExt;
                     if let Some(pid) = child.id() {
                         unsafe {
                             libc::kill(pid as i32, libc::SIGTERM);

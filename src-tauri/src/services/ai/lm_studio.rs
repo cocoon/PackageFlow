@@ -127,8 +127,6 @@ struct OpenAIModelsResponse {
 #[derive(Debug, Deserialize)]
 struct OpenAIModel {
     id: String,
-    #[serde(default)]
-    owned_by: Option<String>,
 }
 
 #[async_trait]

@@ -2175,12 +2175,10 @@ fn parse_diff_output(diff_output: &str, file_path: &str, status: FileDiffStatus)
     let mut hunks: Vec<DiffHunk> = Vec::new();
     let mut additions = 0;
     let mut deletions = 0;
-    let mut is_binary = false;
     let mut old_path: Option<String> = None;
 
     // Check for binary file
     if diff_output.contains("Binary files") || diff_output.contains("GIT binary patch") {
-        is_binary = true;
         return FileDiff {
             path: file_path.to_string(),
             old_path,
@@ -2331,7 +2329,7 @@ fn parse_diff_output(diff_output: &str, file_path: &str, status: FileDiffStatus)
         path: file_path.to_string(),
         old_path,
         status,
-        is_binary,
+        is_binary: false,
         language: detect_language(file_path),
         hunks,
         additions,

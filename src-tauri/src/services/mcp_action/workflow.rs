@@ -31,8 +31,8 @@ impl WorkflowExecutor {
     /// Execute a workflow by ID with parameter overrides
     async fn execute_workflow(
         &self,
-        config: &WorkflowActionConfig,
-        parameter_overrides: Option<&HashMap<String, serde_json::Value>>,
+        _config: &WorkflowActionConfig,
+        _parameter_overrides: Option<&HashMap<String, serde_json::Value>>,
     ) -> Result<WorkflowExecutionResult, String> {
         let start = Instant::now();
 

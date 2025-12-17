@@ -17,9 +17,6 @@ const MAX_RESPONSE_SIZE: usize = 10 * 1024;
 /// Default timeout for webhook requests (30 seconds)
 const DEFAULT_TIMEOUT_MS: u64 = 30_000;
 
-/// Default retry count
-const DEFAULT_RETRY_COUNT: u8 = 0;
-
 /// Base delay for exponential backoff (milliseconds)
 const RETRY_BASE_DELAY_MS: u64 = 1000;
 
