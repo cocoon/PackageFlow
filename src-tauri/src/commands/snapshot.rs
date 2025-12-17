@@ -627,3 +627,65 @@ pub async fn check_typosquatting(
     .await
     .map_err(|e| format!("Task failed: {}", e))?
 }
+
+// =========================================================================
+// Execution Replay (US4)
+// =========================================================================
+
+use crate::services::snapshot::replay::{
+    ExecuteReplayRequest, ReplayPreparation, ReplayResult, SnapshotReplayService,
+};
+
+/// Prepare a replay by verifying dependencies against the snapshot
+#[tauri::command]
+pub async fn prepare_replay(
+    db: State<'_, DatabaseState>,
+    snapshot_id: String,
+) -> Result<ReplayPreparation, String> {
+    let db = (*db.0).clone();
+    let base_path = get_storage_base_path()?;
+
+    tokio::task::spawn_blocking(move || {
+        let storage = SnapshotStorage::new(base_path);
+        let service = SnapshotReplayService::new(storage, db);
+        service.prepare_replay(&snapshot_id)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Execute a replay with the specified option
+#[tauri::command]
+pub async fn execute_replay(
+    db: State<'_, DatabaseState>,
+    request: ExecuteReplayRequest,
+) -> Result<ReplayResult, String> {
+    let db = (*db.0).clone();
+    let base_path = get_storage_base_path()?;
+
+    tokio::task::spawn_blocking(move || {
+        let storage = SnapshotStorage::new(base_path);
+        let service = SnapshotReplayService::new(storage, db);
+        service.execute_replay(&request)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}
+
+/// Restore lockfile from a snapshot
+#[tauri::command]
+pub async fn restore_lockfile(
+    db: State<'_, DatabaseState>,
+    snapshot_id: String,
+) -> Result<bool, String> {
+    let db = (*db.0).clone();
+    let base_path = get_storage_base_path()?;
+
+    tokio::task::spawn_blocking(move || {
+        let storage = SnapshotStorage::new(base_path);
+        let service = SnapshotReplayService::new(storage, db);
+        service.restore_lockfile(&snapshot_id)
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
+}

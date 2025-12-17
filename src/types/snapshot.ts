@@ -369,3 +369,50 @@ export interface TyposquattingCheckResult {
   distance?: number;
   confidence?: number;
 }
+
+// =========================================================================
+// Execution Replay Types (US4)
+// =========================================================================
+
+export type ReplayOption = 'abort' | 'view_diff' | 'restore_lockfile' | 'proceed_with_current';
+
+export interface PackageVersionChange {
+  name: string;
+  snapshotVersion: string;
+  currentVersion: string;
+}
+
+export interface ReplayMismatch {
+  lockfileChanged: boolean;
+  currentLockfileHash?: string;
+  snapshotLockfileHash?: string;
+  dependencyTreeChanged: boolean;
+  currentTreeHash?: string;
+  snapshotTreeHash?: string;
+  addedPackages: string[];
+  removedPackages: string[];
+  changedPackages: PackageVersionChange[];
+}
+
+export interface ReplayPreparation {
+  snapshotId: string;
+  workflowId: string;
+  readyToReplay: boolean;
+  hasMismatch: boolean;
+  mismatchDetails?: ReplayMismatch;
+  availableOptions: ReplayOption[];
+}
+
+export interface ReplayResult {
+  success: boolean;
+  executionId?: string;
+  isVerifiedReplay: boolean;
+  lockfileRestored: boolean;
+  error?: string;
+}
+
+export interface ExecuteReplayRequest {
+  snapshotId: string;
+  option: ReplayOption;
+  force: boolean;
+}

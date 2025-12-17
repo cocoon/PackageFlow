@@ -2670,6 +2670,9 @@ import type {
   PatternAnalysisResult,
   IntegrityCheckResult,
   TyposquattingCheckResult,
+  ReplayPreparation,
+  ReplayResult,
+  ExecuteReplayRequest,
 } from '../types/snapshot';
 
 export const snapshotAPI = {
@@ -2764,6 +2767,19 @@ export const snapshotAPI = {
   /** Check a package name for potential typosquatting */
   checkTyposquatting: (packageName: string): Promise<TyposquattingCheckResult> =>
     invoke<TyposquattingCheckResult>('check_typosquatting', { packageName }),
+
+  // Execution Replay (US4)
+  /** Prepare a replay by verifying dependencies */
+  prepareReplay: (snapshotId: string): Promise<ReplayPreparation> =>
+    invoke<ReplayPreparation>('prepare_replay', { snapshotId }),
+
+  /** Execute a replay with the specified option */
+  executeReplay: (request: ExecuteReplayRequest): Promise<ReplayResult> =>
+    invoke<ReplayResult>('execute_replay', { request }),
+
+  /** Restore lockfile from a snapshot */
+  restoreLockfile: (snapshotId: string): Promise<boolean> =>
+    invoke<boolean>('restore_lockfile', { snapshotId }),
 };
 
 export const tauriAPI = {
