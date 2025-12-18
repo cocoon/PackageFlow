@@ -404,7 +404,7 @@ impl MCPToolHandler {
             },
             ToolDefinition {
                 name: "get_git_status".to_string(),
-                description: "Get the current git status of a project".to_string(),
+                description: "Get git status: current branch, staged/modified/untracked files, ahead/behind counts. Returns structured data for analysis.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {
@@ -420,7 +420,7 @@ impl MCPToolHandler {
             },
             ToolDefinition {
                 name: "get_staged_diff".to_string(),
-                description: "Get the diff of staged changes in a git repository".to_string(),
+                description: "Get diff of staged changes. Returns file changes, additions/deletions counts. Useful for generating commit messages.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {
@@ -436,7 +436,7 @@ impl MCPToolHandler {
             },
             ToolDefinition {
                 name: "list_project_scripts".to_string(),
-                description: "List available scripts from a project's package.json".to_string(),
+                description: "List all scripts from package.json with their commands. Use this to verify script names before calling run_script.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {
@@ -655,7 +655,7 @@ impl MCPToolHandler {
             // Workflow creation tools
             ToolDefinition {
                 name: "create_workflow".to_string(),
-                description: "Create a new workflow with the specified name. Optionally associate it with a project.".to_string(),
+                description: "Create a new workflow. IMPORTANT: If a project is selected in the session, the workflow will automatically bind to that project unless you explicitly pass project_id=\"__GLOBAL__\" for a global workflow. When user requests a workflow, ASK if they want it project-specific or global before creating.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {
@@ -669,7 +669,7 @@ impl MCPToolHandler {
                         },
                         "project_id": {
                             "type": "string",
-                            "description": "Optional project ID to associate"
+                            "description": "Project ID to associate. Auto-filled from session if not provided. Use \"__GLOBAL__\" to explicitly create a global workflow not bound to any project."
                         }
                     },
                     "required": ["name"]
@@ -679,7 +679,7 @@ impl MCPToolHandler {
             },
             ToolDefinition {
                 name: "create_workflow_with_steps".to_string(),
-                description: "Create a new workflow with steps in ONE atomic operation. RECOMMENDED over separate create_workflow + add_workflow_steps calls - prevents sync issues. Maximum 10 steps.".to_string(),
+                description: "Create a new workflow with steps in ONE atomic operation. RECOMMENDED over separate calls. IMPORTANT: If a project is selected, workflow auto-binds to it. Use project_id=\"__GLOBAL__\" for global workflow. ASK user before creating if they want project-specific or global. Steps cwd auto-fills to project path if not specified.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {
@@ -693,7 +693,7 @@ impl MCPToolHandler {
                         },
                         "project_id": {
                             "type": "string",
-                            "description": "Optional project ID to associate"
+                            "description": "Project ID to associate. Auto-filled from session. Use \"__GLOBAL__\" to create a global workflow."
                         },
                         "steps": {
                             "type": "array",
@@ -711,7 +711,7 @@ impl MCPToolHandler {
                                     },
                                     "cwd": {
                                         "type": "string",
-                                        "description": "Optional working directory"
+                                        "description": "Working directory. Auto-filled to project path if not specified."
                                     },
                                     "timeout": {
                                         "type": "integer",
@@ -909,7 +909,7 @@ impl MCPToolHandler {
             // Background process management (Feature 023 - sync with MCP Server)
             ToolDefinition {
                 name: "list_background_processes".to_string(),
-                description: "List all background processes (running and recently completed).".to_string(),
+                description: "List background processes started via run_npm_script (runInBackground: true). Shows process ID, status, script name, and runtime. Use get_background_process_output to see logs.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {}
@@ -960,7 +960,7 @@ impl MCPToolHandler {
             // Package manager commands (not scripts from package.json)
             ToolDefinition {
                 name: "run_package_manager_command".to_string(),
-                description: "Run a package manager command directly (e.g., audit, outdated, install). This is for built-in package manager commands, NOT scripts from package.json. Use run_script for package.json scripts.".to_string(),
+                description: "Run a package manager command (audit, outdated, install, etc.). ⚠️ WARNING: 'install', 'update', 'prune' commands MODIFY node_modules. For read-only checks, use 'audit', 'outdated', 'list', 'why'. NOT for package.json scripts - use run_script for those.".to_string(),
                 parameters: serde_json::json!({
                     "type": "object",
                     "properties": {

@@ -543,7 +543,10 @@ pub async fn ai_assistant_send_message(
                                 }
 
                                 // Auto-execute read-only tools
-                                let internal_tool_call = convert_chat_tool_call_to_internal(tool_call);
+                                let mut internal_tool_call = convert_chat_tool_call_to_internal(tool_call);
+
+                                // Feature 025: Auto-inject session context (project_id, cwd) into tool arguments
+                                inject_session_context_to_tool_call(&mut internal_tool_call, session_context.as_ref());
 
                                 // Feature 025: Validate execution context and log warnings if cross-project
                                 tool_handler.validate_execution_context(&internal_tool_call, session_context.as_ref());
@@ -1009,6 +1012,17 @@ pub async fn ai_assistant_approve_tool_call(
     // Use with_database for path security validation
     let handler = MCPToolHandler::with_database(db.0.as_ref().clone());
 
+    // Feature 025: Build session context from conversation for auto-injection
+    let session_context = {
+        let conversation = repo.get_conversation(&conversation_id)?;
+        if let Some(conv) = conversation {
+            let session_builder = SessionContextBuilder::new(db.0.as_ref().clone());
+            session_builder.build(None, conv.project_path.as_deref())
+        } else {
+            None
+        }
+    };
+
     // Get the message with tool calls
     let message = repo.get_message(&message_id)?
         .ok_or_else(|| "MESSAGE_NOT_FOUND".to_string())?;
@@ -1017,12 +1031,16 @@ pub async fn ai_assistant_approve_tool_call(
     let tool_calls = message.tool_calls
         .ok_or_else(|| "NO_TOOL_CALLS".to_string())?;
 
-    let tool_call = tool_calls.iter()
+    let original_tool_call = tool_calls.iter()
         .find(|tc| tc.id == tool_call_id)
         .ok_or_else(|| "TOOL_CALL_NOT_FOUND".to_string())?;
 
+    // Feature 025: Clone and inject session context into tool call arguments
+    let mut tool_call = original_tool_call.clone();
+    inject_session_context_to_tool_call(&mut tool_call, session_context.as_ref());
+
     // Validate the tool call
-    handler.validate_tool_call(tool_call)?;
+    handler.validate_tool_call(&tool_call)?;
 
     // Determine action type for history recording
     let action_type = match tool_call.name.as_str() {
@@ -1050,14 +1068,14 @@ pub async fn ai_assistant_approve_tool_call(
     // Special handling for tools that need AppHandle or special context
     let result = match tool_call.name.as_str() {
         "run_workflow" => {
-            execute_workflow_tool(&app, &db, tool_call, &conversation_id).await
+            execute_workflow_tool(&app, &db, &tool_call, &conversation_id).await
         }
         "trigger_webhook" => {
-            execute_webhook_tool(&app, &db, tool_call).await
+            execute_webhook_tool(&app, &db, &tool_call).await
         }
         _ => {
             // Execute other tools via MCPToolHandler
-            handler.execute_confirmed_tool_call(tool_call).await
+            handler.execute_confirmed_tool_call(&tool_call).await
         }
     };
 
@@ -2335,6 +2353,118 @@ fn convert_chat_tool_call_to_internal(chat_tool_call: &ChatToolCall) -> ToolCall
         arguments,
         status: ToolCallStatus::Pending,
         thought_signature: chat_tool_call.thought_signature.clone(),
+    }
+}
+
+/// Special marker for global workflows (not bound to any project)
+const GLOBAL_WORKFLOW_MARKER: &str = "__GLOBAL__";
+
+/// Inject session context into tool call arguments
+/// Feature 025: Auto-fill project_id and cwd from session context when not provided
+///
+/// This ensures:
+/// - create_workflow/create_workflow_with_steps automatically bind to current project
+/// - Steps cwd defaults to project_path when not specified
+/// - Use project_id="__GLOBAL__" to explicitly create a global workflow
+fn inject_session_context_to_tool_call(
+    tool_call: &mut ToolCall,
+    session_context: Option<&SessionContext>,
+) {
+    let session_ctx = match session_context {
+        Some(ctx) if ctx.has_project() => ctx,
+        _ => return, // No session context or no project bound
+    };
+
+    let tool_name = tool_call.name.as_str();
+
+    // Inject project_id for workflow creation tools
+    if matches!(tool_name, "create_workflow" | "create_workflow_with_steps") {
+        let existing_project_id = tool_call.arguments
+            .get("project_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim().to_string());
+
+        match existing_project_id.as_deref() {
+            // If __GLOBAL__ is specified, convert to empty string (no project binding)
+            Some(GLOBAL_WORKFLOW_MARKER) => {
+                if let Some(obj) = tool_call.arguments.as_object_mut() {
+                    obj.insert("project_id".to_string(), serde_json::json!(""));
+                    log::info!(
+                        "[Session Context] User requested global workflow (no project binding) for {}",
+                        tool_name
+                    );
+                }
+            }
+            // If project_id is already set (non-empty, non-global), keep it
+            Some(pid) if !pid.is_empty() => {
+                log::info!(
+                    "[Session Context] Using provided project_id '{}' for {}",
+                    pid,
+                    tool_name
+                );
+            }
+            // If project_id is empty or not provided, inject from session
+            _ => {
+                if let Some(ref project_id) = session_ctx.project_id {
+                    if let Some(obj) = tool_call.arguments.as_object_mut() {
+                        obj.insert("project_id".to_string(), serde_json::json!(project_id));
+                        log::info!(
+                            "[Session Context] Auto-injected project_id '{}' into {}",
+                            project_id,
+                            tool_name
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    // Inject cwd for step creation tools (single step)
+    if matches!(tool_name, "add_workflow_step") {
+        let has_cwd = tool_call.arguments
+            .get("cwd")
+            .and_then(|v| v.as_str())
+            .map(|s| !s.trim().is_empty())
+            .unwrap_or(false);
+
+        if !has_cwd {
+            if let Some(ref project_path) = session_ctx.project_path {
+                if let Some(obj) = tool_call.arguments.as_object_mut() {
+                    obj.insert("cwd".to_string(), serde_json::json!(project_path));
+                    log::info!(
+                        "[Session Context] Auto-injected cwd '{}' into {}",
+                        project_path,
+                        tool_name
+                    );
+                }
+            }
+        }
+    }
+
+    // Inject cwd for batch step creation tools
+    if matches!(tool_name, "add_workflow_steps" | "create_workflow_with_steps") {
+        if let Some(ref project_path) = session_ctx.project_path {
+            if let Some(steps) = tool_call.arguments.get_mut("steps").and_then(|v| v.as_array_mut()) {
+                for step in steps.iter_mut() {
+                    let has_cwd = step
+                        .get("cwd")
+                        .and_then(|v| v.as_str())
+                        .map(|s| !s.trim().is_empty())
+                        .unwrap_or(false);
+
+                    if !has_cwd {
+                        if let Some(obj) = step.as_object_mut() {
+                            obj.insert("cwd".to_string(), serde_json::json!(project_path));
+                        }
+                    }
+                }
+                log::info!(
+                    "[Session Context] Auto-injected cwd '{}' into {} steps",
+                    project_path,
+                    tool_name
+                );
+            }
+        }
     }
 }
 
