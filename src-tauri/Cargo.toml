@@ -26,21 +26,17 @@ too_many_arguments = "allow"
 type_complexity = "allow"
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
-name = "packageflow_lib"
+# Tauri app library - contains commands and Tauri-specific code
+name = "packageflow_app"
 crate-type = ["staticlib", "cdylib", "rlib"]
-
-# MCP Server binary - runs separately from the Tauri app
-[[bin]]
-name = "packageflow-mcp"
-path = "src/bin/mcp_server.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# Shared library (models, repositories, services, utils)
+packageflow-lib = { path = "../crates/packageflow-lib" }
+
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-opener = "2"
 tauri-plugin-shell = "2"

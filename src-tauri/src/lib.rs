@@ -6,13 +6,15 @@
 #![allow(hidden_glob_reexports)]
 
 mod commands;
-pub mod models;
-pub mod repositories;
-pub mod services;
-pub mod utils;
+pub mod services; // Local services with Tauri dependencies
+pub mod repositories; // Local repositories with Tauri dependencies
+
+// Re-export from packageflow-lib
+pub use packageflow_lib::models;
+pub use packageflow_lib::utils;
 
 // Re-export models for use in commands
-pub use models::*;
+pub use packageflow_lib::models::*;
 
 use std::sync::Arc;
 

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 function ensureAlias({ profile }) {
   const projectRoot = process.cwd();
-  const targetDir = path.join(projectRoot, 'src-tauri', 'target', profile);
+  const targetDir = path.join(projectRoot, 'target', profile);
 
   const exeSuffix = process.platform === 'win32' ? '.exe' : '';
   const source = path.join(targetDir, `packageflow-mcp${exeSuffix}`);
