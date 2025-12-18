@@ -922,7 +922,7 @@ const FEATURE_TIPS: FeatureTip[] = [
     icon: <Workflow className="w-5 h-5" />,
     title: 'Workflow Automation',
     description: 'Create, run, and manage workflows and templates',
-    prompt: 'What workflows are available?',
+    prompt: 'Create a workflow named "Dev Environment" with these steps: 1. npm install, 2. npm run build, 3. docker compose up -d',
     color: 'from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-500',
   },
   {
@@ -1035,7 +1035,7 @@ function WelcomeState({ onAction }: WelcomeStateProps) {
           {[
             'How many projects are registered?',
             'Run build script for current project',
-            'Create a workflow to build and test',
+            'Create a frontend + docker compose dev workflow',
             // Feature 024: New Quick Start examples
             'Check for security vulnerabilities',
             'List all running background processes',
