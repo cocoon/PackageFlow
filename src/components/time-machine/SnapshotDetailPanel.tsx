@@ -166,7 +166,7 @@ export function SnapshotDetailPanel({
   ];
 
   return (
-    <div className={cn('flex h-full -m-4 animate-in fade-in-0 duration-200', className)}>
+    <div className={cn('flex -m-4 animate-in fade-in-0 duration-200', className)}>
       {/* Left Sidebar Navigation */}
       <div className="w-56 flex-shrink-0 bg-card rounded-lg overflow-hidden m-4 mr-0 self-start">
         <div className="p-3 border-b border-border">
@@ -225,14 +225,14 @@ export function SnapshotDetailPanel({
       </div>
 
       {/* Right Content Area */}
-      <div className="flex-1 min-w-0 overflow-hidden p-4 flex flex-col">
+      <div className="flex-1 min-w-0 p-4">
         {/* Overview Tab */}
-        <div className={cn('flex-1 overflow-y-auto', activeTab !== 'overview' && 'hidden')}>
+        <div className={cn(activeTab !== 'overview' && 'hidden')}>
           <OverviewTabContent snapshot={snapshot} />
         </div>
 
         {/* Dependencies Tab */}
-        <div className={cn('flex-1 overflow-y-auto', activeTab !== 'dependencies' && 'hidden')}>
+        <div className={cn(activeTab !== 'dependencies' && 'hidden')}>
           <DependenciesTabContent
             dependencies={dependencies}
             loading={loading}
@@ -252,12 +252,12 @@ export function SnapshotDetailPanel({
         </div>
 
         {/* Integrity Tab */}
-        <div className={cn('flex-1 overflow-y-auto', activeTab !== 'integrity' && 'hidden')}>
+        <div className={cn(activeTab !== 'integrity' && 'hidden')}>
           <IntegrityTabContent snapshot={snapshot} />
         </div>
 
         {/* Compare Tab */}
-        <div className={cn('flex-1 overflow-y-auto', activeTab !== 'compare' && 'hidden')}>
+        <div className={cn(activeTab !== 'compare' && 'hidden')}>
           <CompareTabContent
             currentSnapshotId={snapshot.id}
             allSnapshots={allSnapshots}
@@ -293,33 +293,23 @@ function OverviewTabContent({ snapshot }: { snapshot: ExecutionSnapshot }) {
       <div>
         <h2 className="text-lg font-semibold text-foreground">Snapshot Overview</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {snapshot.triggerSource === 'manual' ? 'Manual capture' : 'Auto-captured on lockfile change'}
+          {snapshot.triggerSource === 'manual'
+            ? 'Manual capture'
+            : 'Auto-captured on lockfile change'}
         </p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
-        <StatCard
-          icon={Clock}
-          label="Created"
-          value={formatDate(snapshot.createdAt)}
-        />
+        <StatCard icon={Clock} label="Created" value={formatDate(snapshot.createdAt)} />
         <StatCard
           icon={Package}
           label="Package Manager"
           value={(snapshot.lockfileType || 'Unknown').toUpperCase()}
         />
-        <StatCard
-          icon={HardDrive}
-          label="Storage"
-          value={formatSize(snapshot.compressedSize)}
-        />
+        <StatCard icon={HardDrive} label="Storage" value={formatSize(snapshot.compressedSize)} />
         <div
-          className={cn(
-            'p-4 rounded-xl',
-            'bg-card border border-border',
-            'flex items-start gap-3'
-          )}
+          className={cn('p-4 rounded-xl', 'bg-card border border-border', 'flex items-start gap-3')}
         >
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
             <Shield className="w-5 h-5 text-cyan-500" />
@@ -384,13 +374,7 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div
-      className={cn(
-        'p-4 rounded-xl',
-        'bg-card border border-border',
-        'flex items-start gap-3'
-      )}
-    >
+    <div className={cn('p-4 rounded-xl', 'bg-card border border-border', 'flex items-start gap-3')}>
       <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center">
         <Icon className="w-5 h-5 text-cyan-500" />
       </div>
@@ -479,11 +463,7 @@ function DependenciesTabContent({
           active={showDirect}
           onClick={() => onShowDirectChange(!showDirect)}
         />
-        <FilterPill
-          label="Dev"
-          active={showDev}
-          onClick={() => onShowDevChange(!showDev)}
-        />
+        <FilterPill label="Dev" active={showDev} onClick={() => onShowDevChange(!showDev)} />
         <FilterPill
           label="Postinstall"
           active={showPostinstall}
@@ -511,9 +491,7 @@ function DependenciesTabContent({
           {directDeps.length > 0 && (
             <DependencyGroup title="Direct" deps={directDeps} variant="primary" />
           )}
-          {devDeps.length > 0 && (
-            <DependencyGroup title="Dev" deps={devDeps} variant="secondary" />
-          )}
+          {devDeps.length > 0 && <DependencyGroup title="Dev" deps={devDeps} variant="secondary" />}
           {transitiveDeps.length > 0 && (
             <DependencyGroup title="Transitive" deps={transitiveDeps} variant="muted" />
           )}

@@ -30,7 +30,6 @@ import {
   Trash2,
   Terminal as TerminalIcon,
 } from 'lucide-react';
-import { useTerminalHeight } from '../../hooks/useTerminalHeight';
 import { scriptAPI } from '../../lib/tauri-api';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Button } from '../ui/Button';
@@ -171,8 +170,30 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
     const startYRef = useRef(0);
     const startHeightRef = useRef(0);
 
-    // Settings context for path formatting
-    const { formatPath } = useSettings();
+    // Settings context for path formatting and terminal height
+    const { formatPath, terminalHeight: height, setTerminalHeight } = useSettings();
+    const MIN_HEIGHT = 100;
+    const MAX_HEIGHT = 600;
+
+    // Debounce height updates to avoid excessive DB writes
+    const updateHeightTimeoutRef = useRef<number | undefined>(undefined);
+    const updateHeight = useCallback((newHeight: number) => {
+      if (updateHeightTimeoutRef.current) {
+        clearTimeout(updateHeightTimeoutRef.current);
+      }
+      updateHeightTimeoutRef.current = window.setTimeout(() => {
+        setTerminalHeight(newHeight);
+      }, 500);
+    }, [setTerminalHeight]);
+
+    // Cleanup height update timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (updateHeightTimeoutRef.current) {
+          clearTimeout(updateHeightTimeoutRef.current);
+        }
+      };
+    }, []);
 
     // Feature 008: Store callback refs to avoid stale closures in useEffect
     const onUpdatePtyOutputRef = useRef(onUpdatePtyOutput);
@@ -181,9 +202,6 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
       onUpdatePtyOutputRef.current = onUpdatePtyOutput;
       onUpdatePtyStatusRef.current = onUpdatePtyStatus;
     }, [onUpdatePtyOutput, onUpdatePtyStatus]);
-
-    // Use persisted height hook
-    const { height, updateHeight, MIN_HEIGHT, MAX_HEIGHT } = useTerminalHeight();
 
     // Get active session
     const activeSession = activeSessionId ? sessions.get(activeSessionId) : null;

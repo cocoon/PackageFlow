@@ -93,6 +93,7 @@ jobs:
   build-macos:
     needs: generate-release-notes
     runs-on: macos-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
@@ -116,8 +117,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-targets: true
+          cache-all-crates: true
+          key: ${{ matrix.target }}
+
       - name: Install dependencies
         run: pnpm install
+
+      - name: Pre-build MCP server
+        run: |
+          # Build MCP with same target as Tauri to share compilation cache
+          mkdir -p src-tauri/target/release
+          touch src-tauri/target/release/packageflow-mcp
+          cargo build --manifest-path src-tauri/Cargo.toml --release --target ${{ matrix.target }} --bin packageflow-mcp
+          # Copy binary to expected location for Tauri resources
+          cp src-tauri/target/${{ matrix.target }}/release/packageflow-mcp src-tauri/target/release/
 
       - name: Import Apple certificate
         env:

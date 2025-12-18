@@ -92,7 +92,7 @@ PackageFlow 是「AI 驅動」的意思不是只會聊天，而是 AI 可以呼�
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/deploy-demo.gif" width="720" alt="Deploy demo" />
+  <img src="docs/screenshots/chat-with-ai.gif" width="720" alt="Deploy demo" />
   <br/>
   <em>👆 一鍵部署，即時取得預覽連結</em>
 </p>
