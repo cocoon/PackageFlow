@@ -16,7 +16,7 @@ import {
   Search,
 } from 'lucide-react';
 import { type RunningScript } from '../../hooks/useScriptExecution';
-import { useTerminalHeight } from '../../hooks/useTerminalHeight';
+import { useSettings } from '../../contexts/SettingsContext';
 import { useTerminalSearch, highlightSearchMatches } from '../../hooks/useTerminalSearch';
 import AnsiToHtml from 'ansi-to-html';
 
@@ -90,7 +90,29 @@ export function ScriptTerminal({
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
 
-  const { height, updateHeight, MIN_HEIGHT, MAX_HEIGHT } = useTerminalHeight();
+  const { terminalHeight: height, setTerminalHeight } = useSettings();
+  const MIN_HEIGHT = 100;
+  const MAX_HEIGHT = 600;
+
+  // Debounce height updates to avoid excessive DB writes
+  const updateHeightTimeoutRef = useRef<number | undefined>(undefined);
+  const updateHeight = useCallback((newHeight: number) => {
+    if (updateHeightTimeoutRef.current) {
+      clearTimeout(updateHeightTimeoutRef.current);
+    }
+    updateHeightTimeoutRef.current = window.setTimeout(() => {
+      setTerminalHeight(newHeight);
+    }, 500);
+  }, [setTerminalHeight]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateHeightTimeoutRef.current) {
+        clearTimeout(updateHeightTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const activeScript = activeExecutionId ? runningScripts.get(activeExecutionId) : null;
 

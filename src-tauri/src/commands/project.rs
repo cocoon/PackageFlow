@@ -6,11 +6,13 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
+use crate::models::snapshot::TriggerSource;
 use crate::models::{PackageManager, Project, WorkspacePackage};
 use crate::repositories::ProjectRepository;
+use crate::services::snapshot::{SnapshotCaptureService, SnapshotStorage};
 use crate::DatabaseState;
 
 /// Response for scan_project command
@@ -308,14 +310,97 @@ pub async fn scan_project(
     })
 }
 
+/// Get the snapshot storage base path
+fn get_storage_base_path() -> Result<PathBuf, String> {
+    dirs::data_dir()
+        .map(|p| p.join("com.packageflow.app").join("time-machine"))
+        .ok_or_else(|| "Failed to get data directory".to_string())
+}
+
 /// Save a project to SQLite database
+/// Also captures an initial snapshot if the project has a lockfile
 #[tauri::command]
 pub async fn save_project(
     db: tauri::State<'_, DatabaseState>,
     project: Project,
 ) -> Result<(), String> {
     let repo = ProjectRepository::new(db.0.as_ref().clone());
-    repo.save(&project)
+    repo.save(&project)?;
+
+    // Capture initial snapshot in background
+    let project_path = project.path.clone();
+    let db_clone = db.0.as_ref().clone();
+
+    // Spawn a background task to capture initial snapshot
+    tokio::spawn(async move {
+        if let Err(e) = capture_initial_snapshot(&project_path, db_clone).await {
+            log::warn!(
+                "[project] Failed to capture initial snapshot for {}: {}",
+                project_path,
+                e
+            );
+        }
+    });
+
+    Ok(())
+}
+
+/// Capture initial snapshot for a newly added project
+async fn capture_initial_snapshot(
+    project_path: &str,
+    db: crate::utils::database::Database,
+) -> Result<(), String> {
+    let path = Path::new(project_path);
+
+    // Check if project has a lockfile
+    let has_lockfile = path.join("pnpm-lock.yaml").exists()
+        || path.join("package-lock.json").exists()
+        || path.join("yarn.lock").exists()
+        || path.join("bun.lockb").exists();
+
+    if !has_lockfile {
+        log::info!(
+            "[project] No lockfile found for {}, skipping initial snapshot",
+            project_path
+        );
+        return Ok(());
+    }
+
+    let base_path = get_storage_base_path()?;
+    let project_path_owned = project_path.to_string();
+
+    // Run in blocking task since snapshot capture involves file I/O
+    tokio::task::spawn_blocking(move || {
+        let storage = SnapshotStorage::new(base_path);
+        let service = SnapshotCaptureService::new(storage, db);
+
+        let request = crate::models::snapshot::CreateSnapshotRequest {
+            project_path: project_path_owned.clone(),
+            trigger_source: TriggerSource::Manual, // Initial snapshot
+        };
+
+        match service.capture_snapshot(&request) {
+            Ok(snapshot) => {
+                log::info!(
+                    "[project] Captured initial snapshot {} for project {} ({} dependencies)",
+                    snapshot.id,
+                    project_path_owned,
+                    snapshot.total_dependencies
+                );
+                Ok(())
+            }
+            Err(e) => {
+                log::error!(
+                    "[project] Failed to capture initial snapshot for {}: {}",
+                    project_path_owned,
+                    e
+                );
+                Err(e)
+            }
+        }
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
 }
 
 /// Remove a project from SQLite database

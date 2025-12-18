@@ -35,15 +35,10 @@
   <a href="#-faq"><strong>❓ FAQ</strong></a>
 </p>
 
-<p align="center">
-  <a href="./README.zh-TW.md">繁體中文</a> •
-  <a href="./README.zh-CN.md">简体中文</a>
-</p>
-
 ---
 
 <p align="center">
-  <img src="docs/screenshots/deploy-demo.gif" width="720" alt="PackageFlow Hero" />
+  <img src="docs/screenshots/chat-with-ai.gif" width="720" alt="PackageFlow Hero" />
 </p>
 
 <!-- TODO: Add a 20–40s product demo video link (YouTube/X) and/or a thumbnail image here. -->
