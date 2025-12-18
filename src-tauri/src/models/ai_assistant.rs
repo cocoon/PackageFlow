@@ -896,3 +896,697 @@ pub struct StatusUpdatePayload {
     pub conversation_id: String,
     pub status: ResponseStatus,
 }
+
+// ============================================================================
+// Feature 025: Session Context for AI Precision Improvement
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Session Context (Bound at conversation start)
+// ----------------------------------------------------------------------------
+
+/// Summary of a workflow for session context
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowSummary {
+    pub id: String,
+    pub name: String,
+    /// Number of steps in the workflow
+    pub step_count: usize,
+}
+
+/// Summary of a worktree for session context
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorktreeSummary {
+    pub path: String,
+    pub branch: String,
+}
+
+/// Session-level context binding for AI Assistant
+/// Ensures AI operations stay within the intended project scope
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionContext {
+    /// Unique project ID from database
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    /// Project name for display
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_name: Option<String>,
+    /// Absolute project path
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_path: Option<String>,
+    /// Project type (Node.js, Rust, Python, etc.)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_type: Option<String>,
+    /// Package manager
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package_manager: Option<String>,
+    /// Available scripts from package.json or equivalent
+    #[serde(default)]
+    pub available_scripts: Vec<String>,
+    /// Workflows associated with this project (project-specific + global)
+    #[serde(default)]
+    pub bound_workflows: Vec<WorkflowSummary>,
+    /// Active worktree (if any)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub active_worktree: Option<WorktreeSummary>,
+}
+
+impl SessionContext {
+    /// Create a new empty session context
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Check if this context has a bound project
+    pub fn has_project(&self) -> bool {
+        self.project_id.is_some() || self.project_path.is_some()
+    }
+
+    /// Check if a workflow ID is bound to this session
+    pub fn is_workflow_bound(&self, workflow_id: &str) -> bool {
+        self.bound_workflows.iter().any(|w| w.id == workflow_id)
+    }
+
+    /// Get workflow by ID if bound
+    pub fn get_workflow(&self, workflow_id: &str) -> Option<&WorkflowSummary> {
+        self.bound_workflows.iter().find(|w| w.id == workflow_id)
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Context Delta (Returned by tools that create/modify resources)
+// ----------------------------------------------------------------------------
+
+/// Type of context delta
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextDeltaType {
+    /// A new workflow was created
+    WorkflowCreated,
+    /// A step was added to a workflow
+    StepAdded,
+    /// A step was removed from a workflow
+    StepRemoved,
+    /// A workflow was deleted
+    WorkflowDeleted,
+    /// Multiple steps were added (batch operation)
+    StepsAdded,
+}
+
+/// Resource information in a context delta
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextDeltaResource {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workflow_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub project_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_order: Option<i32>,
+    /// For batch operations, list of step IDs
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_ids: Option<Vec<String>>,
+    /// For batch operations, list of step names
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub step_names: Option<Vec<String>>,
+}
+
+/// Context delta returned by tools that create/modify resources
+/// Used to update SessionCreatedResources during agentic loop
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextDelta {
+    /// Type of delta
+    pub delta_type: ContextDeltaType,
+    /// Affected resource info
+    pub resource: ContextDeltaResource,
+}
+
+impl ContextDelta {
+    /// Create a workflow created delta
+    pub fn workflow_created(
+        workflow_id: String,
+        workflow_name: String,
+        project_id: Option<String>,
+    ) -> Self {
+        Self {
+            delta_type: ContextDeltaType::WorkflowCreated,
+            resource: ContextDeltaResource {
+                workflow_id: Some(workflow_id),
+                workflow_name: Some(workflow_name),
+                project_id,
+                ..Default::default()
+            },
+        }
+    }
+
+    /// Create a step added delta
+    pub fn step_added(
+        workflow_id: String,
+        workflow_name: String,
+        project_id: Option<String>,
+        step_id: String,
+        step_name: String,
+        step_order: i32,
+    ) -> Self {
+        Self {
+            delta_type: ContextDeltaType::StepAdded,
+            resource: ContextDeltaResource {
+                workflow_id: Some(workflow_id),
+                workflow_name: Some(workflow_name),
+                project_id,
+                step_id: Some(step_id),
+                step_name: Some(step_name),
+                step_order: Some(step_order),
+                ..Default::default()
+            },
+        }
+    }
+
+    /// Create a steps added (batch) delta
+    pub fn steps_added(
+        workflow_id: String,
+        workflow_name: String,
+        project_id: Option<String>,
+        step_ids: Vec<String>,
+        step_names: Vec<String>,
+    ) -> Self {
+        Self {
+            delta_type: ContextDeltaType::StepsAdded,
+            resource: ContextDeltaResource {
+                workflow_id: Some(workflow_id),
+                workflow_name: Some(workflow_name),
+                project_id,
+                step_ids: Some(step_ids),
+                step_names: Some(step_names),
+                ..Default::default()
+            },
+        }
+    }
+
+    /// Create a step removed delta
+    pub fn step_removed(
+        workflow_id: String,
+        workflow_name: String,
+        step_id: String,
+    ) -> Self {
+        Self {
+            delta_type: ContextDeltaType::StepRemoved,
+            resource: ContextDeltaResource {
+                workflow_id: Some(workflow_id),
+                workflow_name: Some(workflow_name),
+                step_id: Some(step_id),
+                ..Default::default()
+            },
+        }
+    }
+
+    /// Create a workflow deleted delta
+    pub fn workflow_deleted(workflow_id: String) -> Self {
+        Self {
+            delta_type: ContextDeltaType::WorkflowDeleted,
+            resource: ContextDeltaResource {
+                workflow_id: Some(workflow_id),
+                ..Default::default()
+            },
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Session Created Resources (Tracked during conversation)
+// ----------------------------------------------------------------------------
+
+/// A step created during this conversation session
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatedStep {
+    pub id: String,
+    pub name: String,
+    pub workflow_id: String,
+    pub order: i32,
+}
+
+/// A workflow created during this conversation session
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatedWorkflow {
+    pub id: String,
+    pub name: String,
+    pub project_id: Option<String>,
+    pub steps: Vec<CreatedStep>,
+    /// Message index when this workflow was created
+    pub created_at_message_index: usize,
+}
+
+/// Modification to an existing workflow during this session
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowModification {
+    pub workflow_id: String,
+    pub workflow_name: String,
+    pub added_steps: Vec<CreatedStep>,
+    pub removed_step_ids: Vec<String>,
+}
+
+/// Resources created/modified during the conversation
+/// This is tracked in-memory and injected into system prompt
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionCreatedResources {
+    /// Workflows created in this session
+    pub workflows: Vec<CreatedWorkflow>,
+    /// Modifications to existing workflows
+    pub workflow_modifications: Vec<WorkflowModification>,
+    /// Last update timestamp (milliseconds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_updated: Option<i64>,
+}
+
+impl SessionCreatedResources {
+    /// Create a new empty resources tracker
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Check if any resources have been created/modified
+    pub fn is_empty(&self) -> bool {
+        self.workflows.is_empty() && self.workflow_modifications.is_empty()
+    }
+
+    /// Add a newly created workflow
+    pub fn add_workflow(
+        &mut self,
+        id: String,
+        name: String,
+        project_id: Option<String>,
+        message_index: usize,
+    ) {
+        // Check if already exists (idempotency)
+        if self.workflows.iter().any(|w| w.id == id) {
+            return;
+        }
+        self.workflows.push(CreatedWorkflow {
+            id,
+            name,
+            project_id,
+            steps: Vec::new(),
+            created_at_message_index: message_index,
+        });
+        self.touch();
+    }
+
+    /// Add a step to a workflow (newly created or existing)
+    pub fn add_step(
+        &mut self,
+        workflow_id: String,
+        workflow_name: String,
+        step_id: String,
+        step_name: String,
+        order: i32,
+    ) {
+        let step = CreatedStep {
+            id: step_id.clone(),
+            name: step_name,
+            workflow_id: workflow_id.clone(),
+            order,
+        };
+
+        // First, check if this is a workflow we created in this session
+        if let Some(wf) = self.workflows.iter_mut().find(|w| w.id == workflow_id) {
+            if !wf.steps.iter().any(|s| s.id == step_id) {
+                wf.steps.push(step);
+            }
+            self.touch();
+            return;
+        }
+
+        // Otherwise, it's a modification to an existing workflow
+        if let Some(mod_entry) = self
+            .workflow_modifications
+            .iter_mut()
+            .find(|m| m.workflow_id == workflow_id)
+        {
+            if !mod_entry.added_steps.iter().any(|s| s.id == step_id) {
+                mod_entry.added_steps.push(step);
+            }
+        } else {
+            self.workflow_modifications.push(WorkflowModification {
+                workflow_id,
+                workflow_name,
+                added_steps: vec![step],
+                removed_step_ids: Vec::new(),
+            });
+        }
+        self.touch();
+    }
+
+    /// Add multiple steps to a workflow (batch operation)
+    pub fn add_steps(
+        &mut self,
+        workflow_id: String,
+        workflow_name: String,
+        steps: Vec<(String, String, i32)>, // (id, name, order)
+    ) {
+        for (step_id, step_name, order) in steps {
+            self.add_step(
+                workflow_id.clone(),
+                workflow_name.clone(),
+                step_id,
+                step_name,
+                order,
+            );
+        }
+    }
+
+    /// Record a step removal
+    pub fn remove_step(&mut self, workflow_id: String, workflow_name: String, step_id: String) {
+        // If it's a workflow we created, remove from there
+        if let Some(wf) = self.workflows.iter_mut().find(|w| w.id == workflow_id) {
+            wf.steps.retain(|s| s.id != step_id);
+            self.touch();
+            return;
+        }
+
+        // Otherwise track as modification
+        if let Some(mod_entry) = self
+            .workflow_modifications
+            .iter_mut()
+            .find(|m| m.workflow_id == workflow_id)
+        {
+            // Remove from added_steps if it was added in this session
+            mod_entry.added_steps.retain(|s| s.id != step_id);
+            // Track removal
+            if !mod_entry.removed_step_ids.contains(&step_id) {
+                mod_entry.removed_step_ids.push(step_id);
+            }
+        } else {
+            self.workflow_modifications.push(WorkflowModification {
+                workflow_id,
+                workflow_name,
+                added_steps: Vec::new(),
+                removed_step_ids: vec![step_id],
+            });
+        }
+        self.touch();
+    }
+
+    /// Remove a workflow (if it was created in this session)
+    pub fn remove_workflow(&mut self, workflow_id: &str) {
+        self.workflows.retain(|w| w.id != workflow_id);
+        self.touch();
+    }
+
+    /// Apply a context delta to update resources
+    pub fn apply_delta(&mut self, delta: &ContextDelta, message_index: usize) {
+        match delta.delta_type {
+            ContextDeltaType::WorkflowCreated => {
+                if let (Some(id), Some(name)) = (
+                    &delta.resource.workflow_id,
+                    &delta.resource.workflow_name,
+                ) {
+                    self.add_workflow(
+                        id.clone(),
+                        name.clone(),
+                        delta.resource.project_id.clone(),
+                        message_index,
+                    );
+                }
+            }
+            ContextDeltaType::StepAdded => {
+                if let (Some(wf_id), Some(wf_name), Some(step_id), Some(step_name)) = (
+                    &delta.resource.workflow_id,
+                    &delta.resource.workflow_name,
+                    &delta.resource.step_id,
+                    &delta.resource.step_name,
+                ) {
+                    self.add_step(
+                        wf_id.clone(),
+                        wf_name.clone(),
+                        step_id.clone(),
+                        step_name.clone(),
+                        delta.resource.step_order.unwrap_or(0),
+                    );
+                }
+            }
+            ContextDeltaType::StepsAdded => {
+                if let (Some(wf_id), Some(wf_name), Some(step_ids), Some(step_names)) = (
+                    &delta.resource.workflow_id,
+                    &delta.resource.workflow_name,
+                    &delta.resource.step_ids,
+                    &delta.resource.step_names,
+                ) {
+                    let steps: Vec<(String, String, i32)> = step_ids
+                        .iter()
+                        .zip(step_names.iter())
+                        .enumerate()
+                        .map(|(i, (id, name))| (id.clone(), name.clone(), i as i32))
+                        .collect();
+                    self.add_steps(wf_id.clone(), wf_name.clone(), steps);
+                }
+            }
+            ContextDeltaType::StepRemoved => {
+                if let (Some(wf_id), Some(wf_name), Some(step_id)) = (
+                    &delta.resource.workflow_id,
+                    &delta.resource.workflow_name,
+                    &delta.resource.step_id,
+                ) {
+                    self.remove_step(wf_id.clone(), wf_name.clone(), step_id.clone());
+                }
+            }
+            ContextDeltaType::WorkflowDeleted => {
+                if let Some(wf_id) = &delta.resource.workflow_id {
+                    self.remove_workflow(wf_id);
+                }
+            }
+        }
+    }
+
+    /// Get summary for system prompt injection
+    pub fn get_context_summary(&self) -> Option<String> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let mut lines = vec![
+            "## Resources Created/Modified in This Conversation".to_string(),
+            String::new(),
+        ];
+
+        if !self.workflows.is_empty() {
+            lines.push("**Newly Created Workflows:**".to_string());
+            for wf in &self.workflows {
+                lines.push(format!(
+                    "- `{}`: {} ({} steps)",
+                    wf.id,
+                    wf.name,
+                    wf.steps.len()
+                ));
+                for step in &wf.steps {
+                    lines.push(format!("  - Step `{}`: {}", step.id, step.name));
+                }
+            }
+            lines.push(String::new());
+        }
+
+        if !self.workflow_modifications.is_empty() {
+            lines.push("**Modified Workflows:**".to_string());
+            for mod_entry in &self.workflow_modifications {
+                let added = mod_entry.added_steps.len();
+                let removed = mod_entry.removed_step_ids.len();
+                lines.push(format!(
+                    "- `{}`: {} (+{} steps, -{} steps)",
+                    mod_entry.workflow_id, mod_entry.workflow_name, added, removed
+                ));
+                for step in &mod_entry.added_steps {
+                    lines.push(format!("  - Added step `{}`: {}", step.id, step.name));
+                }
+            }
+            lines.push(String::new());
+        }
+
+        lines.push(
+            "Use these IDs when referencing resources created in this conversation.".to_string(),
+        );
+
+        Some(lines.join("\n"))
+    }
+
+    fn touch(&mut self) {
+        self.last_updated = Some(chrono::Utc::now().timestamp_millis());
+    }
+}
+
+#[cfg(test)]
+mod session_context_tests {
+    use super::*;
+
+    #[test]
+    fn test_session_context_has_project() {
+        let mut ctx = SessionContext::new();
+        assert!(!ctx.has_project());
+
+        ctx.project_id = Some("proj_123".to_string());
+        assert!(ctx.has_project());
+    }
+
+    #[test]
+    fn test_session_context_is_workflow_bound() {
+        let mut ctx = SessionContext::new();
+        ctx.bound_workflows.push(WorkflowSummary {
+            id: "wf_001".to_string(),
+            name: "Test Workflow".to_string(),
+            step_count: 3,
+        });
+
+        assert!(ctx.is_workflow_bound("wf_001"));
+        assert!(!ctx.is_workflow_bound("wf_999"));
+    }
+
+    #[test]
+    fn test_context_delta_creation() {
+        let delta = ContextDelta::workflow_created(
+            "wf_new".to_string(),
+            "New Workflow".to_string(),
+            Some("proj_123".to_string()),
+        );
+        assert_eq!(delta.delta_type, ContextDeltaType::WorkflowCreated);
+        assert_eq!(delta.resource.workflow_id, Some("wf_new".to_string()));
+    }
+
+    #[test]
+    fn test_session_created_resources_add_workflow() {
+        let mut resources = SessionCreatedResources::new();
+        assert!(resources.is_empty());
+
+        resources.add_workflow(
+            "wf_001".to_string(),
+            "Test".to_string(),
+            None,
+            0,
+        );
+        assert!(!resources.is_empty());
+        assert_eq!(resources.workflows.len(), 1);
+
+        // Idempotency - adding same workflow again should not duplicate
+        resources.add_workflow(
+            "wf_001".to_string(),
+            "Test".to_string(),
+            None,
+            1,
+        );
+        assert_eq!(resources.workflows.len(), 1);
+    }
+
+    #[test]
+    fn test_session_created_resources_add_step_to_new_workflow() {
+        let mut resources = SessionCreatedResources::new();
+        resources.add_workflow("wf_001".to_string(), "Test".to_string(), None, 0);
+
+        resources.add_step(
+            "wf_001".to_string(),
+            "Test".to_string(),
+            "step_001".to_string(),
+            "First Step".to_string(),
+            0,
+        );
+
+        assert_eq!(resources.workflows[0].steps.len(), 1);
+        assert_eq!(resources.workflows[0].steps[0].name, "First Step");
+    }
+
+    #[test]
+    fn test_session_created_resources_add_step_to_existing_workflow() {
+        let mut resources = SessionCreatedResources::new();
+
+        // Add step to a workflow that was NOT created in this session
+        resources.add_step(
+            "wf_existing".to_string(),
+            "Existing Workflow".to_string(),
+            "step_001".to_string(),
+            "New Step".to_string(),
+            0,
+        );
+
+        assert!(resources.workflows.is_empty());
+        assert_eq!(resources.workflow_modifications.len(), 1);
+        assert_eq!(resources.workflow_modifications[0].added_steps.len(), 1);
+    }
+
+    #[test]
+    fn test_session_created_resources_remove_step() {
+        let mut resources = SessionCreatedResources::new();
+        resources.add_workflow("wf_001".to_string(), "Test".to_string(), None, 0);
+        resources.add_step(
+            "wf_001".to_string(),
+            "Test".to_string(),
+            "step_001".to_string(),
+            "Step 1".to_string(),
+            0,
+        );
+
+        resources.remove_step(
+            "wf_001".to_string(),
+            "Test".to_string(),
+            "step_001".to_string(),
+        );
+
+        assert_eq!(resources.workflows[0].steps.len(), 0);
+    }
+
+    #[test]
+    fn test_session_created_resources_apply_delta() {
+        let mut resources = SessionCreatedResources::new();
+
+        let delta = ContextDelta::workflow_created(
+            "wf_new".to_string(),
+            "New Workflow".to_string(),
+            None,
+        );
+        resources.apply_delta(&delta, 0);
+        assert_eq!(resources.workflows.len(), 1);
+
+        let delta = ContextDelta::step_added(
+            "wf_new".to_string(),
+            "New Workflow".to_string(),
+            None,
+            "step_1".to_string(),
+            "Build".to_string(),
+            0,
+        );
+        resources.apply_delta(&delta, 1);
+        assert_eq!(resources.workflows[0].steps.len(), 1);
+    }
+
+    #[test]
+    fn test_session_created_resources_get_context_summary() {
+        let mut resources = SessionCreatedResources::new();
+
+        // Empty resources should return None
+        assert!(resources.get_context_summary().is_none());
+
+        // Add some resources
+        resources.add_workflow("wf_001".to_string(), "Build Workflow".to_string(), None, 0);
+        resources.add_step(
+            "wf_001".to_string(),
+            "Build Workflow".to_string(),
+            "step_1".to_string(),
+            "Install".to_string(),
+            0,
+        );
+
+        let summary = resources.get_context_summary().unwrap();
+        assert!(summary.contains("Build Workflow"));
+        assert!(summary.contains("wf_001"));
+        assert!(summary.contains("Install"));
+    }
+}

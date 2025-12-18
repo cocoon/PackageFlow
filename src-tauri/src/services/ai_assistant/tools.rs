@@ -1,5 +1,6 @@
 // MCP Tool Handler for AI Assistant
 // Feature: AI Assistant Tab (022-ai-assistant-tab)
+// Enhancement: AI Precision Improvement (025-ai-workflow-generator)
 //
 // Handles tool/function calling for AI-driven MCP operations:
 // - Tool definitions for AI providers
@@ -7,8 +8,9 @@
 // - Permission validation
 // - Result formatting
 // - Security: Path validation against registered projects
+// - Context delta tracking for session state updates (025)
 
-use crate::models::ai_assistant::{ToolCall, ToolResult, ToolDefinition, AvailableTools};
+use crate::models::ai_assistant::{ToolCall, ToolResult, ToolDefinition, AvailableTools, ContextDelta};
 use crate::models::ai::ChatToolDefinition;
 use crate::utils::path_resolver;
 use crate::utils::database::Database;
@@ -187,6 +189,34 @@ pub struct MCPToolHandler {
     db: Option<Database>,
 }
 
+// ============================================================================
+// Feature 025: Execution Tool Categories for Cross-Project Validation
+// ============================================================================
+
+/// Tools that modify state and should prefer the current session context
+const EXECUTION_TOOLS: &[&str] = &[
+    "run_script",
+    "run_workflow",
+    "create_workflow",
+    "create_workflow_with_steps",
+    "add_workflow_step",
+    "add_workflow_steps",
+    "run_package_manager_command",
+    "trigger_webhook",
+];
+
+/// Tools that only read data and can operate on any project
+const INFO_TOOLS: &[&str] = &[
+    "get_git_status",
+    "get_staged_diff",
+    "list_project_scripts",
+    "list_projects",
+    "get_project",
+    "list_workflows",
+    "get_workflow",
+    "list_worktrees",
+];
+
 impl MCPToolHandler {
     /// Create a new MCPToolHandler without database (for testing/basic use)
     pub fn new() -> Self {
@@ -202,6 +232,102 @@ impl MCPToolHandler {
             path_validator: Some(PathSecurityValidator::new(db.clone())),
             db: Some(db),
         }
+    }
+
+    // =========================================================================
+    // Feature 025: Session Context Validation
+    // =========================================================================
+
+    /// Check if a tool is an execution tool that should prefer current session context
+    pub fn is_execution_tool(tool_name: &str) -> bool {
+        EXECUTION_TOOLS.contains(&tool_name)
+    }
+
+    /// Check if a tool is an info tool that can operate on any project
+    #[allow(dead_code)]
+    pub fn is_info_tool(tool_name: &str) -> bool {
+        INFO_TOOLS.contains(&tool_name)
+    }
+
+    /// Validate execution tool against session context and log warnings
+    /// This does NOT block execution (per design decision), only warns
+    pub fn validate_execution_context(
+        &self,
+        tool_call: &ToolCall,
+        session_context: Option<&crate::models::ai_assistant::SessionContext>,
+    ) {
+        // Only validate execution tools
+        if !Self::is_execution_tool(&tool_call.name) {
+            return;
+        }
+
+        let session_ctx = match session_context {
+            Some(ctx) => ctx,
+            None => return, // No session context, nothing to validate
+        };
+
+        // Check if workflow operation targets a different project
+        if tool_call.name == "run_workflow" || tool_call.name == "get_workflow" {
+            if let Some(wf_id) = tool_call.arguments.get("workflow_id").and_then(|v| v.as_str()) {
+                if !session_ctx.is_workflow_bound(wf_id) {
+                    // Check if it's a global workflow
+                    let is_global = self.is_global_workflow(wf_id);
+                    if !is_global {
+                        log::warn!(
+                            "[Session Context] Execution tool '{}' targeting workflow '{}' outside session context (project: {:?}). Consider starting new conversation for cross-project operations.",
+                            tool_call.name,
+                            wf_id,
+                            session_ctx.project_id
+                        );
+                    }
+                }
+            }
+        }
+
+        // Check if create_workflow targets a different project
+        if tool_call.name == "create_workflow" || tool_call.name == "create_workflow_with_steps" {
+            if let Some(target_project_id) = tool_call.arguments.get("project_id").and_then(|v| v.as_str()) {
+                if !target_project_id.is_empty() {
+                    if session_ctx.project_id.as_deref() != Some(target_project_id) {
+                        log::warn!(
+                            "[Session Context] create_workflow targeting different project '{}' (current: {:?}). Consider starting new conversation.",
+                            target_project_id,
+                            session_ctx.project_id
+                        );
+                    }
+                }
+            }
+        }
+
+        // Check if run_script targets a different project path
+        if tool_call.name == "run_script" || tool_call.name == "run_package_manager_command" {
+            if let Some(target_path) = tool_call.arguments.get("project_path").and_then(|v| v.as_str()) {
+                if let Some(ref session_path) = session_ctx.project_path {
+                    // Normalize paths for comparison
+                    let session_path_normalized = std::path::Path::new(session_path);
+                    let target_path_normalized = std::path::Path::new(target_path);
+
+                    if session_path_normalized != target_path_normalized {
+                        log::warn!(
+                            "[Session Context] Execution tool '{}' targeting different project path '{}' (current: {}). Consider starting new conversation.",
+                            tool_call.name,
+                            target_path,
+                            session_path
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    /// Check if a workflow is global (not bound to any project)
+    fn is_global_workflow(&self, workflow_id: &str) -> bool {
+        if let Some(ref db) = self.db {
+            if let Ok(Some(wf)) = crate::repositories::WorkflowRepository::new(db.clone()).get(workflow_id) {
+                return wf.project_id.is_none();
+            }
+        }
+        false
     }
 
     /// Convert our tool definitions to ChatToolDefinition format for AI providers
@@ -2610,11 +2736,24 @@ impl MCPToolHandler {
                         "name": workflow.name,
                         "message": format!("Workflow '{}' created successfully. IMPORTANT: Use workflow_id '{}' for add_workflow_step.", name, workflow.id)
                     });
-                    return ToolResult::success(
-                        tool_call.id.clone(),
-                        serde_json::to_string(&output).unwrap_or_default(),
-                        None,
+
+                    // Feature 025: Create context delta for session tracking
+                    let context_delta = ContextDelta::workflow_created(
+                        workflow.id.clone(),
+                        workflow.name.clone(),
+                        workflow.project_id.clone(),
                     );
+
+                    return ToolResult {
+                        call_id: tool_call.id.clone(),
+                        success: true,
+                        output: serde_json::to_string(&output).unwrap_or_default(),
+                        error: None,
+                        duration_ms: None,
+                        metadata: Some(serde_json::json!({
+                            "context_delta": context_delta
+                        })),
+                    };
                 }
                 Err(e) => {
                     return ToolResult::failure(
@@ -2777,11 +2916,40 @@ impl MCPToolHandler {
                         "totalSteps": created_steps.len(),
                         "message": format!("Workflow '{}' created with {} steps. Use workflow_id '{}' with run_workflow to execute.", name, created_steps.len(), workflow.id)
                     });
-                    return ToolResult::success(
-                        tool_call.id.clone(),
-                        serde_json::to_string(&output).unwrap_or_default(),
-                        None,
+
+                    // Feature 025: Create context delta for session tracking
+                    // Extract step IDs and names for batch delta
+                    let step_ids: Vec<String> = created_steps
+                        .iter()
+                        .filter_map(|s| s.get("nodeId").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                        .collect();
+                    let step_names: Vec<String> = created_steps
+                        .iter()
+                        .filter_map(|s| s.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                        .collect();
+
+                    // Create combined delta: workflow created + steps added
+                    let workflow_delta = ContextDelta::workflow_created(
+                        workflow.id.clone(),
+                        workflow.name.clone(),
+                        workflow.project_id.clone(),
                     );
+
+                    // We return the workflow delta; steps are implicitly part of the workflow
+                    // The SessionCreatedResources will be updated to include steps via separate call or parsing
+
+                    return ToolResult {
+                        call_id: tool_call.id.clone(),
+                        success: true,
+                        output: serde_json::to_string(&output).unwrap_or_default(),
+                        error: None,
+                        duration_ms: None,
+                        metadata: Some(serde_json::json!({
+                            "context_delta": workflow_delta,
+                            "created_step_ids": step_ids,
+                            "created_step_names": step_names
+                        })),
+                    };
                 }
                 Err(e) => {
                     return ToolResult::failure(
@@ -2849,11 +3017,27 @@ impl MCPToolHandler {
                                 "workflowId": workflow_id,
                                 "message": format!("Step '{}' added to workflow", name)
                             });
-                            return ToolResult::success(
-                                tool_call.id.clone(),
-                                serde_json::to_string(&output).unwrap_or_default(),
-                                None,
+
+                            // Feature 025: Create context delta for session tracking
+                            let context_delta = ContextDelta::step_added(
+                                workflow_id.to_string(),
+                                workflow.name.clone(),
+                                workflow.project_id.clone(),
+                                node_id.clone(),
+                                name.to_string(),
+                                (workflow.nodes.len() - 1) as i32, // order is 0-based
                             );
+
+                            return ToolResult {
+                                call_id: tool_call.id.clone(),
+                                success: true,
+                                output: serde_json::to_string(&output).unwrap_or_default(),
+                                error: None,
+                                duration_ms: None,
+                                metadata: Some(serde_json::json!({
+                                    "context_delta": context_delta
+                                })),
+                            };
                         }
                         Err(e) => {
                             return ToolResult::failure(
@@ -3009,11 +3193,35 @@ impl MCPToolHandler {
                                 "totalWorkflowSteps": workflow.nodes.len(),
                                 "message": format!("Successfully added {} steps to workflow", created_nodes.len())
                             });
-                            return ToolResult::success(
-                                tool_call.id.clone(),
-                                serde_json::to_string(&output).unwrap_or_default(),
-                                None,
+
+                            // Feature 025: Create context delta for session tracking (batch)
+                            let step_ids: Vec<String> = created_nodes
+                                .iter()
+                                .filter_map(|s| s.get("nodeId").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                                .collect();
+                            let step_names_list: Vec<String> = created_nodes
+                                .iter()
+                                .filter_map(|s| s.get("name").and_then(|v| v.as_str()).map(|s| s.to_string()))
+                                .collect();
+
+                            let context_delta = ContextDelta::steps_added(
+                                workflow_id.to_string(),
+                                workflow.name.clone(),
+                                workflow.project_id.clone(),
+                                step_ids,
+                                step_names_list,
                             );
+
+                            return ToolResult {
+                                call_id: tool_call.id.clone(),
+                                success: true,
+                                output: serde_json::to_string(&output).unwrap_or_default(),
+                                error: None,
+                                duration_ms: None,
+                                metadata: Some(serde_json::json!({
+                                    "context_delta": context_delta
+                                })),
+                            };
                         }
                         Err(e) => {
                             return ToolResult::failure(

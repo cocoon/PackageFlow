@@ -914,44 +914,43 @@ const FEATURE_TIPS: FeatureTip[] = [
   {
     icon: <FolderGit2 className="w-5 h-5" />,
     title: 'Project Management',
-    description: 'List projects, get project details, run npm scripts',
-    prompt: 'List all projects registered in PackageFlow',
+    description: 'List projects, view scripts, check dependencies',
+    prompt: 'List all registered projects and show how many npm scripts each one has',
     color: 'from-blue-500/20 to-blue-500/5 border-blue-500/20 text-blue-500',
   },
   {
     icon: <Workflow className="w-5 h-5" />,
     title: 'Workflow Automation',
-    description: 'Create, run, and manage workflows and templates',
-    prompt: 'Create a workflow named "Dev Environment" with these steps: 1. npm install, 2. npm run build, 3. docker compose up -d',
+    description: 'Create and run multi-step workflows',
+    prompt: 'Create a workflow named "Build & Test" with steps: npm ci, npm run lint, npm run test, npm run build',
     color: 'from-purple-500/20 to-purple-500/5 border-purple-500/20 text-purple-500',
   },
   {
     icon: <GitBranch className="w-5 h-5" />,
     title: 'Git Operations',
-    description: 'Check status, view diff, manage worktrees',
-    prompt: 'Show git status of the current project',
+    description: 'Check status, staged diff, worktrees',
+    prompt: 'Show git status and staged changes for the current project',
     color: 'from-orange-500/20 to-orange-500/5 border-orange-500/20 text-orange-500',
   },
   {
     icon: <Terminal className="w-5 h-5" />,
     title: 'Script Execution',
-    description: 'Run MCP actions, execute scripts with permissions',
-    prompt: 'Show me all available MCP actions',
+    description: 'Run npm scripts and package manager commands',
+    prompt: 'Show all npm scripts in the current project',
     color: 'from-green-500/20 to-green-500/5 border-green-500/20 text-green-500',
   },
-  // Feature 024: New Feature Tips
   {
     icon: <Shield className="w-5 h-5" />,
     title: 'Security & Auditing',
-    description: 'Run security scans, check vulnerabilities, audit dependencies',
-    prompt: 'Check for security vulnerabilities in this project',
+    description: 'Run npm audit, check vulnerabilities',
+    prompt: 'Run a security scan on this project and summarize any vulnerabilities found',
     color: 'from-red-500/20 to-red-500/5 border-red-500/20 text-red-500',
   },
   {
     icon: <Activity className="w-5 h-5" />,
     title: 'System Monitoring',
-    description: 'View background processes, notifications, environment info',
-    prompt: 'List all running background processes',
+    description: 'View background processes and system info',
+    prompt: 'List all running background processes and their status',
     color: 'from-cyan-500/20 to-cyan-500/5 border-cyan-500/20 text-cyan-500',
   },
 ];
@@ -1033,13 +1032,12 @@ function WelcomeState({ onAction }: WelcomeStateProps) {
         </p>
         <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
           {[
-            'How many projects are registered?',
-            'Run build script for current project',
-            'Create a frontend + docker compose dev workflow',
-            // Feature 024: New Quick Start examples
-            'Check for security vulnerabilities',
-            'List all running background processes',
-            'Show project dependencies',
+            'List all projects with their npm scripts',
+            'Run npm run dev in the current project',
+            'Create a CI workflow: install, lint, test, build',
+            'Run security audit and explain the results',
+            'Show git status and staged changes',
+            'List all background processes',
           ].map((example) => (
             <button
               key={example}

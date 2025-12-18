@@ -1,11 +1,13 @@
 // AI Assistant Tauri Commands
 // Feature: AI Assistant Tab (022-ai-assistant-tab)
+// Enhancement: AI Precision Improvement (025-ai-workflow-generator)
 //
 // Tauri commands for:
 // - Creating and managing conversations
 // - Sending messages with streaming responses
 // - Cancelling active streams
 // - Managing conversation history
+// - Session context tracking for precise project/workflow targeting (025)
 
 use chrono::Utc;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -13,12 +15,15 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::models::ai_assistant::{
     Conversation, ConversationListResponse, Message, SendMessageRequest, SendMessageResponse,
     MessageStatus, MessageRole, ToolCall, ToolResult, ToolCallStatus, AvailableTools, SuggestionsResponse,
-    ProjectContext,
+    ProjectContext, SessionContext, SessionCreatedResources, ContextDelta,
 };
 use crate::models::ai::{ChatMessage, ChatOptions, ChatToolCall};
 use crate::repositories::{AIConversationRepository, AIRepository};
 use crate::services::ai::{create_provider, AIKeychain};
-use crate::services::ai_assistant::{StreamManager, StreamContext, MCPToolHandler, ProjectContextBuilder};
+use crate::services::ai_assistant::{
+    StreamManager, StreamContext, MCPToolHandler, ProjectContextBuilder,
+    SessionContextBuilder, build_system_prompt_with_session_context,
+};
 use crate::DatabaseState;
 
 // ============================================================================
@@ -316,8 +321,18 @@ pub async fn ai_assistant_send_message(
         let mut ctx = stream_ctx;
 
         // Initialize tool handler with database for security validation
-        let tool_handler = MCPToolHandler::with_database(db_for_tools);
+        let tool_handler = MCPToolHandler::with_database(db_for_tools.clone());
         let tool_definitions = tool_handler.get_chat_tool_definitions(project_path_for_tools.as_deref());
+
+        // Feature 025: Build SessionContext for precise project/workflow targeting
+        let session_context: Option<SessionContext> = {
+            let builder = SessionContextBuilder::new(db_for_tools.clone());
+            builder.build(None, project_path_for_tools.as_deref())
+        };
+
+        // Feature 025: Track resources created during this conversation
+        let mut created_resources = SessionCreatedResources::new();
+        let mut message_index: usize = 0; // Track message index for context delta
 
         // Chat options with tools
         let options = ChatOptions {
@@ -529,6 +544,10 @@ pub async fn ai_assistant_send_message(
 
                                 // Auto-execute read-only tools
                                 let internal_tool_call = convert_chat_tool_call_to_internal(tool_call);
+
+                                // Feature 025: Validate execution context and log warnings if cross-project
+                                tool_handler.validate_execution_context(&internal_tool_call, session_context.as_ref());
+
                                 let result = tool_handler.execute_tool_call(&internal_tool_call).await;
 
                                 // Track this tool call as executed (for cross-iteration deduplication)
@@ -542,6 +561,37 @@ pub async fn ai_assistant_send_message(
                                     result.output.len()
                                 );
                                 log::debug!("Tool output: {}", &result.output);
+
+                                // Feature 025: Extract and apply context delta if present
+                                if let Some(ref metadata) = result.metadata {
+                                    if let Some(delta_value) = metadata.get("context_delta") {
+                                        if let Ok(delta) = serde_json::from_value::<ContextDelta>(delta_value.clone()) {
+                                            log::info!("Applying context delta: {:?}", delta.delta_type);
+                                            created_resources.apply_delta(&delta, message_index);
+
+                                            // Handle batch step creation for create_workflow_with_steps
+                                            if let (Some(step_ids), Some(step_names)) = (
+                                                metadata.get("created_step_ids").and_then(|v| v.as_array()),
+                                                metadata.get("created_step_names").and_then(|v| v.as_array()),
+                                            ) {
+                                                if let Some(ref wf_id) = delta.resource.workflow_id {
+                                                    let wf_name = delta.resource.workflow_name.clone().unwrap_or_default();
+                                                    for (i, (id, name)) in step_ids.iter().zip(step_names.iter()).enumerate() {
+                                                        if let (Some(id_str), Some(name_str)) = (id.as_str(), name.as_str()) {
+                                                            created_resources.add_step(
+                                                                wf_id.clone(),
+                                                                wf_name.clone(),
+                                                                id_str.to_string(),
+                                                                name_str.to_string(),
+                                                                i as i32,
+                                                            );
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
 
                                 // Track execution result for status update
                                 execution_results.insert(tool_call.id.clone(), result.success);
@@ -564,7 +614,7 @@ pub async fn ai_assistant_send_message(
                                         output: result.output.clone(),
                                         error: if result.success { None } else { Some(result.output.clone()) },
                                         duration_ms: None,
-                                        metadata: None,
+                                        metadata: result.metadata.clone(), // Feature 025: Preserve metadata
                                     };
                                     let tool_message = Message::tool_result(
                                         conversation_id.clone(),
@@ -616,6 +666,36 @@ pub async fn ai_assistant_send_message(
                                     log::error!("Failed to save assistant tool call message: {}", e);
                                 }
                             }
+
+                            // Feature 025: Update system prompt with created resources for next iteration
+                            // This ensures AI sees newly created workflow/step IDs in subsequent calls
+                            if !created_resources.is_empty() {
+                                let updated_prompt = build_system_prompt_with_session_context(
+                                    tool_handler.get_chat_tool_definitions(project_path_for_tools.as_deref())
+                                        .into_iter()
+                                        .map(|d| crate::models::ai_assistant::ToolDefinition {
+                                            name: d.function.name.clone(),
+                                            description: d.function.description.clone(),
+                                            parameters: d.function.parameters.clone(),
+                                            requires_confirmation: tool_handler.requires_confirmation(&d.function.name),
+                                            category: String::new(),
+                                        })
+                                        .collect(),
+                                    session_context.as_ref(),
+                                    Some(&created_resources),
+                                );
+
+                                // Update the system message (first message in array)
+                                if let Some(system_msg) = messages.first_mut() {
+                                    if system_msg.role == "system" {
+                                        *system_msg = ChatMessage::system(updated_prompt);
+                                        log::debug!("Updated system prompt with created resources");
+                                    }
+                                }
+                            }
+
+                            // Increment message index for context delta tracking
+                            message_index += 1;
 
                             // Continue the loop to get AI's response after tool execution
                             continue;

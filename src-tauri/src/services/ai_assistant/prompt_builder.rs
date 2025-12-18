@@ -1,5 +1,6 @@
 // System Prompt Builder for AI Assistant
 // Feature: Enhanced AI Chat Experience (023-enhanced-ai-chat)
+// Enhancement: AI Precision Improvement (025-ai-workflow-generator)
 //
 // Constructs structured system prompts that:
 // - Define AI's role and capabilities clearly
@@ -7,8 +8,10 @@
 // - Include PackageFlow feature descriptions
 // - Add constraints for off-topic handling
 // - Support project-specific context
+// - Include session context for precise project/workflow targeting (025)
+// - Track created/modified resources during conversation (025)
 
-use crate::models::ai_assistant::{ProjectContext, ToolDefinition};
+use crate::models::ai_assistant::{ProjectContext, SessionContext, SessionCreatedResources, ToolDefinition};
 
 /// Builder for constructing structured system prompts
 pub struct SystemPromptBuilder {
@@ -22,10 +25,14 @@ pub struct SystemPromptBuilder {
     examples: Vec<String>,
     /// Constraints and rules
     constraints: Vec<String>,
-    /// Optional project context
+    /// Optional project context (legacy)
     context: Option<ProjectContext>,
     /// Available tools
     tools: Vec<ToolDefinition>,
+    /// Session context for precise targeting (Feature 025)
+    session_context: Option<SessionContext>,
+    /// Resources created during conversation (Feature 025)
+    created_resources: Option<SessionCreatedResources>,
 }
 
 impl SystemPromptBuilder {
@@ -39,6 +46,8 @@ impl SystemPromptBuilder {
             constraints: Self::default_constraints(),
             context: None,
             tools: Vec::new(),
+            session_context: None,
+            created_resources: None,
         }
     }
 
@@ -73,9 +82,37 @@ impl SystemPromptBuilder {
         self
     }
 
+    /// Set session context for precise project/workflow targeting (Feature 025)
+    pub fn with_session_context(mut self, context: Option<SessionContext>) -> Self {
+        self.session_context = context;
+        self
+    }
+
+    /// Set created resources for in-conversation tracking (Feature 025)
+    pub fn with_created_resources(mut self, resources: Option<SessionCreatedResources>) -> Self {
+        self.created_resources = resources;
+        self
+    }
+
     /// Build the complete system prompt
     pub fn build(&self) -> String {
         let mut sections = Vec::new();
+
+        // PRIORITY: Session context section FIRST (Feature 025)
+        // This ensures AI sees the bound project/workflow context before anything else
+        if let Some(ref session_ctx) = self.session_context {
+            if let Some(session_section) = self.build_session_context_section(session_ctx) {
+                sections.push(session_section);
+            }
+        }
+
+        // Created resources section (Feature 025)
+        // Shows resources created/modified during this conversation
+        if let Some(ref resources) = self.created_resources {
+            if let Some(resources_section) = resources.get_context_summary() {
+                sections.push(resources_section);
+            }
+        }
 
         // Role section
         sections.push(self.role_section.clone());
@@ -114,27 +151,107 @@ impl SystemPromptBuilder {
             sections.push(constraints_section);
         }
 
-        // Project context (if available)
-        if let Some(ref ctx) = self.context {
-            let context_section = format!(
-                "## Current Project Context\n\n\
-                - **Project Name**: {}\n\
-                - **Project Type**: {}\n\
-                - **Package Manager**: {}\n\
-                - **Available Scripts**: {}",
-                ctx.project_name,
-                ctx.project_type,
-                ctx.package_manager,
-                if ctx.available_scripts.is_empty() {
-                    "None".to_string()
-                } else {
-                    ctx.available_scripts.join(", ")
-                }
-            );
-            sections.push(context_section);
+        // Legacy project context (if available and no session context)
+        // Only include if session_context is not set (backward compatibility)
+        if self.session_context.is_none() {
+            if let Some(ref ctx) = self.context {
+                let context_section = format!(
+                    "## Current Project Context\n\n\
+                    - **Project Name**: {}\n\
+                    - **Project Type**: {}\n\
+                    - **Package Manager**: {}\n\
+                    - **Available Scripts**: {}",
+                    ctx.project_name,
+                    ctx.project_type,
+                    ctx.package_manager,
+                    if ctx.available_scripts.is_empty() {
+                        "None".to_string()
+                    } else {
+                        ctx.available_scripts.join(", ")
+                    }
+                );
+                sections.push(context_section);
+            }
         }
 
         sections.join("\n\n")
+    }
+
+    /// Build the session context section (Feature 025)
+    /// This section appears at the TOP of the prompt for maximum attention
+    fn build_session_context_section(&self, ctx: &SessionContext) -> Option<String> {
+        // Only build if we have meaningful context
+        if !ctx.has_project() && ctx.bound_workflows.is_empty() {
+            return None;
+        }
+
+        let mut lines = vec![
+            "## IMPORTANT: Current Session Context".to_string(),
+            String::new(),
+            "You are currently assisting with a SPECIFIC project. Always use these IDs unless the user explicitly asks about a different project:".to_string(),
+            String::new(),
+        ];
+
+        // Project info
+        if let Some(ref name) = ctx.project_name {
+            lines.push(format!("- **Current Project**: {}", name));
+        }
+        if let Some(ref id) = ctx.project_id {
+            lines.push(format!("- **Project ID**: `{}`", id));
+        }
+        if let Some(ref path) = ctx.project_path {
+            lines.push(format!("- **Project Path**: `{}`", path));
+        }
+        if let Some(ref project_type) = ctx.project_type {
+            lines.push(format!("- **Project Type**: {}", project_type));
+        }
+        if let Some(ref pm) = ctx.package_manager {
+            lines.push(format!("- **Package Manager**: {}", pm));
+        }
+
+        // Available scripts
+        if !ctx.available_scripts.is_empty() {
+            lines.push(format!(
+                "- **Available Scripts**: {}",
+                ctx.available_scripts.join(", ")
+            ));
+        }
+
+        // Bound workflows
+        if !ctx.bound_workflows.is_empty() {
+            lines.push(String::new());
+            lines.push("**Workflows in this project:**".to_string());
+            for wf in &ctx.bound_workflows {
+                lines.push(format!(
+                    "- `{}`: {} ({} steps)",
+                    wf.id, wf.name, wf.step_count
+                ));
+            }
+        }
+
+        // Active worktree
+        if let Some(ref worktree) = ctx.active_worktree {
+            lines.push(String::new());
+            lines.push(format!(
+                "**Active Worktree**: `{}` (branch: {})",
+                worktree.path, worktree.branch
+            ));
+        }
+
+        // Usage instructions
+        lines.push(String::new());
+        lines.push("### Context Usage Guidelines".to_string());
+        lines.push(String::new());
+        lines.push("1. **Use current context IDs by default**: When the user asks to \"run the deploy workflow\", use a workflow ID from the list above - do NOT call `list_workflows` first.".to_string());
+        lines.push(String::new());
+        lines.push("2. **Only query lists when necessary**: Only call `list_projects` or `list_workflows` when:".to_string());
+        lines.push("   - User explicitly asks to see all projects/workflows".to_string());
+        lines.push("   - User wants to work with a DIFFERENT project than the current one".to_string());
+        lines.push("   - Current context has no bound project".to_string());
+        lines.push(String::new());
+        lines.push("3. **Cross-project operations**: You can answer INFO queries about other projects, but for EXECUTION tasks (run_script, create_workflow, run_workflow), stay within current project context or suggest starting a new conversation.".to_string());
+
+        Some(lines.join("\n"))
     }
 
     // =========================================================================
@@ -326,6 +443,20 @@ pub fn build_system_prompt_with_tools(
         .build()
 }
 
+/// Build a system prompt with session context and created resources (Feature 025)
+/// This is the preferred method for agentic loop integration
+pub fn build_system_prompt_with_session_context(
+    tools: Vec<ToolDefinition>,
+    session_context: Option<&SessionContext>,
+    created_resources: Option<&SessionCreatedResources>,
+) -> String {
+    SystemPromptBuilder::new()
+        .with_tools(tools)
+        .with_session_context(session_context.cloned())
+        .with_created_resources(created_resources.cloned())
+        .build()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -439,5 +570,146 @@ mod tests {
         let prompt_with_context = build_system_prompt(Some(&context));
         assert!(prompt_with_context.contains("Test"));
         assert!(prompt_with_context.contains("Rust"));
+    }
+
+    // =========================================================================
+    // Feature 025: Session Context Tests
+    // =========================================================================
+
+    #[test]
+    fn test_session_context_appears_first() {
+        use crate::models::ai_assistant::WorkflowSummary;
+
+        let session_ctx = SessionContext {
+            project_id: Some("proj_123".to_string()),
+            project_name: Some("TestProject".to_string()),
+            project_path: Some("/test/path".to_string()),
+            project_type: Some("Node.js".to_string()),
+            package_manager: Some("pnpm".to_string()),
+            available_scripts: vec!["build".to_string(), "test".to_string()],
+            bound_workflows: vec![
+                WorkflowSummary {
+                    id: "wf_001".to_string(),
+                    name: "Deploy".to_string(),
+                    step_count: 3,
+                },
+            ],
+            active_worktree: None,
+        };
+
+        let prompt = SystemPromptBuilder::new()
+            .with_session_context(Some(session_ctx))
+            .build();
+
+        // Session context should appear BEFORE role section
+        let session_pos = prompt.find("IMPORTANT: Current Session Context");
+        let role_pos = prompt.find("Role & Identity");
+
+        assert!(session_pos.is_some(), "Session context section should exist");
+        assert!(role_pos.is_some(), "Role section should exist");
+        assert!(
+            session_pos.unwrap() < role_pos.unwrap(),
+            "Session context should appear before role section"
+        );
+
+        // Check content
+        assert!(prompt.contains("TestProject"));
+        assert!(prompt.contains("proj_123"));
+        assert!(prompt.contains("wf_001"));
+        assert!(prompt.contains("Deploy"));
+        assert!(prompt.contains("3 steps"));
+    }
+
+    #[test]
+    fn test_session_context_overrides_legacy_context() {
+        let legacy_context = ProjectContext {
+            project_name: "LegacyProject".to_string(),
+            project_path: "/legacy/path".to_string(),
+            project_type: "Python".to_string(),
+            package_manager: "pip".to_string(),
+            available_scripts: vec![],
+        };
+
+        let session_ctx = SessionContext {
+            project_id: Some("proj_new".to_string()),
+            project_name: Some("NewProject".to_string()),
+            project_path: Some("/new/path".to_string()),
+            project_type: Some("Node.js".to_string()),
+            package_manager: Some("npm".to_string()),
+            available_scripts: vec![],
+            bound_workflows: vec![],
+            active_worktree: None,
+        };
+
+        let prompt = SystemPromptBuilder::new()
+            .with_context(Some(legacy_context))
+            .with_session_context(Some(session_ctx))
+            .build();
+
+        // Session context should be used, not legacy
+        assert!(prompt.contains("NewProject"));
+        assert!(!prompt.contains("LegacyProject"));
+    }
+
+    #[test]
+    fn test_created_resources_in_prompt() {
+        let mut resources = SessionCreatedResources::new();
+        resources.add_workflow(
+            "wf_new_001".to_string(),
+            "Build Pipeline".to_string(),
+            None,
+            0,
+        );
+        resources.add_step(
+            "wf_new_001".to_string(),
+            "Build Pipeline".to_string(),
+            "step_1".to_string(),
+            "Install Dependencies".to_string(),
+            0,
+        );
+
+        let prompt = SystemPromptBuilder::new()
+            .with_created_resources(Some(resources))
+            .build();
+
+        assert!(prompt.contains("Resources Created/Modified in This Conversation"));
+        assert!(prompt.contains("wf_new_001"));
+        assert!(prompt.contains("Build Pipeline"));
+        assert!(prompt.contains("Install Dependencies"));
+    }
+
+    #[test]
+    fn test_build_system_prompt_with_session_context_function() {
+        let session_ctx = SessionContext {
+            project_id: Some("proj_func".to_string()),
+            project_name: Some("FunctionTest".to_string()),
+            project_path: None,
+            project_type: None,
+            package_manager: None,
+            available_scripts: vec![],
+            bound_workflows: vec![],
+            active_worktree: None,
+        };
+
+        let prompt = build_system_prompt_with_session_context(
+            vec![],
+            Some(&session_ctx),
+            None,
+        );
+
+        assert!(prompt.contains("FunctionTest"));
+        assert!(prompt.contains("proj_func"));
+    }
+
+    #[test]
+    fn test_empty_session_context_no_section() {
+        let empty_ctx = SessionContext::default();
+
+        let prompt = SystemPromptBuilder::new()
+            .with_session_context(Some(empty_ctx))
+            .build();
+
+        // Empty context should not produce a session section
+        assert!(!prompt.contains("IMPORTANT: Current Session Context"));
     }
 }

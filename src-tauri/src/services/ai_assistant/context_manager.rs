@@ -302,6 +302,7 @@ mod tests {
             name: tool_name.to_string(),
             arguments: serde_json::json!({"projectPath": "/test/project"}),
             status: ToolCallStatus::Completed,
+            thought_signature: None,
         }]);
         msg
     }
