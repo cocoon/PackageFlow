@@ -30,6 +30,7 @@
   <a href="https://github.com/runkids/PackageFlow/releases">📥 下载</a> •
   <a href="#-功能特色">✨ 功能</a> •
   <a href="#-ai--mcp">🤖 AI & MCP</a> •
+  <a href="#-文档">📚 文档</a> •
   <a href="#-截图展示">📸 截图</a> •
   <a href="#️-开发路线">🗺️ 路线图</a> •
   <a href="#-常见问题">❓ FAQ</a>
@@ -95,6 +96,13 @@ PackageFlow 是「AI 驱动」的意思不是只会聊天，而是 AI 可以调�
   <br/>
   <em>👆 一键部署，即时获取预览链接</em>
 </p>
+
+## 📚 文档
+
+- 文档总览：`docs/zh-CN/README.md`
+- 快速入门：`docs/zh-CN/getting-started.md`
+- 安全与隐私：`docs/zh-CN/security-and-privacy.md`
+- 故障排查：`docs/zh-CN/troubleshooting.md`
 
 ## 📸 截图展示
 

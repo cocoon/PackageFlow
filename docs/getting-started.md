@@ -91,4 +91,6 @@ Now that you're set up, explore these features:
 - [Visual Workflow](./features/visual-workflow.md) - Automate multi-step tasks
 - [Git Integration](./features/git-integration.md) - Visual Git operations
 - [One-Click Deploy](./features/one-click-deploy.md) - Deploy with preview links
+- [Time Machine](./features/time-machine.md) - Track dependency history and integrity
 - [MCP Server](./features/mcp-server.md) - Let AI tools safely run actions for you
+- [Security & Privacy](./security-and-privacy.md) - Understand local-first storage and permissions

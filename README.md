@@ -225,6 +225,8 @@ Read more: [Security & Privacy](./docs/security-and-privacy.md)
 
 ## 📚 Documentation
 
+Documentation home: [English](./docs/README.md) • [繁體中文](./docs/zh-TW/README.md) • [简体中文](./docs/zh-CN/README.md)
+
 <details>
 <summary><strong>📖 Full Feature Documentation</strong></summary>
 
@@ -241,6 +243,7 @@ Read more: [Security & Privacy](./docs/security-and-privacy.md)
 | [Worktree Management](./docs/features/worktree-management.md) | Quick worktree switching |
 | [One-Click Deploy](./docs/features/one-click-deploy.md) | Deploy to Netlify/Cloudflare |
 | [Security Audit](./docs/features/security-audit.md) | Vulnerability scanning |
+| [Time Machine](./docs/features/time-machine.md) | Dependency snapshots & integrity |
 | [AI Integration](./docs/features/ai-integration.md) | Multi-provider AI support |
 | [MCP Server](./docs/features/mcp-server.md) | AI tool integration |
 | [Webhooks](./docs/features/webhooks.md) | Incoming/outgoing automation |

@@ -8,6 +8,7 @@ Welcome to the PackageFlow documentation! This guide will help you get the most 
 
 - [Getting Started](./getting-started.md) - Install, import a project, run your first script
 - [MCP Server](./features/mcp-server.md) - Let AI tools control PackageFlow safely
+- [Time Machine](./features/time-machine.md) - Dependency snapshots, integrity, security insights
 - [Security & Privacy](./security-and-privacy.md) - Local-first storage, encryption, permissions
 - [Troubleshooting](./troubleshooting.md) - Common issues and fixes
 - [Feature Guides](#features) - Deep dives for each feature area
@@ -71,6 +72,7 @@ Use the docs below based on what you’re trying to do:
 |---------|-------------|---------------|
 | **One-Click Deploy** | Deploy to Netlify, Cloudflare, GitHub Pages | [Read more](./features/one-click-deploy.md) |
 | **Security Audit** | Visual npm audit with vulnerability details | [Read more](./features/security-audit.md) |
+| **Time Machine** | Dependency snapshots, diffs, integrity & security insights | [Read more](./features/time-machine.md) |
 
 ### AI & Automation
 

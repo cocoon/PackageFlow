@@ -2,6 +2,8 @@
 
 本指南将帮助您安装 PackageFlow 并开始使用您的第一个项目。
 
+PackageFlow 是一个 AI 驱动的 `package.json` 项目管理工具：导入一次项目文件夹后，就能一键运行 scripts、管理 Git/worktree、创建工作流自动化，并且（可选）通过 MCP 让你的 AI 工具安全地调用动作。
+
 ## 安装
 
 ### Homebrew（推荐）
@@ -89,3 +91,6 @@ brew upgrade --cask packageflow
 - [可视化工作流](./features/visual-workflow.md) - 自动化多步骤任务
 - [Git 集成](./features/git-integration.md) - 可视化 Git 操作
 - [一键部署](./features/one-click-deploy.md) - 部署并获取预览链接
+- [时间机器](./features/time-machine.md) - 追踪依赖历史与完整性
+- [MCP 服务器](./features/mcp-server.md) - 让 AI 工具安全地帮你跑动作
+- [安全与隐私](./security-and-privacy.md) - 了解本地优先、加密与权限
