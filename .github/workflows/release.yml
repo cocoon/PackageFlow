@@ -155,6 +155,20 @@ jobs:
           # Allow codesign to access the certificate
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
+      - name: Sign MCP binary
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          # Sign the MCP binary with Developer ID, timestamp, and hardened runtime
+          codesign --sign "$APPLE_SIGNING_IDENTITY" \
+            --timestamp \
+            --options runtime \
+            --force \
+            target/release/packageflow-mcp
+
+          # Verify the signature
+          codesign --verify --verbose target/release/packageflow-mcp
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
