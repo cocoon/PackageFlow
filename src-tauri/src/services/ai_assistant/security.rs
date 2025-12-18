@@ -246,6 +246,7 @@ impl ToolPermissionChecker {
         "trigger_webhook",
         "create_workflow",
         "add_workflow_step",
+        "add_workflow_steps",
         // New tools synced with MCP Server
         "create_step_template",
         "stop_background_process",

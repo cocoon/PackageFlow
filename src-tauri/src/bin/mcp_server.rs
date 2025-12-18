@@ -945,6 +945,185 @@ impl PackageFlowMcp {
         }
     }
 
+    /// Add multiple steps to a workflow atomically (batch operation)
+    #[tool(description = "Add multiple steps to a workflow in a single atomic operation. Use this for efficiently creating workflows with multiple steps. All steps are validated upfront and added together - if any validation fails, no steps are added. Maximum 10 steps per call.
+
+USAGE:
+- First get workflow_id from create_workflow or list_workflows
+- Steps are executed in the order they appear in the array
+- Each step requires: name (unique within batch) and command
+- Optional per-step: cwd (working directory) and timeout (ms)
+
+EXAMPLE:
+{
+  \"workflow_id\": \"workflow-abc123\",
+  \"steps\": [
+    { \"name\": \"Install dependencies\", \"command\": \"npm ci\" },
+    { \"name\": \"Run linter\", \"command\": \"npm run lint\" },
+    { \"name\": \"Run tests\", \"command\": \"npm test\" },
+    { \"name\": \"Build project\", \"command\": \"npm run build\" }
+  ]
+}
+
+LIMITS:
+- Max 10 steps per call
+- Command timeout default: 5 minutes (300000ms)
+
+RETURNS: List of created step IDs and their assigned order positions.")]
+    async fn add_workflow_steps(
+        &self,
+        Parameters(params): Parameters<AddWorkflowStepsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        const MAX_BATCH_SIZE: usize = 10;
+
+        // Validate batch size
+        if params.steps.is_empty() {
+            return Ok(CallToolResult::error(vec![Content::text(
+                "Steps array cannot be empty. Provide at least 1 step to add."
+            )]));
+        }
+
+        if params.steps.len() > MAX_BATCH_SIZE {
+            return Ok(CallToolResult::error(vec![Content::text(
+                format!("Too many steps: {} (max {}). Split into multiple calls.", params.steps.len(), MAX_BATCH_SIZE)
+            )]));
+        }
+
+        // Validate all steps upfront
+        let mut step_names: Vec<&str> = Vec::new();
+        for (i, step) in params.steps.iter().enumerate() {
+            // Check name
+            if step.name.trim().is_empty() {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} has empty name. Each step requires a non-empty name.", i + 1)
+                )]));
+            }
+            if let Err(e) = validate_string_length("name", &step.name, MAX_NAME_LENGTH) {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {}: {}", i + 1, e)
+                )]));
+            }
+
+            // Check for duplicate names within batch
+            if step_names.contains(&step.name.as_str()) {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Duplicate step name '{}' found. Each step must have a unique name within the batch.", step.name)
+                )]));
+            }
+            step_names.push(&step.name);
+
+            // Check command
+            if step.command.trim().is_empty() {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} '{}' has empty command. Each step requires a non-empty command.", i + 1, step.name)
+                )]));
+            }
+            if let Err(e) = validate_command(&step.command) {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} '{}': {}", i + 1, step.name, e)
+                )]));
+            }
+
+            // Validate timeout if provided
+            if let Some(timeout) = step.timeout {
+                if let Err(e) = validate_timeout(timeout) {
+                    return Ok(CallToolResult::error(vec![Content::text(
+                        format!("Step {} '{}': {}", i + 1, step.name, e)
+                    )]));
+                }
+            }
+        }
+
+        // All validation passed, now add the steps
+        let mut store_data = read_store_data()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        // Find workflow index first
+        let workflow_idx = store_data.workflows.iter()
+            .position(|w| w.id == params.workflow_id);
+
+        let workflow_idx = match workflow_idx {
+            Some(idx) => idx,
+            None => {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Workflow not found: {}. Use list_workflows to find valid IDs.", params.workflow_id)
+                )]));
+            }
+        };
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Calculate starting order
+        let start_order = store_data.workflows[workflow_idx].nodes.iter()
+            .map(|n| n.order).max().unwrap_or(-1) + 1;
+
+        let mut created_steps: Vec<CreatedStepInfo> = Vec::new();
+
+        for (i, step) in params.steps.iter().enumerate() {
+            let node_id = format!("node-{}", Uuid::new_v4());
+            let order = start_order + i as i32;
+
+            // Build config
+            let mut config = serde_json::json!({
+                "command": step.command,
+            });
+            if let Some(cwd) = &step.cwd {
+                config["cwd"] = serde_json::json!(cwd);
+            }
+            if let Some(timeout) = step.timeout {
+                config["timeout"] = serde_json::json!(timeout);
+            }
+
+            let node = WorkflowNode {
+                id: node_id.clone(),
+                node_type: "script".to_string(),
+                name: step.name.clone(),
+                config,
+                order,
+                position: None,
+            };
+
+            store_data.workflows[workflow_idx].nodes.push(node);
+
+            created_steps.push(CreatedStepInfo {
+                node_id,
+                name: step.name.clone(),
+                order,
+                command: step.command.clone(),
+            });
+        }
+
+        store_data.workflows[workflow_idx].updated_at = now;
+
+        let total_nodes = store_data.workflows[workflow_idx].nodes.len();
+        let steps_added = created_steps.len();
+
+        eprintln!("[MCP Debug] add_workflow_steps - Writing to store...");
+        eprintln!("[MCP Debug] add_workflow_steps - Workflow {} now has {} nodes (added {})",
+            params.workflow_id, total_nodes, steps_added);
+
+        write_store_data(&store_data)
+            .map_err(|e| {
+                eprintln!("[MCP Debug] add_workflow_steps - Write FAILED: {}", e);
+                McpError::internal_error(e, None)
+            })?;
+
+        eprintln!("[MCP Debug] add_workflow_steps - Write SUCCESS");
+
+        let response = AddWorkflowStepsResponse {
+            success: true,
+            workflow_id: params.workflow_id,
+            created_steps,
+            total_workflow_steps: total_nodes,
+            message: format!("Successfully added {} steps to workflow", steps_added),
+        };
+
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
     // ========================================================================
     // Step Template Tools
     // ========================================================================
@@ -1407,6 +1586,15 @@ impl PackageFlowMcp {
 
         // Check if background mode is requested
         if params.run_in_background {
+            // Log with "running" status before starting the process
+            // This allows AI Activity to track the process lifecycle
+            let arguments = serde_json::json!({
+                "scriptName": params.script_name,
+                "projectPath": params.project_path,
+                "runInBackground": true,
+            });
+            let log_entry_id = log_request("run_npm_script", &arguments, "running", 0, None);
+
             // Background execution mode
             match BACKGROUND_PROCESS_MANAGER.start_process(
                 params.script_name.clone(),
@@ -1414,6 +1602,7 @@ impl PackageFlowMcp {
                 command.clone(),
                 params.success_pattern.clone(),
                 params.success_timeout_ms,
+                log_entry_id,
             ).await {
                 Ok(process_info) => {
                     // Get initial output
@@ -3553,17 +3742,38 @@ impl ServerHandler for PackageFlowMcp {
                 || tool_category == ToolCategory::Execute;
 
             if should_log {
-                match &result {
+                // Check if this is a background process - they log themselves for proper lifecycle tracking
+                let is_background = match &result {
                     Ok(call_result) => {
-                        let result_status = if call_result.is_error.unwrap_or(false) {
-                            "error"
-                        } else {
-                            "success"
-                        };
-                        log_request(&tool_name, &arguments, result_status, duration_ms, None);
+                        call_result.content.iter().any(|c| {
+                            if let Some(text_content) = c.raw.as_text() {
+                                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&text_content.text) {
+                                    json.get("background").and_then(|v| v.as_bool()).unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        })
                     }
-                    Err(e) => {
-                        log_request(&tool_name, &arguments, "error", duration_ms, Some(&e.to_string()));
+                    Err(_) => false,
+                };
+
+                // Skip logging for background processes - they manage their own logging lifecycle
+                if !is_background {
+                    match &result {
+                        Ok(call_result) => {
+                            let result_status = if call_result.is_error.unwrap_or(false) {
+                                "error"
+                            } else {
+                                "success"
+                            };
+                            log_request(&tool_name, &arguments, result_status, duration_ms, None);
+                        }
+                        Err(e) => {
+                            log_request(&tool_name, &arguments, "error", duration_ms, Some(&e.to_string()));
+                        }
                     }
                 }
             }

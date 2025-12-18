@@ -130,6 +130,62 @@ pub struct AddWorkflowStepParams {
     pub order: Option<i32>,
 }
 
+/// Individual step input for batch creation
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowStepInput {
+    /// Step display name
+    pub name: String,
+    /// Shell command to execute
+    pub command: String,
+    /// Optional working directory
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    /// Optional timeout in milliseconds
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+}
+
+/// Parameters for add_workflow_steps tool (batch operation)
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddWorkflowStepsParams {
+    /// Target workflow ID - use actual ID from create_workflow or list_workflows
+    pub workflow_id: String,
+    /// Array of steps to add (max 10). Steps are added in array order.
+    pub steps: Vec<WorkflowStepInput>,
+}
+
+/// Response for add_workflow_steps tool
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct AddWorkflowStepsResponse {
+    /// Whether all steps were added successfully
+    pub success: bool,
+    /// The workflow ID steps were added to
+    pub workflow_id: String,
+    /// List of created step details
+    pub created_steps: Vec<CreatedStepInfo>,
+    /// Total number of steps in workflow after this operation
+    pub total_workflow_steps: usize,
+    /// Summary message
+    pub message: String,
+}
+
+/// Info for a single created step in batch response
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreatedStepInfo {
+    /// Generated node ID for this step
+    pub node_id: String,
+    /// Step name as provided
+    pub name: String,
+    /// Assigned order position
+    pub order: i32,
+    /// Command as provided
+    pub command: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ListStepTemplatesParams {
     /// Filter by category (optional)

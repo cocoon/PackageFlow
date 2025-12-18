@@ -584,6 +584,50 @@ impl MCPToolHandler {
                 category: "workflow".to_string(),
             },
             ToolDefinition {
+                name: "add_workflow_steps".to_string(),
+                description: "Add multiple steps to a workflow in a single atomic operation. Use this for efficiently creating workflows with multiple steps. All steps are validated upfront - if any validation fails, no steps are added. Maximum 10 steps per call. Steps are executed in array order.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "workflow_id": {
+                            "type": "string",
+                            "description": "Target workflow ID - MUST be a real ID from create_workflow or list_workflows"
+                        },
+                        "steps": {
+                            "type": "array",
+                            "description": "Array of steps to add (max 10). Steps are added in order.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Step name (must be unique within batch)"
+                                    },
+                                    "command": {
+                                        "type": "string",
+                                        "description": "Shell command to execute"
+                                    },
+                                    "cwd": {
+                                        "type": "string",
+                                        "description": "Optional working directory"
+                                    },
+                                    "timeout": {
+                                        "type": "integer",
+                                        "description": "Optional timeout in milliseconds"
+                                    }
+                                },
+                                "required": ["name", "command"]
+                            },
+                            "minItems": 1,
+                            "maxItems": 10
+                        }
+                    },
+                    "required": ["workflow_id", "steps"]
+                }),
+                requires_confirmation: true,
+                category: "workflow".to_string(),
+            },
+            ToolDefinition {
                 name: "list_step_templates".to_string(),
                 description: "List available step templates for workflow steps. Filter by category or search query.".to_string(),
                 parameters: serde_json::json!({
@@ -1038,6 +1082,7 @@ impl MCPToolHandler {
             "trigger_webhook" => self.execute_trigger_webhook(tool_call).await,
             "create_workflow" => self.execute_create_workflow(tool_call).await,
             "add_workflow_step" => self.execute_add_workflow_step(tool_call).await,
+            "add_workflow_steps" => self.execute_add_workflow_steps(tool_call).await,
             // New confirmation-required tools synced with MCP Server
             "create_step_template" => self.execute_create_step_template(tool_call).await,
             "stop_background_process" => self.execute_stop_background_process(tool_call).await,
@@ -1078,6 +1123,14 @@ impl MCPToolHandler {
     /// Log tool execution to AI Activity (mcp_logs table)
     /// This allows AI Assistant tool calls to appear in Settings > AI Activity
     fn log_tool_execution(&self, tool_call: &ToolCall, result: &ToolResult) {
+        // Skip logging for background processes (they have their own logging with status updates)
+        if let Some(ref metadata) = result.metadata {
+            if metadata.get("is_background_process").and_then(|v| v.as_bool()).unwrap_or(false) {
+                log::debug!("[AI Tool] Skipping log for background process (already logged with running status)");
+                return;
+            }
+        }
+
         let Some(db) = &self.db else {
             log::debug!("[AI Tool] No database connection, skipping activity log");
             return;
@@ -1104,6 +1157,50 @@ impl MCPToolHandler {
 
         if let Err(e) = repo.insert_log(&log_entry) {
             log::warn!("[AI Tool] Failed to log tool execution: {}", e);
+        }
+    }
+
+    /// Log background process start with "running" status
+    /// Returns the log entry ID for later status updates
+    fn log_background_process_start(&self, tool_call: &ToolCall) -> Option<i64> {
+        log::info!("[AI Tool] log_background_process_start called for tool: {}", tool_call.name);
+
+        let db = match self.db.as_ref() {
+            Some(d) => d,
+            None => {
+                log::warn!("[AI Tool] log_background_process_start: No database connection");
+                return None;
+            }
+        };
+
+        let repo = MCPRepository::new(db.clone());
+
+        // Sanitize arguments
+        let args_str = serde_json::to_string(&tool_call.arguments).unwrap_or_default();
+        let sanitized_str = OutputSanitizer::sanitize_output(&args_str);
+        let sanitized_args: serde_json::Value = serde_json::from_str(&sanitized_str)
+            .unwrap_or(tool_call.arguments.clone());
+
+        let log_entry = McpLogEntry {
+            id: None,
+            timestamp: Utc::now(),
+            tool: tool_call.name.clone(),
+            arguments: sanitized_args,
+            result: "running".to_string(),
+            duration_ms: 0,
+            error: None,
+            source: Some("ai_assistant".to_string()),
+        };
+
+        match repo.insert_log(&log_entry) {
+            Ok(id) => {
+                log::info!("[AI Tool] Logged background process start with id {} and 'running' status", id);
+                Some(id)
+            }
+            Err(e) => {
+                log::warn!("[AI Tool] Failed to log background process start: {}", e);
+                None
+            }
         }
     }
 
@@ -2357,6 +2454,9 @@ impl MCPToolHandler {
 
         let cwd = validated_path.to_string_lossy().to_string();
 
+        // Log to AI Activity with "running" status
+        let log_entry_id = self.log_background_process_start(tool_call);
+
         // Start background process
         match BACKGROUND_PROCESS_MANAGER.start_process(
             script_name.to_string(),                        // name
@@ -2368,6 +2468,7 @@ impl MCPToolHandler {
             timeout_ms,                                     // success_timeout_ms
             None,                                           // conversation_id
             Some(tool_call.id.clone()),                     // tool_call_id
+            log_entry_id,                                   // log_entry_id for status updates
         ).await {
             Ok(info) => {
                 let output = serde_json::json!({
@@ -2384,11 +2485,15 @@ impl MCPToolHandler {
                         info.id
                     )
                 });
-                ToolResult::success(
-                    tool_call.id.clone(),
-                    serde_json::to_string_pretty(&output).unwrap_or_default(),
-                    None,
-                )
+                // Mark as background process to skip duplicate logging
+                ToolResult {
+                    call_id: tool_call.id.clone(),
+                    success: true,
+                    output: serde_json::to_string_pretty(&output).unwrap_or_default(),
+                    error: None,
+                    duration_ms: None,
+                    metadata: Some(serde_json::json!({ "is_background_process": true })),
+                }
             }
             Err(e) => {
                 ToolResult::failure(
@@ -2534,6 +2639,166 @@ impl MCPToolHandler {
                             return ToolResult::failure(
                                 tool_call.id.clone(),
                                 format!("Failed to save workflow with new step: {}", e),
+                            );
+                        }
+                    }
+                }
+                Ok(None) => {
+                    return ToolResult::failure(
+                        tool_call.id.clone(),
+                        format!("Workflow not found: {}", workflow_id),
+                    );
+                }
+                Err(e) => {
+                    return ToolResult::failure(
+                        tool_call.id.clone(),
+                        format!("Failed to get workflow: {}", e),
+                    );
+                }
+            }
+        }
+        ToolResult::failure(
+            tool_call.id.clone(),
+            "Database not available".to_string(),
+        )
+    }
+
+    /// Execute add_workflow_steps tool (batch operation)
+    async fn execute_add_workflow_steps(&self, tool_call: &ToolCall) -> ToolResult {
+        const MAX_BATCH_SIZE: usize = 10;
+
+        let workflow_id = match tool_call.arguments.get("workflow_id").and_then(|v| v.as_str()) {
+            Some(id) => id,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: workflow_id".to_string(),
+            ),
+        };
+
+        let steps = match tool_call.arguments.get("steps").and_then(|v| v.as_array()) {
+            Some(arr) => arr,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: steps (array)".to_string(),
+            ),
+        };
+
+        // Validate batch size
+        if steps.is_empty() {
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                "Steps array cannot be empty".to_string(),
+            );
+        }
+
+        if steps.len() > MAX_BATCH_SIZE {
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Too many steps: {} (max {})", steps.len(), MAX_BATCH_SIZE),
+            );
+        }
+
+        // Validate all steps upfront
+        let mut step_names: Vec<&str> = Vec::new();
+        for (i, step) in steps.iter().enumerate() {
+            let name = match step.get("name").and_then(|v| v.as_str()) {
+                Some(n) if !n.trim().is_empty() => n,
+                _ => return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Step {} missing or empty 'name'", i + 1),
+                ),
+            };
+
+            // Check for duplicate names
+            if step_names.contains(&name) {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Duplicate step name '{}' found", name),
+                );
+            }
+            step_names.push(name);
+
+            // Check command
+            if step.get("command").and_then(|v| v.as_str()).map(|s| s.trim().is_empty()).unwrap_or(true) {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Step {} '{}' missing or empty 'command'", i + 1, name),
+                );
+            }
+        }
+
+        if let Some(ref db) = self.db {
+            let repo = crate::repositories::WorkflowRepository::new(db.clone());
+
+            match repo.get(workflow_id) {
+                Ok(Some(mut workflow)) => {
+                    let mut created_nodes: Vec<serde_json::Value> = Vec::new();
+
+                    // Calculate starting order
+                    let start_order = workflow.nodes.iter()
+                        .map(|n| n.order)
+                        .max()
+                        .unwrap_or(-1) + 1;
+
+                    for (i, step) in steps.iter().enumerate() {
+                        let name = step.get("name").and_then(|v| v.as_str()).unwrap();
+                        let command = step.get("command").and_then(|v| v.as_str()).unwrap();
+                        let cwd = step.get("cwd").and_then(|v| v.as_str()).map(|s| s.to_string());
+                        let timeout = step.get("timeout").and_then(|v| v.as_u64());
+
+                        let node_id = uuid::Uuid::new_v4().to_string();
+                        let order = start_order + i as i32;
+
+                        let mut config = serde_json::json!({
+                            "command": command,
+                        });
+                        if let Some(cwd_val) = cwd {
+                            config["cwd"] = serde_json::json!(cwd_val);
+                        }
+                        if let Some(timeout_val) = timeout {
+                            config["timeout"] = serde_json::json!(timeout_val);
+                        }
+
+                        let node = crate::models::workflow::WorkflowNode {
+                            id: node_id.clone(),
+                            node_type: "script".to_string(),
+                            name: name.to_string(),
+                            config,
+                            order,
+                            position: None,
+                        };
+
+                        workflow.nodes.push(node);
+
+                        created_nodes.push(serde_json::json!({
+                            "nodeId": node_id,
+                            "name": name,
+                            "order": order,
+                            "command": command
+                        }));
+                    }
+
+                    // Save the updated workflow
+                    match repo.save(&workflow) {
+                        Ok(_) => {
+                            let output = serde_json::json!({
+                                "success": true,
+                                "workflowId": workflow_id,
+                                "stepsAdded": created_nodes.len(),
+                                "createdSteps": created_nodes,
+                                "totalWorkflowSteps": workflow.nodes.len(),
+                                "message": format!("Successfully added {} steps to workflow", created_nodes.len())
+                            });
+                            return ToolResult::success(
+                                tool_call.id.clone(),
+                                serde_json::to_string(&output).unwrap_or_default(),
+                                None,
+                            );
+                        }
+                        Err(e) => {
+                            return ToolResult::failure(
+                                tool_call.id.clone(),
+                                format!("Failed to save workflow: {}", e),
                             );
                         }
                     }

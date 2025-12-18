@@ -181,6 +181,29 @@ impl MCPRepository {
         })
     }
 
+    /// Update an existing MCP log entry's status (for background processes)
+    pub fn update_log_status(
+        &self,
+        log_id: i64,
+        result: &str,
+        duration_ms: u64,
+        error: Option<&str>,
+    ) -> Result<(), String> {
+        self.db.with_connection(|conn| {
+            conn.execute(
+                r#"
+                UPDATE mcp_logs
+                SET result = ?1, duration_ms = ?2, error = ?3
+                WHERE id = ?4
+                "#,
+                params![result, duration_ms as i64, error, log_id],
+            )
+            .map_err(|e| format!("Failed to update MCP log: {}", e))?;
+
+            Ok(())
+        })
+    }
+
     /// Get MCP logs with optional limit
     pub fn get_logs(&self, limit: Option<usize>) -> Result<Vec<McpLogEntry>, String> {
         let limit = limit.unwrap_or(100) as i64;

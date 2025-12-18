@@ -59,9 +59,6 @@ interface BackendProcessStartedPayload {
 // Maximum output lines to keep in memory per process
 const MAX_OUTPUT_LINES = 5000;
 
-// Storage key for panel state
-const PANEL_STATE_KEY = 'ai-assistant-process-panel-state';
-
 /**
  * Hook for managing background processes
  */
@@ -70,29 +67,17 @@ export function useBackgroundProcesses(): UseBackgroundProcessesReturn {
   const [processes, setProcesses] = useState<Map<string, BackgroundProcess>>(new Map());
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
-  // Panel state with persistence
-  const [panelState, setPanelStateInternal] = useState<PanelState>(() => {
-    try {
-      const saved = localStorage.getItem(PANEL_STATE_KEY);
-      return (saved as PanelState) || 'collapsed';
-    } catch {
-      return 'collapsed';
-    }
-  });
+  // Panel state - always start collapsed (no persistence)
+  const [panelState, setPanelStateInternal] = useState<PanelState>('collapsed');
 
   // Event listener cleanup refs
   const unlistenOutputRef = useRef<UnlistenFn | null>(null);
   const unlistenStatusRef = useRef<UnlistenFn | null>(null);
   const unlistenStartedRef = useRef<UnlistenFn | null>(null);
 
-  // Persist panel state
+  // Set panel state (no persistence - always starts collapsed)
   const setPanelState = useCallback((state: PanelState) => {
     setPanelStateInternal(state);
-    try {
-      localStorage.setItem(PANEL_STATE_KEY, state);
-    } catch {
-      // Ignore storage errors
-    }
   }, []);
 
   // Convenience methods for panel

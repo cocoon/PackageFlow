@@ -204,19 +204,20 @@ pub fn write_store_data(data: &StoreData) -> Result<(), String> {
 /// Log a request to the MCP log table
 ///
 /// Uses SQLite with WAL mode for concurrent access from both MCP server and main app.
+/// Returns the log entry ID if successful.
 pub fn log_request(
     tool_name: &str,
     arguments: &serde_json::Value,
     result: &str,
     duration_ms: u64,
     error: Option<&str>,
-) {
+) -> Option<i64> {
     // Open database connection
     let db = match open_database() {
         Ok(db) => db,
         Err(e) => {
             eprintln!("[MCP Log] Failed to open database for logging: {}", e);
-            return; // Silently fail if we can't open database
+            return None; // Return None if we can't open database
         }
     };
 
@@ -239,8 +240,40 @@ pub fn log_request(
         source: Some("mcp_server".to_string()),
     };
 
-    if let Err(e) = repo.insert_log(&log_entry) {
-        eprintln!("[MCP Log] Failed to insert log entry: {}", e);
+    match repo.insert_log(&log_entry) {
+        Ok(id) => Some(id),
+        Err(e) => {
+            eprintln!("[MCP Log] Failed to insert log entry: {}", e);
+            None
+        }
+    }
+}
+
+/// Update an existing log entry's status (for background processes)
+pub fn update_log_status(
+    log_id: i64,
+    result: &str,
+    duration_ms: u64,
+    error: Option<&str>,
+) {
+    // Open database connection
+    let db = match open_database() {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("[MCP Log] Failed to open database for status update: {}", e);
+            return;
+        }
+    };
+
+    let repo = MCPRepository::new(db);
+
+    // Sanitize error message
+    let sanitized_error = error.map(|e| sanitize_error(e));
+
+    if let Err(e) = repo.update_log_status(log_id, result, duration_ms, sanitized_error.as_deref()) {
+        eprintln!("[MCP Log] Failed to update log entry {}: {}", log_id, e);
+    } else {
+        eprintln!("[MCP Log] Updated log entry {} to status '{}'", log_id, result);
     }
 }
 

@@ -2659,6 +2659,7 @@ pub async fn ai_assistant_spawn_background_process(
             None, // success_timeout_ms
             request.conversation_id,
             request.message_id, // Using message_id as tool_call_id
+            None, // log_entry_id - spawned from frontend, no AI Activity log needed
         )
         .await
     {

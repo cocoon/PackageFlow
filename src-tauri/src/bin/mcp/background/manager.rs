@@ -16,6 +16,7 @@ use uuid::Uuid;
 
 use packageflow_lib::utils::path_resolver;
 
+use super::super::store::update_log_status;
 use super::types::{
     BackgroundProcessInfo, BackgroundProcessState, BackgroundProcessStatus,
     CircularBuffer, ProcessOutput,
@@ -46,6 +47,7 @@ impl BackgroundProcessManager {
         command: String,
         success_pattern: Option<String>,
         success_timeout_ms: Option<u64>,
+        log_entry_id: Option<i64>,
     ) -> Result<BackgroundProcessInfo, String> {
         // Try to acquire semaphore
         let _permit = self.semaphore.try_acquire()
@@ -205,6 +207,8 @@ impl BackgroundProcessManager {
             child: Some(child),
             output_buffer: CircularBuffer::new(MAX_OUTPUT_BUFFER_LINES, MAX_OUTPUT_BUFFER_BYTES),
             _output_task: Some(output_task),
+            log_entry_id,
+            start_timestamp_ms: Utc::now().timestamp_millis(),
         };
 
         // Copy initial output to state buffer
@@ -219,6 +223,7 @@ impl BackgroundProcessManager {
 
         // Spawn a task to move output from Arc buffer to state buffer and monitor process
         let id_for_monitor = id.clone();
+        let start_timestamp_ms = Utc::now().timestamp_millis();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_millis(500));
             loop {
@@ -252,13 +257,28 @@ impl BackgroundProcessManager {
                         match child.try_wait() {
                             Ok(Some(status)) => {
                                 state.info.exit_code = status.code();
-                                state.info.status = if status.success() {
+                                let new_status = if status.success() {
                                     BackgroundProcessStatus::Completed
                                 } else {
                                     BackgroundProcessStatus::Failed
                                 };
+                                state.info.status = new_status.clone();
                                 state.info.completed_at = Some(Utc::now().to_rfc3339());
                                 state.child = None;
+
+                                // Update AI Activity log
+                                if let Some(log_id) = state.log_entry_id {
+                                    let duration_ms = (Utc::now().timestamp_millis() - start_timestamp_ms).max(0) as u64;
+                                    let (result_str, error_msg) = match new_status {
+                                        BackgroundProcessStatus::Completed => ("success", None),
+                                        BackgroundProcessStatus::Failed => {
+                                            let msg = status.code().map(|c| format!("Process failed with exit code {}", c));
+                                            ("error", msg)
+                                        }
+                                        _ => ("error", None),
+                                    };
+                                    update_log_status(log_id, result_str, duration_ms, error_msg.as_deref());
+                                }
                                 break;
                             }
                             Ok(None) => {
@@ -267,6 +287,12 @@ impl BackgroundProcessManager {
                             Err(_) => {
                                 state.info.status = BackgroundProcessStatus::Failed;
                                 state.info.completed_at = Some(Utc::now().to_rfc3339());
+
+                                // Update AI Activity log
+                                if let Some(log_id) = state.log_entry_id {
+                                    let duration_ms = (Utc::now().timestamp_millis() - start_timestamp_ms).max(0) as u64;
+                                    update_log_status(log_id, "error", duration_ms, Some("Process monitoring error"));
+                                }
                                 break;
                             }
                         }
@@ -333,6 +359,12 @@ impl BackgroundProcessManager {
             state.info.status = BackgroundProcessStatus::Stopped;
             state.info.completed_at = Some(Utc::now().to_rfc3339());
             state.child = None;
+
+            // Update AI Activity log
+            if let Some(log_id) = state.log_entry_id {
+                let duration_ms = (Utc::now().timestamp_millis() - state.start_timestamp_ms).max(0) as u64;
+                update_log_status(log_id, "stopped", duration_ms, Some("Process stopped by user"));
+            }
         }
 
         Ok(())

@@ -21,6 +21,9 @@ use tokio::sync::{mpsc, RwLock, Semaphore};
 use uuid::Uuid;
 
 use crate::utils::path_resolver;
+use crate::utils::database::{Database, DATABASE_FILE};
+use crate::utils::shared_store::get_app_data_dir;
+use crate::repositories::MCPRepository;
 
 // ============================================================================
 // Constants
@@ -265,6 +268,10 @@ struct BackgroundProcessState {
     /// Task handle for process monitoring
     #[allow(dead_code)]
     monitor_task: Option<tokio::task::JoinHandle<()>>,
+    /// AI Activity log entry ID (for status updates)
+    log_entry_id: Option<i64>,
+    /// Start timestamp for duration calculation
+    start_timestamp_ms: i64,
 }
 
 // ============================================================================
@@ -306,6 +313,7 @@ impl BackgroundProcessManager {
         success_timeout_ms: Option<u64>,
         conversation_id: Option<String>,
         tool_call_id: Option<String>,
+        log_entry_id: Option<i64>,
     ) -> Result<BackgroundProcessInfo, String> {
         // Try to acquire semaphore permit
         let _permit = self.semaphore.try_acquire()
@@ -417,6 +425,8 @@ impl BackgroundProcessManager {
             pattern_matched: false,
             output_task: None,
             monitor_task: None,
+            log_entry_id,
+            start_timestamp_ms: Utc::now().timestamp_millis(),
         };
 
         let state = Arc::new(RwLock::new(state));
@@ -638,6 +648,7 @@ impl BackgroundProcessManager {
                         s.info.status = BackgroundProcessStatus::TimedOut;
                         s.info.ended_at = Some(Utc::now().to_rfc3339());
                         emit_status_change(&app_handle, &process_id, &conversation_id, &s.info).await;
+                        update_activity_log(s.log_entry_id, &s.info.status, s.start_timestamp_ms, s.info.exit_code);
                         log::warn!("[BackgroundProcessManager] Process {} timed out waiting for pattern", process_id);
                         break;
                     }
@@ -657,6 +668,7 @@ impl BackgroundProcessManager {
                             s.child = None;
 
                             emit_status_change(&app_handle, &process_id, &conversation_id, &s.info).await;
+                            update_activity_log(s.log_entry_id, &s.info.status, s.start_timestamp_ms, s.info.exit_code);
                             log::info!("[BackgroundProcessManager] Process {} exited with code {:?}", process_id, status.code());
                             break;
                         }
@@ -668,6 +680,7 @@ impl BackgroundProcessManager {
                             s.info.ended_at = Some(Utc::now().to_rfc3339());
                             s.child = None;
                             emit_status_change(&app_handle, &process_id, &conversation_id, &s.info).await;
+                            update_activity_log(s.log_entry_id, &s.info.status, s.start_timestamp_ms, s.info.exit_code);
                             log::error!("[BackgroundProcessManager] Process {} error: {}", process_id, e);
                             break;
                         }
@@ -733,6 +746,9 @@ impl BackgroundProcessManager {
 
         s.info.status = BackgroundProcessStatus::Stopped;
         s.info.ended_at = Some(Utc::now().to_rfc3339());
+
+        // Update AI Activity log
+        update_activity_log(s.log_entry_id, &s.info.status, s.start_timestamp_ms, s.info.exit_code);
 
         // Emit status change
         let app = self.app_handle.read().await;
@@ -906,6 +922,69 @@ async fn emit_status_change(
             exit_code: info.exit_code,
             pattern_matched: info.pattern_matched,
         });
+    }
+}
+
+/// Helper function to update AI Activity log when process ends
+fn update_activity_log(
+    log_entry_id: Option<i64>,
+    status: &BackgroundProcessStatus,
+    start_timestamp_ms: i64,
+    exit_code: Option<i32>,
+) {
+    log::info!(
+        "[BackgroundProcessManager] update_activity_log called: log_entry_id={:?}, status={:?}",
+        log_entry_id,
+        status
+    );
+
+    let Some(log_id) = log_entry_id else {
+        log::info!("[BackgroundProcessManager] No log_entry_id, skipping AI Activity update");
+        return;
+    };
+
+    // Only update for terminal statuses
+    let result_str = match status {
+        BackgroundProcessStatus::Completed => "success",
+        BackgroundProcessStatus::Failed => "error",
+        BackgroundProcessStatus::Stopped => "stopped",
+        BackgroundProcessStatus::TimedOut => "error",
+        _ => return, // Not a terminal status
+    };
+
+    // Calculate duration
+    let duration_ms = (Utc::now().timestamp_millis() - start_timestamp_ms).max(0) as u64;
+
+    // Create error message for failed/timed out
+    let error_msg = match status {
+        BackgroundProcessStatus::Failed => {
+            exit_code.map(|code| format!("Process failed with exit code {}", code))
+        }
+        BackgroundProcessStatus::TimedOut => {
+            Some("Process timed out waiting for success pattern".to_string())
+        }
+        BackgroundProcessStatus::Stopped => {
+            Some("Process stopped by user".to_string())
+        }
+        _ => None,
+    };
+
+    // Get database path and update log
+    if let Ok(data_dir) = get_app_data_dir() {
+        let db_path = data_dir.join(DATABASE_FILE);
+        if let Ok(db) = Database::new(db_path) {
+            let repo = MCPRepository::new(db);
+            if let Err(e) = repo.update_log_status(
+                log_id,
+                result_str,
+                duration_ms,
+                error_msg.as_deref(),
+            ) {
+                log::warn!("[BackgroundProcessManager] Failed to update activity log: {}", e);
+            } else {
+                log::debug!("[BackgroundProcessManager] Updated activity log {} to {}", log_id, result_str);
+            }
+        }
     }
 }
 

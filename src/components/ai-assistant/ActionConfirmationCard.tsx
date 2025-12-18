@@ -27,6 +27,8 @@ import {
   Clock,
   Zap,
   Maximize2,
+  ListOrdered,
+  ShieldAlert,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
@@ -93,6 +95,24 @@ const statusConfig = {
   },
 } as const;
 
+/** Dangerous command patterns for warning display */
+const DANGEROUS_PATTERNS = [
+  'rm -rf',
+  'sudo ',
+  'curl | bash',
+  'wget | sh',
+  '> /dev/',
+  'dd if=',
+  'mkfs.',
+  ':(){:|:&};:',
+];
+
+/** Check if a command contains dangerous patterns */
+function isDangerousCommand(command: string): boolean {
+  const lowerCommand = command.toLowerCase();
+  return DANGEROUS_PATTERNS.some(pattern => lowerCommand.includes(pattern.toLowerCase()));
+}
+
 /** Get icon for tool type */
 function getToolIcon(toolName: string) {
   switch (toolName) {
@@ -102,6 +122,8 @@ function getToolIcon(toolName: string) {
       return Globe;
     case 'run_workflow':
       return GitBranch;
+    case 'add_workflow_steps':
+      return ListOrdered;
     default:
       return Terminal;
   }
@@ -122,6 +144,12 @@ function getToolDisplayName(toolName: string): string {
       return 'Get Staged Changes';
     case 'list_project_scripts':
       return 'List Scripts';
+    case 'add_workflow_step':
+      return 'Add Workflow Step';
+    case 'add_workflow_steps':
+      return 'Add Workflow Steps (Batch)';
+    case 'create_workflow':
+      return 'Create Workflow';
     default:
       return toolName;
   }
@@ -484,18 +512,73 @@ export function ActionConfirmationCard({
             </span>
           </div>
 
-          {/* Arguments as key-value pairs */}
-          {formattedArgs.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {formattedArgs.map(({ key, value }) => (
-                <div key={key} className="flex items-start gap-2 text-xs">
-                  <span className="text-muted-foreground font-medium min-w-[60px]">{key}:</span>
-                  <code className="font-mono text-foreground/80 break-all bg-background/50 px-1.5 py-0.5 rounded">
-                    {value}
-                  </code>
-                </div>
-              ))}
+          {/* Special rendering for add_workflow_steps batch tool */}
+          {toolCall.name === 'add_workflow_steps' && (toolCall.arguments as { steps?: Array<{ name: string; command: string }> }).steps ? (
+            <div className="mt-3 space-y-2">
+              {/* Workflow ID */}
+              <div className="flex items-start gap-2 text-xs">
+                <span className="text-muted-foreground font-medium min-w-[80px]">workflow_id:</span>
+                <code className="font-mono text-foreground/80 break-all bg-background/50 px-1.5 py-0.5 rounded">
+                  {(toolCall.arguments as { workflow_id?: string }).workflow_id}
+                </code>
+              </div>
+
+              {/* Steps list */}
+              <div className="text-xs font-medium text-muted-foreground">
+                Steps to add ({((toolCall.arguments as { steps?: unknown[] }).steps || []).length}):
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-2 rounded-lg border border-border/50 p-2 bg-background/30">
+                {((toolCall.arguments as { steps?: Array<{ name: string; command: string; cwd?: string; timeout?: number }> }).steps || []).map((step, i) => {
+                  const dangerous = isDangerousCommand(step.command);
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex items-start gap-2 p-2 rounded',
+                        dangerous ? 'bg-red-500/10 border border-red-500/30' : 'bg-muted/50'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'shrink-0 w-5 h-5 rounded text-xs font-medium flex items-center justify-center',
+                          dangerous ? 'bg-red-500/20 text-red-500' : 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-foreground">{step.name}</span>
+                          {dangerous && (
+                            <span className="flex items-center gap-1 text-xs text-red-500">
+                              <ShieldAlert className="w-3 h-3" />
+                              Danger
+                            </span>
+                          )}
+                        </div>
+                        <code className="text-xs text-muted-foreground block truncate font-mono mt-0.5">
+                          {step.command}
+                        </code>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
+          ) : (
+            /* Standard arguments display for other tools */
+            formattedArgs.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {formattedArgs.map(({ key, value }) => (
+                  <div key={key} className="flex items-start gap-2 text-xs">
+                    <span className="text-muted-foreground font-medium min-w-[60px]">{key}:</span>
+                    <code className="font-mono text-foreground/80 break-all bg-background/50 px-1.5 py-0.5 rounded">
+                      {value}
+                    </code>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
       </div>

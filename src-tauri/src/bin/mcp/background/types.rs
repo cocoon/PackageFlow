@@ -149,4 +149,8 @@ pub struct BackgroundProcessState {
     pub output_buffer: CircularBuffer,
     /// Task handle for output reading
     pub _output_task: Option<tokio::task::JoinHandle<()>>,
+    /// AI Activity log entry ID (for status updates)
+    pub log_entry_id: Option<i64>,
+    /// Start timestamp for duration calculation
+    pub start_timestamp_ms: i64,
 }
