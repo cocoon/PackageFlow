@@ -164,6 +164,33 @@ export function AIAssistantPage({
     refresh: refreshConversations,
   } = useConversations();
 
+  // Feature: Handle external navigation events (from Project AI Chats tab)
+  useEffect(() => {
+    const handleLoadConversation = (e: Event) => {
+      const customEvent = e as CustomEvent<{ conversationId: string; projectPath: string }>;
+      const { conversationId, projectPath } = customEvent.detail;
+      setLocalProjectPath(projectPath);
+      // Load the conversation
+      loadConversation(conversationId);
+    };
+
+    const handleNewChat = (e: Event) => {
+      const customEvent = e as CustomEvent<{ projectPath: string }>;
+      const { projectPath } = customEvent.detail;
+      setLocalProjectPath(projectPath);
+      // Create new conversation (projectPath is already set in state)
+      createNewConversation();
+    };
+
+    window.addEventListener('ai-assistant:load-conversation', handleLoadConversation);
+    window.addEventListener('ai-assistant:new-chat', handleNewChat);
+
+    return () => {
+      window.removeEventListener('ai-assistant:load-conversation', handleLoadConversation);
+      window.removeEventListener('ai-assistant:new-chat', handleNewChat);
+    };
+  }, [loadConversation, createNewConversation]);
+
   // Feature 024: Determine effective project path for quick actions
   // Priority: conversation.projectPath > localProjectPath (from navigation)
   const effectiveProjectPath = conversation?.projectPath ?? localProjectPath;
@@ -189,6 +216,7 @@ export function AIAssistantPage({
   // Filter messages to hide internal/intermediate messages
   // - Hide 'tool' role messages (tool results are shown inline in assistant messages)
   // - Hide assistant messages that have no content and only have tool_calls (intermediate state)
+  // - Hide empty assistant messages (no content AND no tool_calls) - these are useless
   // - But don't hide the last message if it's currently streaming (may be empty temporarily)
   const visibleMessages = useMemo(() => {
     return messages.filter((msg, index) => {
@@ -197,25 +225,36 @@ export function AIAssistantPage({
         return false;
       }
 
-      // For assistant messages with no content but with tool calls:
-      // Hide if there's a subsequent assistant message (this is an intermediate message)
-      // Show if it's the last message and currently streaming
-      if (msg.role === 'assistant' && !msg.content && msg.toolCalls && msg.toolCalls.length > 0) {
+      // For assistant messages:
+      if (msg.role === 'assistant') {
+        const hasContent = msg.content && msg.content.trim().length > 0;
+        const hasToolCalls = msg.toolCalls && msg.toolCalls.length > 0;
         const isLastMessage = index === messages.length - 1;
-        const hasSubsequentAssistantMessage = messages
-          .slice(index + 1)
-          .some((m) => m.role === 'assistant' && m.content);
-        // Hide if there's a subsequent assistant message with content
-        if (hasSubsequentAssistantMessage) {
-          return false;
+
+        // Hide empty messages (no content AND no tool_calls) unless currently streaming
+        if (!hasContent && !hasToolCalls) {
+          // Only show if it's the last message and currently streaming
+          return isLastMessage && isGenerating;
         }
-        // Show only if it's the last message (may be waiting for approval)
-        return isLastMessage;
+
+        // For messages with tool calls but no content:
+        // Hide if there's a subsequent assistant message (this is an intermediate message)
+        if (!hasContent && hasToolCalls) {
+          const hasSubsequentAssistantMessage = messages
+            .slice(index + 1)
+            .some((m) => m.role === 'assistant' && m.content);
+          // Hide if there's a subsequent assistant message with content
+          if (hasSubsequentAssistantMessage) {
+            return false;
+          }
+          // Show only if it's the last message (may be waiting for approval)
+          return isLastMessage;
+        }
       }
 
       return true;
     });
-  }, [messages]);
+  }, [messages, isGenerating]);
 
   // Calculate total tokens used in conversation
   const totalTokensUsed = useMemo(() => {

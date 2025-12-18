@@ -427,6 +427,8 @@ impl AIConversationRepository {
     }
 
     /// Update message with completion data
+    /// If content is empty and there are no tool_calls, the message will be deleted
+    /// as empty AI messages serve no purpose
     pub fn update_message_completion(
         &self,
         id: &str,
@@ -436,6 +438,38 @@ impl AIConversationRepository {
         tool_calls: Option<&Vec<ToolCall>>,
     ) -> Result<(), String> {
         self.db.with_connection(|conn| {
+            let content_trimmed = content.trim();
+            let has_tool_calls = tool_calls.map(|tc| !tc.is_empty()).unwrap_or(false);
+
+            // If content is empty and no tool_calls, delete the message instead of saving it
+            if content_trimmed.is_empty() && !has_tool_calls {
+                log::info!("Deleting empty AI message {} (no content, no tool_calls)", id);
+
+                // Get conversation_id before deleting
+                let conversation_id: Option<String> = conn
+                    .query_row(
+                        "SELECT conversation_id FROM ai_messages WHERE id = ?1",
+                        params![id],
+                        |row| row.get(0),
+                    )
+                    .ok();
+
+                // Delete the empty message
+                conn.execute("DELETE FROM ai_messages WHERE id = ?1", params![id])
+                    .map_err(|e| format!("Failed to delete empty message: {}", e))?;
+
+                // Decrement message count for the conversation
+                if let Some(conv_id) = conversation_id {
+                    conn.execute(
+                        "UPDATE ai_conversations SET message_count = message_count - 1 WHERE id = ?1 AND message_count > 0",
+                        params![conv_id],
+                    )
+                    .map_err(|e| format!("Failed to update message count: {}", e))?;
+                }
+
+                return Ok(());
+            }
+
             let tool_calls_json = tool_calls.map(|tc| {
                 serde_json::to_string(tc).unwrap_or_default()
             });
