@@ -125,6 +125,13 @@ pub static MCP_ALL_TOOLS: &[MCPToolDefinition] = &[
         applicable_permissions: &["read", "write"],
     },
     MCPToolDefinition {
+        name: "create_workflow_with_steps",
+        description: "Create a workflow with steps atomically (recommended, max 10 steps)",
+        display_category: "Workflows",
+        permission_category: MCPToolPermissionCategory::Write,
+        applicable_permissions: &["read", "write"],
+    },
+    MCPToolDefinition {
         name: "add_workflow_step",
         description: "Add a script step to a workflow",
         display_category: "Workflows",

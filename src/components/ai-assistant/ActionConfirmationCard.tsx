@@ -123,6 +123,7 @@ function getToolIcon(toolName: string) {
     case 'run_workflow':
       return GitBranch;
     case 'add_workflow_steps':
+    case 'create_workflow_with_steps':
       return ListOrdered;
     default:
       return Terminal;
@@ -150,6 +151,8 @@ function getToolDisplayName(toolName: string): string {
       return 'Add Workflow Steps (Batch)';
     case 'create_workflow':
       return 'Create Workflow';
+    case 'create_workflow_with_steps':
+      return 'Create Workflow with Steps (Atomic)';
     default:
       return toolName;
   }
@@ -512,8 +515,81 @@ export function ActionConfirmationCard({
             </span>
           </div>
 
-          {/* Special rendering for add_workflow_steps batch tool */}
-          {toolCall.name === 'add_workflow_steps' && (toolCall.arguments as { steps?: Array<{ name: string; command: string }> }).steps ? (
+          {/* Special rendering for create_workflow_with_steps (atomic workflow + steps) */}
+          {toolCall.name === 'create_workflow_with_steps' && (toolCall.arguments as { steps?: Array<{ name: string; command: string }> }).steps ? (
+            <div className="mt-3 space-y-2">
+              {/* Workflow Name */}
+              <div className="flex items-start gap-2 text-xs">
+                <span className="text-muted-foreground font-medium min-w-[80px]">name:</span>
+                <code className="font-mono text-foreground/80 break-all bg-background/50 px-1.5 py-0.5 rounded font-semibold">
+                  {(toolCall.arguments as { name?: string }).name}
+                </code>
+              </div>
+
+              {/* Workflow Description (optional) */}
+              {(toolCall.arguments as { description?: string }).description && (
+                <div className="flex items-start gap-2 text-xs">
+                  <span className="text-muted-foreground font-medium min-w-[80px]">description:</span>
+                  <span className="text-foreground/80 break-all">
+                    {(toolCall.arguments as { description?: string }).description}
+                  </span>
+                </div>
+              )}
+
+              {/* Project ID (optional) */}
+              {(toolCall.arguments as { project_id?: string }).project_id && (
+                <div className="flex items-start gap-2 text-xs">
+                  <span className="text-muted-foreground font-medium min-w-[80px]">project_id:</span>
+                  <code className="font-mono text-foreground/80 break-all bg-background/50 px-1.5 py-0.5 rounded">
+                    {(toolCall.arguments as { project_id?: string }).project_id}
+                  </code>
+                </div>
+              )}
+
+              {/* Steps list */}
+              <div className="text-xs font-medium text-muted-foreground">
+                Steps to create ({((toolCall.arguments as { steps?: unknown[] }).steps || []).length}):
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-2 rounded-lg border border-border/50 p-2 bg-background/30">
+                {((toolCall.arguments as { steps?: Array<{ name: string; command: string; cwd?: string; timeout?: number }> }).steps || []).map((step, i) => {
+                  const dangerous = isDangerousCommand(step.command);
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex items-start gap-2 p-2 rounded',
+                        dangerous ? 'bg-red-500/10 border border-red-500/30' : 'bg-muted/50'
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          'shrink-0 w-5 h-5 rounded text-xs font-medium flex items-center justify-center',
+                          dangerous ? 'bg-red-500/20 text-red-500' : 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-foreground">{step.name}</span>
+                          {dangerous && (
+                            <span className="flex items-center gap-1 text-xs text-red-500">
+                              <ShieldAlert className="w-3 h-3" />
+                              Danger
+                            </span>
+                          )}
+                        </div>
+                        <code className="text-xs text-muted-foreground block truncate font-mono mt-0.5">
+                          {step.command}
+                        </code>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : toolCall.name === 'add_workflow_steps' && (toolCall.arguments as { steps?: Array<{ name: string; command: string }> }).steps ? (
+            /* Special rendering for add_workflow_steps batch tool */
             <div className="mt-3 space-y-2">
               {/* Workflow ID */}
               <div className="flex items-start gap-2 text-xs">

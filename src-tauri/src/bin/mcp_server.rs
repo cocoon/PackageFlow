@@ -869,6 +869,166 @@ impl PackageFlowMcp {
         Ok(CallToolResult::success(vec![Content::text(json)]))
     }
 
+    /// Create a workflow with steps atomically
+    #[tool(description = "Create a new workflow with steps in a single atomic operation. This is the recommended method - it prevents sync issues that can occur when using separate create_workflow and add_workflow_steps calls. Maximum 10 steps.
+
+USAGE:
+- Provide workflow name (required) and optional description/project_id
+- Steps array contains the steps to create (1-10 steps)
+- Steps execute in array order (index 0 = first step)
+
+EXAMPLE:
+{
+  \"name\": \"Build and Deploy\",
+  \"description\": \"CI/CD pipeline\",
+  \"steps\": [
+    { \"name\": \"Install\", \"command\": \"npm ci\" },
+    { \"name\": \"Build\", \"command\": \"npm run build\" },
+    { \"name\": \"Test\", \"command\": \"npm test\" }
+  ]
+}
+
+RETURNS: Created workflow ID and step details. Use workflow_id with run_workflow to execute.")]
+    async fn create_workflow_with_steps(
+        &self,
+        Parameters(params): Parameters<CreateWorkflowWithStepsParams>,
+    ) -> Result<CallToolResult, McpError> {
+        const MAX_BATCH_SIZE: usize = 10;
+
+        // Validate workflow name
+        if params.name.trim().is_empty() {
+            return Ok(CallToolResult::error(vec![Content::text(
+                "Workflow name cannot be empty"
+            )]));
+        }
+        if let Err(e) = validate_string_length("name", &params.name, MAX_NAME_LENGTH) {
+            return Ok(CallToolResult::error(vec![Content::text(e)]));
+        }
+
+        // Validate steps
+        if params.steps.is_empty() {
+            return Ok(CallToolResult::error(vec![Content::text(
+                "Steps array cannot be empty. Provide at least 1 step."
+            )]));
+        }
+        if params.steps.len() > MAX_BATCH_SIZE {
+            return Ok(CallToolResult::error(vec![Content::text(
+                format!("Too many steps: {} (max {})", params.steps.len(), MAX_BATCH_SIZE)
+            )]));
+        }
+
+        // Validate all steps upfront
+        let mut step_names: Vec<&str> = Vec::new();
+        for (i, step) in params.steps.iter().enumerate() {
+            if step.name.trim().is_empty() {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} has empty name", i + 1)
+                )]));
+            }
+            if step_names.contains(&step.name.as_str()) {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Duplicate step name '{}'", step.name)
+                )]));
+            }
+            step_names.push(&step.name);
+
+            if step.command.trim().is_empty() {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} '{}' has empty command", i + 1, step.name)
+                )]));
+            }
+            if let Err(e) = validate_command(&step.command) {
+                return Ok(CallToolResult::error(vec![Content::text(
+                    format!("Step {} '{}': {}", i + 1, step.name, e)
+                )]));
+            }
+        }
+
+        let mut store_data = read_store_data()
+            .map_err(|e| McpError::internal_error(e, None))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        let workflow_id = format!("wf-{}", Uuid::new_v4());
+
+        // Create workflow with all steps
+        let mut nodes: Vec<WorkflowNode> = Vec::new();
+        let mut created_steps: Vec<CreatedStepInfo> = Vec::new();
+
+        for (i, step) in params.steps.iter().enumerate() {
+            let node_id = format!("node-{}", Uuid::new_v4());
+            let order = i as i32;
+
+            let mut config = serde_json::json!({
+                "command": step.command,
+            });
+            if let Some(cwd) = &step.cwd {
+                config["cwd"] = serde_json::json!(cwd);
+            }
+            if let Some(timeout) = step.timeout {
+                config["timeout"] = serde_json::json!(timeout);
+            }
+
+            nodes.push(WorkflowNode {
+                id: node_id.clone(),
+                node_type: "script".to_string(),
+                name: step.name.clone(),
+                config,
+                order,
+                position: None,
+            });
+
+            created_steps.push(CreatedStepInfo {
+                node_id,
+                name: step.name.clone(),
+                order,
+                command: step.command.clone(),
+            });
+        }
+
+        let workflow = Workflow {
+            id: workflow_id.clone(),
+            name: params.name.clone(),
+            description: params.description.clone(),
+            project_id: params.project_id.clone(),
+            nodes,
+            created_at: now.clone(),
+            updated_at: now.clone(),
+            last_executed_at: None,
+            webhook: None,
+            incoming_webhook: None,
+        };
+
+        store_data.workflows.push(workflow);
+
+        eprintln!("[MCP Debug] create_workflow_with_steps - Writing workflow '{}' with {} steps",
+            params.name, created_steps.len());
+
+        write_store_data(&store_data)
+            .map_err(|e| {
+                eprintln!("[MCP Debug] create_workflow_with_steps - Write FAILED: {}", e);
+                McpError::internal_error(e, None)
+            })?;
+
+        eprintln!("[MCP Debug] create_workflow_with_steps - Write SUCCESS");
+
+        let response = CreateWorkflowWithStepsResponse {
+            success: true,
+            workflow_id,
+            workflow_name: params.name,
+            description: params.description,
+            project_id: params.project_id,
+            created_steps,
+            total_steps: params.steps.len(),
+            created_at: now,
+            message: format!("Workflow created with {} steps", params.steps.len()),
+        };
+
+        let json = serde_json::to_string_pretty(&response)
+            .map_err(|e| McpError::internal_error(e.to_string(), None))?;
+
+        Ok(CallToolResult::success(vec![Content::text(json)]))
+    }
+
     /// Add a step to an existing workflow
     #[tool(description = "Add a new step (script node) to an existing workflow. Specify the command to execute, optional working directory, and timeout.")]
     async fn add_workflow_step(

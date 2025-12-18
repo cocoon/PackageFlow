@@ -552,6 +552,58 @@ impl MCPToolHandler {
                 category: "workflow".to_string(),
             },
             ToolDefinition {
+                name: "create_workflow_with_steps".to_string(),
+                description: "Create a new workflow with steps in ONE atomic operation. RECOMMENDED over separate create_workflow + add_workflow_steps calls - prevents sync issues. Maximum 10 steps.".to_string(),
+                parameters: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Workflow name (required)"
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Optional workflow description"
+                        },
+                        "project_id": {
+                            "type": "string",
+                            "description": "Optional project ID to associate"
+                        },
+                        "steps": {
+                            "type": "array",
+                            "description": "Array of steps (1-10). Steps execute in array order.",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Step name"
+                                    },
+                                    "command": {
+                                        "type": "string",
+                                        "description": "Shell command to execute"
+                                    },
+                                    "cwd": {
+                                        "type": "string",
+                                        "description": "Optional working directory"
+                                    },
+                                    "timeout": {
+                                        "type": "integer",
+                                        "description": "Optional timeout in milliseconds"
+                                    }
+                                },
+                                "required": ["name", "command"]
+                            },
+                            "minItems": 1,
+                            "maxItems": 10
+                        }
+                    },
+                    "required": ["name", "steps"]
+                }),
+                requires_confirmation: true,
+                category: "workflow".to_string(),
+            },
+            ToolDefinition {
                 name: "add_workflow_step".to_string(),
                 description: "Add a new step to an existing workflow. You MUST use the actual workflow_id returned from create_workflow or list_workflows. If unsure which workflow to use, call list_workflows first and ask the user to select one.".to_string(),
                 parameters: serde_json::json!({
@@ -1081,6 +1133,7 @@ impl MCPToolHandler {
             "run_workflow" => self.execute_run_workflow(tool_call).await,
             "trigger_webhook" => self.execute_trigger_webhook(tool_call).await,
             "create_workflow" => self.execute_create_workflow(tool_call).await,
+            "create_workflow_with_steps" => self.execute_create_workflow_with_steps(tool_call).await,
             "add_workflow_step" => self.execute_add_workflow_step(tool_call).await,
             "add_workflow_steps" => self.execute_add_workflow_steps(tool_call).await,
             // New confirmation-required tools synced with MCP Server
@@ -2556,6 +2609,173 @@ impl MCPToolHandler {
                         "workflowId": workflow.id,
                         "name": workflow.name,
                         "message": format!("Workflow '{}' created successfully. IMPORTANT: Use workflow_id '{}' for add_workflow_step.", name, workflow.id)
+                    });
+                    return ToolResult::success(
+                        tool_call.id.clone(),
+                        serde_json::to_string(&output).unwrap_or_default(),
+                        None,
+                    );
+                }
+                Err(e) => {
+                    return ToolResult::failure(
+                        tool_call.id.clone(),
+                        format!("Failed to create workflow: {}", e),
+                    );
+                }
+            }
+        }
+        ToolResult::failure(
+            tool_call.id.clone(),
+            "Database not available".to_string(),
+        )
+    }
+
+    /// Execute create_workflow_with_steps tool (atomic workflow + steps creation)
+    async fn execute_create_workflow_with_steps(&self, tool_call: &ToolCall) -> ToolResult {
+        const MAX_BATCH_SIZE: usize = 10;
+
+        let name = match tool_call.arguments.get("name").and_then(|v| v.as_str()) {
+            Some(n) if !n.trim().is_empty() => n,
+            _ => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: name".to_string(),
+            ),
+        };
+
+        let description = tool_call.arguments
+            .get("description")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.trim().is_empty());
+
+        let project_id = tool_call.arguments
+            .get("project_id")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.trim().is_empty());
+
+        let steps = match tool_call.arguments.get("steps").and_then(|v| v.as_array()) {
+            Some(arr) => arr,
+            None => return ToolResult::failure(
+                tool_call.id.clone(),
+                "Missing required parameter: steps (array)".to_string(),
+            ),
+        };
+
+        // Validate steps
+        if steps.is_empty() {
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                "Steps array cannot be empty".to_string(),
+            );
+        }
+        if steps.len() > MAX_BATCH_SIZE {
+            return ToolResult::failure(
+                tool_call.id.clone(),
+                format!("Too many steps: {} (max {})", steps.len(), MAX_BATCH_SIZE),
+            );
+        }
+
+        // Validate all steps upfront
+        let mut step_names: Vec<&str> = Vec::new();
+        for (i, step) in steps.iter().enumerate() {
+            let step_name = match step.get("name").and_then(|v| v.as_str()) {
+                Some(n) if !n.trim().is_empty() => n,
+                _ => return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Step {} missing or empty 'name'", i + 1),
+                ),
+            };
+            if step_names.contains(&step_name) {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Duplicate step name '{}'", step_name),
+                );
+            }
+            step_names.push(step_name);
+
+            if step.get("command").and_then(|v| v.as_str()).map(|s| s.trim().is_empty()).unwrap_or(true) {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Step {} '{}' missing or empty 'command'", i + 1, step_name),
+                );
+            }
+        }
+
+        // Validate project_id if provided
+        if let (Some(ref db), Some(pid)) = (&self.db, project_id) {
+            let project_exists = crate::repositories::ProjectRepository::new(db.clone())
+                .get(pid)
+                .map(|p| p.is_some())
+                .unwrap_or(false);
+
+            if !project_exists {
+                return ToolResult::failure(
+                    tool_call.id.clone(),
+                    format!("Project '{}' not found", pid),
+                );
+            }
+        }
+
+        if let Some(ref db) = self.db {
+            let workflow_id = uuid::Uuid::new_v4().to_string();
+            let mut workflow = crate::models::workflow::Workflow::new(
+                workflow_id.clone(),
+                name.to_string(),
+            );
+            workflow.description = description.map(|s| s.to_string());
+            workflow.project_id = project_id.map(|s| s.to_string());
+
+            // Add all steps to workflow
+            let mut created_steps: Vec<serde_json::Value> = Vec::new();
+            for (i, step) in steps.iter().enumerate() {
+                let step_name = step.get("name").and_then(|v| v.as_str()).unwrap();
+                let command = step.get("command").and_then(|v| v.as_str()).unwrap();
+                let cwd = step.get("cwd").and_then(|v| v.as_str()).map(|s| s.to_string());
+                let timeout = step.get("timeout").and_then(|v| v.as_u64());
+
+                let node_id = uuid::Uuid::new_v4().to_string();
+                let order = i as i32;
+
+                let mut config = serde_json::json!({
+                    "command": command,
+                });
+                if let Some(cwd_val) = cwd {
+                    config["cwd"] = serde_json::json!(cwd_val);
+                }
+                if let Some(timeout_val) = timeout {
+                    config["timeout"] = serde_json::json!(timeout_val);
+                }
+
+                let node = crate::models::workflow::WorkflowNode {
+                    id: node_id.clone(),
+                    node_type: "script".to_string(),
+                    name: step_name.to_string(),
+                    config,
+                    order,
+                    position: None,
+                };
+
+                workflow.nodes.push(node);
+
+                created_steps.push(serde_json::json!({
+                    "nodeId": node_id,
+                    "name": step_name,
+                    "order": order,
+                    "command": command
+                }));
+            }
+
+            // Save workflow with all steps atomically
+            match crate::repositories::WorkflowRepository::new(db.clone()).save(&workflow) {
+                Ok(_) => {
+                    let output = serde_json::json!({
+                        "success": true,
+                        "workflowId": workflow.id,
+                        "workflowName": workflow.name,
+                        "description": workflow.description,
+                        "projectId": workflow.project_id,
+                        "createdSteps": created_steps,
+                        "totalSteps": created_steps.len(),
+                        "message": format!("Workflow '{}' created with {} steps. Use workflow_id '{}' with run_workflow to execute.", name, created_steps.len(), workflow.id)
                     });
                     return ToolResult::success(
                         tool_call.id.clone(),

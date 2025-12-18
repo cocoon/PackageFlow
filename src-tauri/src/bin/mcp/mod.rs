@@ -32,7 +32,7 @@ pub use tools_registry::ALL_TOOLS;
 pub use state::{RATE_LIMITER, TOOL_RATE_LIMITERS, ACTION_SEMAPHORE};
 pub use templates::get_builtin_templates;
 pub use store::{
-    read_store_data, write_store_data, log_request, update_log_status, open_database, get_database_path,
+    read_store_data, write_store_data, log_request, open_database, get_database_path,
     Project, Workflow, WorkflowNode, CustomStepTemplate,
 };
 pub use background::{
