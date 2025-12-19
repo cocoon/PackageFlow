@@ -17,6 +17,7 @@ import {
   Github,
   FileText,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { Button } from '../../ui/Button';
 import { SettingSection } from '../ui/SettingSection';
 import { SettingInfoBox } from '../ui/SettingInfoBox';
@@ -310,11 +311,37 @@ export const AboutSettingsPanel: React.FC<AboutSettingsPanelProps> = () => {
                         'p-2 rounded-md',
                         'bg-muted/50 border border-border',
                         'text-xs text-muted-foreground',
-                        'max-h-24 overflow-y-auto',
-                        'whitespace-pre-wrap'
+                        'max-h-32 overflow-y-auto',
+                        // Markdown prose styles
+                        'prose prose-xs dark:prose-invert max-w-none',
+                        'prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-2 prose-headings:mb-1',
+                        'prose-h3:text-xs prose-h3:mt-1',
+                        'prose-p:my-0.5 prose-p:text-muted-foreground',
+                        'prose-ul:my-0.5 prose-ul:pl-3 prose-li:my-0',
+                        'prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline',
+                        'prose-strong:text-foreground prose-strong:font-medium',
+                        'prose-code:text-[10px] prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
                       )}
                     >
-                      {releaseNotes}
+                      <ReactMarkdown
+                        components={{
+                          // Open links in external browser using Tauri
+                          a: ({ href, children }) => (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                if (href) openUrl(href);
+                              }}
+                              className="text-blue-500 hover:underline cursor-pointer inline"
+                            >
+                              {children}
+                            </button>
+                          ),
+                        }}
+                      >
+                        {releaseNotes}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 )}
