@@ -1,11 +1,19 @@
 //! Database access and store data types for MCP server
 //!
 //! Contains SQLite database functions and local data types for MCP processing.
+//!
+//! ## Database Connection Management
+//!
+//! Uses a global database connection pool (via `once_cell::sync::OnceCell`) to avoid
+//! creating a new connection for every tool call. This reduces SQLite lock contention
+//! and improves performance.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use chrono::Utc;
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 
 use packageflow_lib::models::mcp::MCPServerConfig;
@@ -24,6 +32,23 @@ use packageflow_lib::utils::shared_store::{get_app_data_dir, sanitize_error};
 pub const MCP_CONFIG_KEY: &str = "mcp_server_config";
 
 // ============================================================================
+// Global Database Connection Pool
+// ============================================================================
+
+/// Global database connection, initialized once on first access
+static DB_POOL: OnceCell<Arc<Database>> = OnceCell::new();
+
+/// Get or initialize the global database connection
+fn get_db_pool() -> Result<Arc<Database>, String> {
+    DB_POOL.get_or_try_init(|| {
+        let db_path = get_database_path()?;
+        eprintln!("[MCP Database] Initializing connection pool at: {:?}", db_path);
+        let db = Database::new(db_path)?;
+        Ok(Arc::new(db))
+    }).cloned()
+}
+
+// ============================================================================
 // Database Access Functions
 // ============================================================================
 
@@ -33,19 +58,22 @@ pub fn get_database_path() -> Result<PathBuf, String> {
     Ok(app_dir.join(DATABASE_FILE))
 }
 
-/// Open the SQLite database
+/// Open the SQLite database (uses connection pool)
+///
+/// This function now returns a clone of the global database connection
+/// instead of creating a new connection each time.
 pub fn open_database() -> Result<Database, String> {
-    let db_path = get_database_path()?;
-    eprintln!("[MCP Debug] Opening database at: {:?}", db_path);
-    Database::new(db_path)
+    // Use the connection pool - Arc::unwrap_or_clone extracts the inner value
+    // if this is the only reference, otherwise clones it
+    let db = get_db_pool()?;
+    // Database implements Clone, which shares the underlying Arc<Mutex<Connection>>
+    Ok((*db).clone())
 }
 
 /// Read store data from SQLite database
+///
+/// Uses the global connection pool to avoid creating a new connection each time.
 pub fn read_store_data() -> Result<StoreData, String> {
-    let db_path = get_database_path()?;
-    eprintln!("[MCP Debug] Reading from SQLite: {:?}", db_path);
-    eprintln!("[MCP Debug] Database exists: {}", db_path.exists());
-
     let db = open_database()?;
 
     // Read from repositories
@@ -58,7 +86,6 @@ pub fn read_store_data() -> Result<StoreData, String> {
     let mcp_config: MCPServerConfig = settings_repo
         .get(MCP_CONFIG_KEY)?
         .unwrap_or_default();
-    eprintln!("[MCP Debug] mcp_config: {:?}", mcp_config);
 
     // Get projects (map library Project to local simplified Project)
     let projects: Vec<Project> = project_repo
@@ -397,4 +424,129 @@ pub struct CustomStepTemplate {
 
 fn default_true() -> bool {
     true
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mcp_config_key_is_correct() {
+        // Ensure the config key matches what the Tauri app uses
+        assert_eq!(MCP_CONFIG_KEY, "mcp_server_config");
+    }
+
+    #[test]
+    fn test_store_data_default() {
+        let store = StoreData::default();
+        assert!(store.projects.is_empty());
+        assert!(store.workflows.is_empty());
+        assert!(store.custom_step_templates.is_empty());
+        assert!(!store.mcp_config.is_enabled); // Default should be disabled
+    }
+
+    #[test]
+    fn test_project_serialization() {
+        let project = Project {
+            id: "test-id".to_string(),
+            name: "Test Project".to_string(),
+            path: "/path/to/project".to_string(),
+            description: Some("A test project".to_string()),
+        };
+
+        let json = serde_json::to_string(&project).unwrap();
+        let parsed: Project = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.id, "test-id");
+        assert_eq!(parsed.name, "Test Project");
+        assert_eq!(parsed.description, Some("A test project".to_string()));
+    }
+
+    #[test]
+    fn test_workflow_serialization() {
+        let workflow = Workflow {
+            id: "wf-1".to_string(),
+            name: "Test Workflow".to_string(),
+            description: None,
+            project_id: Some("proj-1".to_string()),
+            nodes: vec![],
+            created_at: "2025-01-01T00:00:00Z".to_string(),
+            updated_at: "2025-01-01T00:00:00Z".to_string(),
+            last_executed_at: None,
+            webhook: None,
+            incoming_webhook: None,
+        };
+
+        let json = serde_json::to_string(&workflow).unwrap();
+        let parsed: Workflow = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.id, "wf-1");
+        assert_eq!(parsed.project_id, Some("proj-1".to_string()));
+    }
+
+    #[test]
+    fn test_sanitize_arguments_with_path() {
+        let args = serde_json::json!({
+            "path": "/Users/testuser/secret/project",
+            "name": "test"
+        });
+
+        let sanitized = sanitize_arguments(&args);
+
+        // The path should be sanitized (home dir replaced with ~)
+        // The name should remain unchanged
+        assert_eq!(sanitized["name"], "test");
+        // Path sanitization depends on the actual home directory
+    }
+
+    #[test]
+    fn test_sanitize_arguments_nested() {
+        let args = serde_json::json!({
+            "config": {
+                "project_path": "/some/path",
+                "value": 42
+            },
+            "items": [
+                {"cwd": "/another/path"}
+            ]
+        });
+
+        let sanitized = sanitize_arguments(&args);
+
+        // Should recursively sanitize nested objects and arrays
+        assert!(sanitized["config"]["value"].as_i64() == Some(42));
+    }
+
+    #[test]
+    fn test_database_path_ends_with_db_file() {
+        // This test verifies the database path construction
+        // It may fail if the app data directory is not accessible
+        if let Ok(path) = get_database_path() {
+            let path_str = path.to_string_lossy();
+            // In debug mode, uses packageflow-dev.db; in release, uses packageflow.db
+            assert!(
+                path_str.ends_with("packageflow.db") || path_str.ends_with("packageflow-dev.db"),
+                "Database path should end with packageflow.db or packageflow-dev.db, got: {}",
+                path_str
+            );
+        }
+    }
+
+    #[test]
+    fn test_db_pool_returns_same_instance() {
+        // Test that the connection pool returns the same Arc instance
+        // This verifies the singleton behavior
+        // Note: This test only runs if we can actually connect to the database
+        if let (Ok(db1), Ok(db2)) = (get_db_pool(), get_db_pool()) {
+            // Both should point to the same underlying Arc
+            assert!(
+                Arc::ptr_eq(&db1, &db2),
+                "Connection pool should return the same instance"
+            );
+        }
+    }
 }

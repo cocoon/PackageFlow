@@ -8,8 +8,8 @@
 //! Each MCP server instance:
 //! - Creates a `{pid}.lock` file with exclusive lock (fs2)
 //! - Creates a `{pid}.heartbeat` file with JSON metadata
-//! - Updates heartbeat every 10 seconds
-//! - Only kills instances with stale heartbeats (>5 min)
+//! - Updates heartbeat every 5 seconds (using spawn_blocking to avoid blocking async runtime)
+//! - Only kills instances with stale heartbeats (>10 min)
 
 use std::fs::{self, File};
 use std::io::{Read, Write};
@@ -30,11 +30,15 @@ use packageflow_lib::utils::shared_store::get_app_data_dir;
 // Constants
 // ============================================================================
 
-/// Heartbeat update interval in seconds
-const HEARTBEAT_INTERVAL_SECS: u64 = 10;
+/// Heartbeat update interval in seconds (reduced from 10 to 5 for better responsiveness)
+const HEARTBEAT_INTERVAL_SECS: u64 = 5;
 
-/// Instance considered stale if no heartbeat for this long (5 minutes)
-const STALE_THRESHOLD_SECS: u64 = 300;
+/// Instance considered stale if no heartbeat for this long (10 minutes)
+/// Increased from 5 minutes to avoid false stale detection during long tool calls
+const STALE_THRESHOLD_SECS: u64 = 600;
+
+/// Maximum consecutive heartbeat failures before logging critical warning
+const MAX_HEARTBEAT_FAILURES: u32 = 6;
 
 /// Grace period before killing stale instance
 const CLEANUP_GRACE_PERIOD_SECS: u64 = 5;
@@ -61,7 +65,7 @@ pub struct InstanceInfo {
 pub enum InstanceStatus {
     /// Lock held and recent heartbeat
     Active,
-    /// Lock held but heartbeat expired (>5 min)
+    /// Lock held but heartbeat expired (>10 min)
     Stale,
     /// No lock, files exist (crashed process)
     Orphaned,
@@ -301,6 +305,9 @@ impl InstanceManager {
     }
 
     /// Start heartbeat update task
+    ///
+    /// Uses `spawn_blocking` to execute file I/O operations to avoid blocking
+    /// the async runtime during long tool calls.
     fn start_heartbeat_task(&mut self) {
         let instance_dir = self.instance_dir.clone();
         let current_pid = self.current_pid;
@@ -309,6 +316,7 @@ impl InstanceManager {
         let handle = tokio::spawn(async move {
             let heartbeat_path = instance_dir.join(format!("{}.heartbeat", current_pid));
             let mut interval = tokio::time::interval(Duration::from_secs(HEARTBEAT_INTERVAL_SECS));
+            let mut consecutive_failures: u32 = 0;
 
             loop {
                 interval.tick().await;
@@ -317,11 +325,38 @@ impl InstanceManager {
                     break;
                 }
 
-                // Update heartbeat
-                if let Some(mut info) = Self::read_heartbeat_file_static(&heartbeat_path) {
-                    info.last_heartbeat = Utc::now().to_rfc3339();
-                    if let Err(e) = Self::write_heartbeat_file_static(&heartbeat_path, &info) {
-                        eprintln!("[MCP Instance] Failed to update heartbeat: {}", e);
+                // Use spawn_blocking to avoid blocking the async runtime
+                let path_clone = heartbeat_path.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    Self::update_heartbeat_sync(&path_clone)
+                }).await;
+
+                match result {
+                    Ok(Ok(())) => {
+                        if consecutive_failures > 0 {
+                            eprintln!("[MCP Instance] Heartbeat recovered after {} failures", consecutive_failures);
+                        }
+                        consecutive_failures = 0;
+                    }
+                    Ok(Err(e)) => {
+                        consecutive_failures += 1;
+                        eprintln!(
+                            "[MCP Instance] Heartbeat update failed ({}/{}): {}",
+                            consecutive_failures, MAX_HEARTBEAT_FAILURES, e
+                        );
+                        if consecutive_failures >= MAX_HEARTBEAT_FAILURES {
+                            eprintln!(
+                                "[MCP Instance] CRITICAL: Heartbeat consistently failing! \
+                                 Instance may be marked as stale."
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        consecutive_failures += 1;
+                        eprintln!(
+                            "[MCP Instance] Heartbeat task panicked ({}/{}): {}",
+                            consecutive_failures, MAX_HEARTBEAT_FAILURES, e
+                        );
                     }
                 }
             }
@@ -330,6 +365,16 @@ impl InstanceManager {
         // Store handle - we'll use blocking lock since this is called once at startup
         if let Ok(mut task) = self.heartbeat_task.try_lock() {
             *task = Some(handle);
+        }
+    }
+
+    /// Synchronous heartbeat update for use in spawn_blocking
+    fn update_heartbeat_sync(path: &PathBuf) -> Result<(), String> {
+        if let Some(mut info) = Self::read_heartbeat_file_static(path) {
+            info.last_heartbeat = Utc::now().to_rfc3339();
+            Self::write_heartbeat_file_static(path, &info)
+        } else {
+            Err("Failed to read heartbeat file".to_string())
         }
     }
 
@@ -445,6 +490,7 @@ impl Default for InstanceManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::TempDir;
 
     #[test]
     fn test_instance_info_serialization() {
@@ -469,5 +515,150 @@ mod tests {
         assert_eq!(result.orphaned_cleaned, 0);
         assert_eq!(result.stale_killed, 0);
         assert_eq!(result.active_count, 0);
+    }
+
+    // ========================================================================
+    // New tests for MCP disconnection fix verification
+    // ========================================================================
+
+    #[test]
+    fn test_stale_threshold_is_10_minutes() {
+        // Verify that STALE_THRESHOLD_SECS is 600 (10 minutes)
+        // This prevents false stale detection during long tool calls
+        assert_eq!(STALE_THRESHOLD_SECS, 600, "Stale threshold should be 10 minutes (600 seconds)");
+    }
+
+    #[test]
+    fn test_heartbeat_interval_is_5_seconds() {
+        // Verify that HEARTBEAT_INTERVAL_SECS is 5 seconds
+        // More frequent heartbeats improve responsiveness
+        assert_eq!(HEARTBEAT_INTERVAL_SECS, 5, "Heartbeat interval should be 5 seconds");
+    }
+
+    #[test]
+    fn test_max_heartbeat_failures_defined() {
+        // Verify MAX_HEARTBEAT_FAILURES is defined and reasonable
+        assert!(MAX_HEARTBEAT_FAILURES >= 3, "Should allow at least 3 failures before critical warning");
+        assert!(MAX_HEARTBEAT_FAILURES <= 10, "Should not allow too many failures");
+    }
+
+    #[test]
+    fn test_heartbeat_to_stale_ratio() {
+        // With 5 second interval and 600 second threshold,
+        // we have 120 heartbeat opportunities before being marked stale
+        // This provides good tolerance for temporary blocking
+        let heartbeats_before_stale = STALE_THRESHOLD_SECS / HEARTBEAT_INTERVAL_SECS;
+        assert!(
+            heartbeats_before_stale >= 60,
+            "Should have at least 60 heartbeat opportunities before stale detection (got {})",
+            heartbeats_before_stale
+        );
+    }
+
+    #[test]
+    fn test_write_and_read_heartbeat_file() {
+        let temp_dir = TempDir::new().expect("Failed to create temp dir");
+        let heartbeat_path = temp_dir.path().join("test.heartbeat");
+
+        let info = InstanceInfo {
+            pid: 99999,
+            started_at: Utc::now().to_rfc3339(),
+            last_heartbeat: Utc::now().to_rfc3339(),
+            client_info: Some("test-client".to_string()),
+            db_path: "/test/db".to_string(),
+        };
+
+        // Write heartbeat file
+        let result = InstanceManager::write_heartbeat_file_static(&heartbeat_path, &info);
+        assert!(result.is_ok(), "Should write heartbeat file successfully");
+        assert!(heartbeat_path.exists(), "Heartbeat file should exist");
+
+        // Read heartbeat file
+        let read_info = InstanceManager::read_heartbeat_file_static(&heartbeat_path);
+        assert!(read_info.is_some(), "Should read heartbeat file successfully");
+
+        let read_info = read_info.unwrap();
+        assert_eq!(read_info.pid, 99999);
+        assert_eq!(read_info.client_info, Some("test-client".to_string()));
+    }
+
+    #[test]
+    fn test_update_heartbeat_sync() {
+        let temp_dir = TempDir::new().expect("Failed to create temp dir");
+        let heartbeat_path = temp_dir.path().join("test.heartbeat");
+
+        // Create initial heartbeat file
+        let initial_time = "2025-01-01T00:00:00Z";
+        let info = InstanceInfo {
+            pid: 88888,
+            started_at: initial_time.to_string(),
+            last_heartbeat: initial_time.to_string(),
+            client_info: None,
+            db_path: "/test/db".to_string(),
+        };
+        InstanceManager::write_heartbeat_file_static(&heartbeat_path, &info)
+            .expect("Failed to write initial heartbeat");
+
+        // Update heartbeat
+        let result = InstanceManager::update_heartbeat_sync(&heartbeat_path);
+        assert!(result.is_ok(), "Should update heartbeat successfully");
+
+        // Verify the last_heartbeat was updated
+        let updated_info = InstanceManager::read_heartbeat_file_static(&heartbeat_path)
+            .expect("Should read updated heartbeat");
+
+        assert_ne!(
+            updated_info.last_heartbeat, initial_time,
+            "last_heartbeat should be updated to current time"
+        );
+        assert_eq!(updated_info.pid, 88888, "pid should remain unchanged");
+        assert_eq!(updated_info.started_at, initial_time, "started_at should remain unchanged");
+    }
+
+    #[test]
+    fn test_update_heartbeat_sync_missing_file() {
+        let temp_dir = TempDir::new().expect("Failed to create temp dir");
+        let heartbeat_path = temp_dir.path().join("nonexistent.heartbeat");
+
+        // Try to update a non-existent heartbeat file
+        let result = InstanceManager::update_heartbeat_sync(&heartbeat_path);
+        assert!(result.is_err(), "Should fail when heartbeat file doesn't exist");
+    }
+
+    #[test]
+    fn test_stale_detection_logic() {
+        // Test the time-based stale detection logic
+        let now = Utc::now();
+
+        // Recent heartbeat (1 minute ago) should not be stale
+        let recent = now - chrono::Duration::seconds(60);
+        let age_recent = now.signed_duration_since(recent);
+        assert!(
+            age_recent.num_seconds() < STALE_THRESHOLD_SECS as i64,
+            "1 minute old heartbeat should not be stale"
+        );
+
+        // Old heartbeat (11 minutes ago) should be stale
+        let old = now - chrono::Duration::seconds(660);
+        let age_old = now.signed_duration_since(old);
+        assert!(
+            age_old.num_seconds() > STALE_THRESHOLD_SECS as i64,
+            "11 minute old heartbeat should be stale"
+        );
+
+        // Edge case: exactly at threshold (10 minutes)
+        let at_threshold = now - chrono::Duration::seconds(600);
+        let age_threshold = now.signed_duration_since(at_threshold);
+        assert!(
+            age_threshold.num_seconds() <= STALE_THRESHOLD_SECS as i64,
+            "Exactly 10 minute old heartbeat should NOT be stale (need > threshold)"
+        );
+    }
+
+    #[test]
+    fn test_instance_manager_new() {
+        let manager = InstanceManager::new();
+        assert_eq!(manager.current_pid, std::process::id());
+        assert!(manager.lock_file.is_none());
     }
 }

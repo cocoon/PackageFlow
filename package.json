@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test:mcp": "cargo test -p packageflow-mcp",
+    "test:mcp:verbose": "cargo test -p packageflow-mcp -- --nocapture",
+    "test:mcp:watch": "cargo watch -x 'test -p packageflow-mcp'",
     "clean": "cargo clean",
     "kill": "lsof -ti:1420 | xargs kill -9",
     "lint": "eslint src/ --max-warnings 0",
