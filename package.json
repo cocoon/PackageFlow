@@ -2,7 +2,7 @@
   "name": "packageflow",
   "private": true,
   "license": "mit",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
