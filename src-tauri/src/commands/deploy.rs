@@ -30,9 +30,10 @@ pub struct CheckAccountResult {
 
 // OAuth client configuration
 //
-// These values are intentionally loaded from environment variables so we don't
-// hardcode credentials in the repo.
-const ENV_NETLIFY_CLIENT_ID: &str = "PACKAGEFLOW_NETLIFY_CLIENT_ID";
+// These values are loaded from environment variables at COMPILE TIME using option_env!
+// This ensures they are embedded in the binary for packaged apps.
+// Set PACKAGEFLOW_NETLIFY_CLIENT_ID when building for release.
+const NETLIFY_CLIENT_ID: Option<&str> = option_env!("PACKAGEFLOW_NETLIFY_CLIENT_ID");
 
 /// OAuth success page HTML - displayed after successful authorization
 const OAUTH_SUCCESS_HTML: &str = r##"<!DOCTYPE html>
@@ -180,26 +181,20 @@ enum OAuthClientConfig {
     Netlify { client_id: String },
 }
 
-fn read_env_trimmed(key: &str) -> Option<String> {
-    std::env::var(key)
-        .ok()
-        .map(|v| v.trim().to_string())
-        .filter(|v| !v.is_empty())
-}
-
 fn get_oauth_client_config(platform: &PlatformType) -> Result<OAuthClientConfig, String> {
     match platform {
         PlatformType::GithubPages => {
             Err("GitHub Pages does not require OAuth. It uses git credentials.".to_string())
         }
         PlatformType::Netlify => {
-            let client_id = read_env_trimmed(ENV_NETLIFY_CLIENT_ID).ok_or_else(|| {
-                format!(
-                    "Netlify OAuth is not configured. Set {}.",
-                    ENV_NETLIFY_CLIENT_ID
-                )
-            })?;
-            Ok(OAuthClientConfig::Netlify { client_id })
+            let client_id = NETLIFY_CLIENT_ID
+                .filter(|s| !s.trim().is_empty())
+                .ok_or_else(|| {
+                    "Netlify OAuth is not configured. Set PACKAGEFLOW_NETLIFY_CLIENT_ID.".to_string()
+                })?;
+            Ok(OAuthClientConfig::Netlify {
+                client_id: client_id.to_string(),
+            })
         }
         PlatformType::CloudflarePages => {
             Err("Cloudflare Pages uses API Token authentication, not OAuth.".to_string())
