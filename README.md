@@ -37,6 +37,12 @@
 
 ---
 
+
+<p align="center">
+  <img src="docs/screenshots/packageflow-ai.png" width="720" alt="PackageFlow AI" />
+  <br/>
+</p>
+
 <p align="center">
   <img src="docs/screenshots/chat-with-ai.gif" width="720" alt="PackageFlow Hero" />
 </p>
@@ -189,7 +195,9 @@ In PackageFlow, open **Settings → MCP → MCP Integration** and copy the gener
 
 Then your AI tool can call actions like `list_projects`, `run_npm_script`, `run_workflow`, and more.
 
-<!-- TODO: Add screenshot of Settings → MCP → MCP Integration (showing JSON/TOML copy buttons). -->
+<p align="center">
+  <img src="docs/screenshots/mcp-setup.png" width="720" alt="MCP Integration Setup" />
+</p>
 
 ### AI CLI Integration
 
@@ -255,7 +263,7 @@ Documentation home: [English](./docs/README.md) • [繁體中文](./docs/zh-TW/
 <details open>
 <summary><strong>🎯 Projects + Scripts</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot001.png" width="800" alt="Projects and Scripts" />
+<img src="docs/screenshots/scripts.png" width="800" alt="Projects and Scripts" />
 </details>
 
 <details>
@@ -268,49 +276,61 @@ Documentation home: [English](./docs/README.md) • [繁體中文](./docs/zh-TW/
 <details>
 <summary><strong>⚡ Visual Workflow Builder</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot009.png" width="800" alt="Visual Workflow" />
+<img src="docs/screenshots/workflow.png" width="800" alt="Visual Workflow" />
 </details>
 
 <details>
 <summary><strong>📦 Monorepo Support</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot002.png" width="800" alt="Monorepo Action" />
+<img src="docs/screenshots/monorepo-support.png" width="800" alt="Monorepo Support" />
 </details>
 
 <details>
 <summary><strong>🔗 Dependency Graph</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot003.png" width="800" alt="Dependency Graph" />
+<img src="docs/screenshots/dependency-graph.png" width="800" alt="Dependency Graph" />
 </details>
 
 <details>
 <summary><strong>🔀 Git Integration</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot005.png" width="800" alt="Git Integration" />
+<img src="docs/screenshots/git.png" width="800" alt="Git Integration" />
 </details>
 
 <details>
 <summary><strong>🛡️ Security Audit</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot007.png" width="800" alt="Security Audit" />
+<img src="docs/screenshots/security.png" width="800" alt="Security Audit" />
 </details>
 
 <details>
 <summary><strong>🚀 Deploy Accounts</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot011.png" width="800" alt="Deploy Accounts" />
+<img src="docs/screenshots/depoly-config.png" width="800" alt="Deploy Accounts" />
 </details>
 
 <details>
 <summary><strong>💻 Terminals</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot004.png" width="800" alt="Terminals" />
+<img src="docs/screenshots/run-script.png" width="800" alt="Terminals" />
 </details>
 
 <details>
 <summary><strong>🔌 Webhooks</strong></summary>
 <br/>
-<img src="docs/screenshots/screenshot008.png" width="800" alt="Webhooks" />
+<img src="docs/screenshots/webhook-setting.png" width="800" alt="Webhooks" />
+</details>
+
+<details>
+<summary><strong>🧳 Worktree Sessions</strong></summary>
+<br/>
+<img src="docs/screenshots/worktree-session.png" width="800" alt="Worktree Sessions" />
+</details>
+
+<details>
+<summary><strong>⌨️ Keyboard Shortcuts</strong></summary>
+<br/>
+<img src="docs/screenshots/custom-keyboard-shortcuts.png" width="800" alt="Keyboard Shortcuts" />
 </details>
 
 ## 📦 Installation
@@ -320,9 +340,24 @@ Documentation home: [English](./docs/README.md) • [繁體中文](./docs/zh-TW/
 ```bash
 brew tap runkids/tap
 brew install --cask packageflow
+```
 
-# Upgrade
+#### Upgrade
+
+```bash
 brew update && brew upgrade --cask packageflow
+```
+
+#### Troubleshooting
+
+If you see an error like `It seems the App source '/Applications/PackageFlow.app' is not there`:
+
+```bash
+# Force uninstall the old cask record
+brew uninstall --cask --force packageflow
+
+# Reinstall
+brew install --cask runkids/tap/packageflow
 ```
 
 ### Direct Download

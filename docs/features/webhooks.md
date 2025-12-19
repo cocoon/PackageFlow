@@ -10,7 +10,7 @@ PackageFlow supports two types of webhooks:
 - **Incoming**: Trigger workflows from external services
 
 <p align="center">
-  <img src="../screenshots/screenshot008.png" width="900" alt="Webhooks" />
+  <img src="../screenshots/webhook-setting.png" width="900" alt="Webhooks" />
 </p>
 
 <!-- TODO: Add diagram showing webhook flow -->

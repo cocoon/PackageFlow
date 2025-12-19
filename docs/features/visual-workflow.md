@@ -12,7 +12,7 @@ Visual Workflow lets you create multi-step automation without writing scripts. P
 - Daily development routines
 
 <p align="center">
-  <img src="../screenshots/screenshot009.png" width="900" alt="Workflow editor" />
+  <img src="../screenshots/workflow.png" width="900" alt="Workflow editor" />
 </p>
 
 <!-- TODO: Add a short gif of dragging nodes and connecting edges. -->

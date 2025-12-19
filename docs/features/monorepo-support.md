@@ -12,11 +12,11 @@ Monorepos are automatically detected when you import a project. PackageFlow iden
 - Dependency relationships
 
 <p align="center">
-  <img src="../screenshots/screenshot002.png" width="900" alt="Monorepo view" />
+  <img src="../screenshots/monorepo-support.png" width="900" alt="Monorepo view" />
 </p>
 
 <p align="center">
-  <img src="../screenshots/screenshot003.png" width="900" alt="Dependency graph" />
+  <img src="../screenshots/dependency-graph.png" width="900" alt="Dependency graph" />
 </p>
 
 <!-- TODO: Add a close-up screenshot of the Nx/Turbo panels. -->

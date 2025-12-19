@@ -33,7 +33,9 @@ The MCP server uses **stdio transport** (no network port required). PackageFlow 
 
 Tip: In the same panel, PackageFlow shows the resolved `packageflow-mcp` path and provides config snippets for common MCP clients.
 
-<!-- TODO: Add screenshot of the MCP Integration settings panel (path + JSON/TOML snippets). -->
+<p align="center">
+  <img src="../screenshots/mcp-setup.png" width="900" alt="MCP Integration settings" />
+</p>
 
 ## Client Setup (Copy/Paste)
 

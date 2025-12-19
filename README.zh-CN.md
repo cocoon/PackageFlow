@@ -109,67 +109,73 @@ PackageFlow 是「AI 驱动」的意思不是只会聊天，而是 AI 可以调�
 <details>
 <summary>🎯 项目 + Scripts</summary>
 <br/>
-<img src="docs/screenshots/screenshot001.png" width="800" alt="项目和 Scripts" />
+<img src="docs/screenshots/scripts.png" width="800" alt="项目和 Scripts" />
 </details>
 
 <details>
 <summary>📦 Monorepo 操作</summary>
 <br/>
-<img src="docs/screenshots/screenshot002.png" width="800" alt="Monorepo 操作" />
+<img src="docs/screenshots/monorepo-support.png" width="800" alt="Monorepo 操作" />
 </details>
 
 <details>
 <summary>🔗 依赖图表</summary>
 <br/>
-<img src="docs/screenshots/screenshot003.png" width="800" alt="依赖图表" />
+<img src="docs/screenshots/dependency-graph.png" width="800" alt="依赖图表" />
 </details>
 
 <details>
 <summary>💻 终端</summary>
 <br/>
-<img src="docs/screenshots/screenshot004.png" width="800" alt="终端" />
+<img src="docs/screenshots/run-script.png" width="800" alt="终端" />
 </details>
 
 <details>
 <summary>🔀 Git 集成</summary>
 <br/>
-<img src="docs/screenshots/screenshot005.png" width="800" alt="Git 集成" />
+<img src="docs/screenshots/git.png" width="800" alt="Git 集成" />
 </details>
 
 <details>
 <summary>📋 步骤模板</summary>
 <br/>
-<img src="docs/screenshots/screenshot006.png" width="800" alt="步骤模板" />
+<img src="docs/screenshots/prompt-template.png" width="800" alt="步骤模板" />
 </details>
 
 <details>
 <summary>🛡️ 安全审计</summary>
 <br/>
-<img src="docs/screenshots/screenshot007.png" width="800" alt="安全审计" />
+<img src="docs/screenshots/security.png" width="800" alt="安全审计" />
 </details>
 
 <details>
 <summary>🔌 Webhooks</summary>
 <br/>
-<img src="docs/screenshots/screenshot008.png" width="800" alt="Webhooks" />
+<img src="docs/screenshots/webhook-setting.png" width="800" alt="Webhooks" />
 </details>
 
 <details>
 <summary>⚡ 可视化工作流</summary>
 <br/>
-<img src="docs/screenshots/screenshot009.png" width="800" alt="可视化工作流" />
+<img src="docs/screenshots/workflow.png" width="800" alt="可视化工作流" />
+</details>
+
+<details>
+<summary>🧳 Worktree Sessions</summary>
+<br/>
+<img src="docs/screenshots/worktree-session.png" width="800" alt="Worktree Sessions" />
 </details>
 
 <details>
 <summary>🚀 部署账号</summary>
 <br/>
-<img src="docs/screenshots/screenshot011.png" width="800" alt="部署账号" />
+<img src="docs/screenshots/depoly-config.png" width="800" alt="部署账号" />
 </details>
 
 <details>
 <summary>⌨️ 键盘快捷键</summary>
 <br/>
-<img src="docs/screenshots/screenshot012.png" width="800" alt="键盘快捷键" />
+<img src="docs/screenshots/custom-keyboard-shortcuts.png" width="800" alt="键盘快捷键" />
 </details>
 
 ## 📦 安装
@@ -184,8 +190,19 @@ brew install --cask packageflow
 #### 升级
 
 ```bash
-brew update
-brew upgrade --cask packageflow
+brew update && brew upgrade --cask packageflow
+```
+
+#### 故障排查
+
+如果升级时出现 `It seems the App source '/Applications/PackageFlow.app' is not there` 错误：
+
+```bash
+# 强制卸载旧的 cask 记录
+brew uninstall --cask --force packageflow
+
+# 重新安装
+brew install --cask runkids/tap/packageflow
 ```
 
 ### 手动下载

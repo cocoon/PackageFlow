@@ -110,6 +110,10 @@ PackageFlow tracks your worktree sessions, remembering:
 - Running scripts
 - UI state
 
+<p align="center">
+  <img src="../screenshots/worktree-session.png" width="900" alt="Worktree sessions" />
+</p>
+
 ### Resume Session
 
 When switching back to a worktree:
