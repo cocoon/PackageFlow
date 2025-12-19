@@ -5,7 +5,9 @@
 
 import * as React from 'react';
 import { Download, Package, CheckCircle, AlertTriangle, X, RotateCcw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from '../../lib/utils';
+import { openUrl } from '../../lib/tauri-api';
 import { isTopModal, registerModal, unregisterModal } from './modalStack';
 import { Progress } from './Progress';
 import { Button } from './Button';
@@ -285,11 +287,37 @@ export function UpdateDialog({
                     'p-3 rounded-lg',
                     'bg-muted/50 border border-border',
                     'text-sm text-muted-foreground',
-                    'max-h-32 overflow-y-auto',
-                    'whitespace-pre-wrap'
+                    'max-h-48 overflow-y-auto',
+                    // Markdown prose styles
+                    'prose prose-sm dark:prose-invert max-w-none',
+                    'prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-2',
+                    'prose-h3:text-sm prose-h3:mt-2',
+                    'prose-p:my-1 prose-p:text-muted-foreground',
+                    'prose-ul:my-1 prose-ul:pl-4 prose-li:my-0.5',
+                    'prose-a:text-blue-500 prose-a:no-underline hover:prose-a:underline',
+                    'prose-strong:text-foreground prose-strong:font-medium',
+                    'prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded'
                   )}
                 >
-                  {releaseNotes}
+                  <ReactMarkdown
+                    components={{
+                      // Open links in external browser using Tauri
+                      a: ({ href, children }) => (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (href) openUrl(href);
+                          }}
+                          className="text-blue-500 hover:underline cursor-pointer inline"
+                        >
+                          {children}
+                        </button>
+                      ),
+                    }}
+                  >
+                    {releaseNotes}
+                  </ReactMarkdown>
                 </div>
               </div>
             )}

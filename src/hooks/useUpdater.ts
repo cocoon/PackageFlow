@@ -64,20 +64,34 @@ export function useUpdater(): UseUpdaterReturn {
 
   // Check for updates
   const checkForUpdates = useCallback(async () => {
+    console.log('[Updater] Checking for updates...');
+    console.log('[Updater] Current version:', currentVersion);
     setState('checking');
     setError(null);
 
     try {
       // Debug mode: show dialog with fake data
       if (DEBUG_SHOW_DIALOG) {
-        setNewVersion('X.X.X');
-        setReleaseNotes('- New feature 1\n- Bug fix for XYZ\n- Performance improvements');
+        setNewVersion('0.3.1');
+        setReleaseNotes(`### 🐛 Bug Fixes
+
+- Improve PTY height resize responsiveness ([6b9ba82](https://github.com/runkids/PackageFlow/commit/6b9ba82))
+- Prevent 5-minute disconnection and improve connection stability ([76baedc](https://github.com/runkids/PackageFlow/commit/76baedc))
+
+### 🔧 Maintenance
+
+- Update README.md ([43182c7](https://github.com/runkids/PackageFlow/commit/43182c7))
+
+---
+**Full Changelog**: https://github.com/runkids/PackageFlow/compare/v0.3.0...v0.3.1`);
         setState('available');
         setDialogOpen(true);
         return;
       }
 
+      console.log('[Updater] Calling check()...');
       const update = await check();
+      console.log('[Updater] Check result:', update);
 
       if (update) {
         updateRef.current = update;
@@ -88,15 +102,15 @@ export function useUpdater(): UseUpdaterReturn {
         console.log(`[Updater] Update available: ${update.version}`);
       } else {
         setState('idle');
-        console.log('[Updater] No updates available');
+        console.log('[Updater] No updates available (check returned null/undefined)');
       }
     } catch (err) {
-      console.error('Failed to check for updates:', err);
+      console.error('[Updater] Failed to check for updates:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setState('error');
       setDialogOpen(true);
     }
-  }, []);
+  }, [currentVersion]);
 
   // Debug simulation of update process
   const simulateUpdate = useCallback(async () => {
