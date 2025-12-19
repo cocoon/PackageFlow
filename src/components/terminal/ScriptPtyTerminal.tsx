@@ -171,29 +171,15 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
     const startHeightRef = useRef(0);
 
     // Settings context for path formatting and terminal height
-    const { formatPath, terminalHeight: height, setTerminalHeight } = useSettings();
+    const { formatPath, terminalHeight: savedHeight, setTerminalHeight } = useSettings();
     const MIN_HEIGHT = 100;
     const MAX_HEIGHT = 600;
 
-    // Debounce height updates to avoid excessive DB writes
-    const updateHeightTimeoutRef = useRef<number | undefined>(undefined);
-    const updateHeight = useCallback((newHeight: number) => {
-      if (updateHeightTimeoutRef.current) {
-        clearTimeout(updateHeightTimeoutRef.current);
-      }
-      updateHeightTimeoutRef.current = window.setTimeout(() => {
-        setTerminalHeight(newHeight);
-      }, 500);
-    }, [setTerminalHeight]);
+    // Local height state for smooth dragging - only used during resize
+    const [localHeight, setLocalHeight] = useState<number | null>(null);
 
-    // Cleanup height update timeout on unmount
-    useEffect(() => {
-      return () => {
-        if (updateHeightTimeoutRef.current) {
-          clearTimeout(updateHeightTimeoutRef.current);
-        }
-      };
-    }, []);
+    // Use local height during resize for instant feedback, otherwise use saved height
+    const height = localHeight ?? savedHeight;
 
     // Feature 008: Store callback refs to avoid stale closures in useEffect
     const onUpdatePtyOutputRef = useRef(onUpdatePtyOutput);
@@ -527,6 +513,8 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
         setIsResizing(true);
         startYRef.current = e.clientY;
         startHeightRef.current = height;
+        // Initialize local height for smooth dragging
+        setLocalHeight(height);
       },
       [height]
     );
@@ -540,11 +528,18 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
           MAX_HEIGHT,
           Math.max(MIN_HEIGHT, startHeightRef.current + delta)
         );
-        updateHeight(newHeight);
+        // Update local height immediately for smooth visual feedback
+        setLocalHeight(newHeight);
       };
 
       const handleMouseUp = () => {
         setIsResizing(false);
+        // Save final height to context (persists to DB)
+        if (localHeight !== null) {
+          setTerminalHeight(localHeight);
+          // Clear local height - will now use saved height
+          setLocalHeight(null);
+        }
         // Fit terminal after resize
         if (activeSession?.fitAddon && activeSession?.pty) {
           activeSession.fitAddon.fit();
@@ -562,7 +557,7 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
-    }, [isResizing, MIN_HEIGHT, MAX_HEIGHT, updateHeight, activeSession]);
+    }, [isResizing, localHeight, setTerminalHeight, activeSession]);
 
     // Copy terminal content
     const handleCopy = useCallback(async () => {

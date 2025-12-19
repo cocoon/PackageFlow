@@ -166,9 +166,9 @@ export function SnapshotDetailPanel({
   ];
 
   return (
-    <div className={cn('flex -m-4 animate-in fade-in-0 duration-200', className)}>
+    <div className={cn('flex -m-4', className)}>
       {/* Left Sidebar Navigation */}
-      <div className="w-56 flex-shrink-0 bg-card rounded-lg overflow-hidden m-4 mr-0 self-start">
+      <div className="w-56 flex-shrink-0 bg-card rounded-lg overflow-hidden m-4 mr-0 sticky top-4 self-start">
         <div className="p-3 border-b border-border">
           <h3 className="text-sm font-semibold text-muted-foreground">Snapshot Detail</h3>
         </div>
@@ -185,7 +185,7 @@ export function SnapshotDetailPanel({
                   className={cn(
                     'w-full flex items-center gap-2 px-3 py-2.5 text-left h-auto justify-start rounded-none border-l-2',
                     isActive
-                      ? 'bg-cyan-600/20 text-cyan-400 border-cyan-400'
+                      ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500'
                       : 'hover:bg-accent text-muted-foreground border-transparent'
                   )}
                 >
@@ -423,94 +423,101 @@ function DependenciesTabContent({
   transitiveDeps,
 }: DependenciesTabContentProps) {
   return (
-    <div className="space-y-4">
-      {/* Search bar */}
-      <div
-        className={cn(
-          'relative rounded-xl overflow-hidden',
-          'bg-white/60 dark:bg-gray-800/60',
-          'backdrop-blur-sm',
-          'border border-gray-200/80 dark:border-gray-700/80',
-          'shadow-sm',
-          'focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20',
-          'transition-all duration-200'
-        )}
-      >
-        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          <Search size={16} className="text-gray-400" />
-        </div>
-        <input
-          type="text"
-          data-snapshot-search-input
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search dependencies..."
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Fixed header: Search bar + Filter pills */}
+      <div className="flex-shrink-0 space-y-4 pb-4">
+        {/* Search bar */}
+        <div
           className={cn(
-            'w-full pl-10 pr-4 py-2.5 text-sm',
-            'bg-transparent',
-            'text-gray-900 dark:text-gray-100',
-            'placeholder:text-gray-400 dark:placeholder:text-gray-500',
-            'focus:outline-none'
+            'relative rounded-xl overflow-hidden',
+            'bg-white/60 dark:bg-gray-800/60',
+            'backdrop-blur-sm',
+            'border border-gray-200/80 dark:border-gray-700/80',
+            'shadow-sm',
+            'focus-within:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-500/20',
+            'transition-all duration-200'
           )}
-        />
-      </div>
-
-      {/* Filter pills */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground mr-1">Filter:</span>
-        <FilterPill
-          label="Direct"
-          active={showDirect}
-          onClick={() => onShowDirectChange(!showDirect)}
-        />
-        <FilterPill label="Dev" active={showDev} onClick={() => onShowDevChange(!showDev)} />
-        <FilterPill
-          label="Postinstall"
-          active={showPostinstall}
-          onClick={() => onShowPostinstallChange(!showPostinstall)}
-          variant="warning"
-        />
-      </div>
-
-      {/* Dependencies list */}
-      {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <div
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg',
-              'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-              'text-sm'
-            )}
-          >
-            <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
-            Loading dependencies...
+        >
+          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+            <Search size={16} className="text-gray-400" />
           </div>
+          <input
+            type="text"
+            data-snapshot-search-input
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search dependencies..."
+            className={cn(
+              'w-full pl-10 pr-4 py-2.5 text-sm',
+              'bg-transparent',
+              'text-gray-900 dark:text-gray-100',
+              'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+              'focus:outline-none'
+            )}
+          />
         </div>
-      ) : (
-        <div className="space-y-4">
-          {directDeps.length > 0 && (
-            <DependencyGroup title="Direct" deps={directDeps} variant="primary" />
-          )}
-          {devDeps.length > 0 && <DependencyGroup title="Dev" deps={devDeps} variant="secondary" />}
-          {transitiveDeps.length > 0 && (
-            <DependencyGroup title="Transitive" deps={transitiveDeps} variant="muted" />
-          )}
-          {filteredDependencies.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div
-                className={cn(
-                  'w-12 h-12 rounded-xl mb-3',
-                  'bg-gray-100 dark:bg-gray-800',
-                  'flex items-center justify-center'
-                )}
-              >
-                <Search size={20} className="text-gray-400" />
-              </div>
-              <p className="text-sm text-muted-foreground">No dependencies match filters</p>
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground mr-1">Filter:</span>
+          <FilterPill
+            label="Direct"
+            active={showDirect}
+            onClick={() => onShowDirectChange(!showDirect)}
+          />
+          <FilterPill label="Dev" active={showDev} onClick={() => onShowDevChange(!showDev)} />
+          <FilterPill
+            label="Postinstall"
+            active={showPostinstall}
+            onClick={() => onShowPostinstallChange(!showPostinstall)}
+            variant="warning"
+          />
+        </div>
+      </div>
+
+      {/* Scrollable dependencies list */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg',
+                'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+                'text-sm'
+              )}
+            >
+              <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+              Loading dependencies...
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {directDeps.length > 0 && (
+              <DependencyGroup title="Direct" deps={directDeps} variant="primary" />
+            )}
+            {devDeps.length > 0 && (
+              <DependencyGroup title="Dev" deps={devDeps} variant="secondary" />
+            )}
+            {transitiveDeps.length > 0 && (
+              <DependencyGroup title="Transitive" deps={transitiveDeps} variant="muted" />
+            )}
+            {filteredDependencies.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-xl mb-3',
+                    'bg-gray-100 dark:bg-gray-800',
+                    'flex items-center justify-center'
+                  )}
+                >
+                  <Search size={20} className="text-gray-400" />
+                </div>
+                <p className="text-sm text-muted-foreground">No dependencies match filters</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -842,19 +842,6 @@ export function ProjectExplorer({
               </span>
             )}
           </Button>
-          {/* Feature 025: Time Machine Tab */}
-          <Button
-            variant="ghost"
-            onClick={() => setActiveTab('snapshots')}
-            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
-              activeTab === 'snapshots'
-                ? 'text-blue-400 border-blue-400'
-                : 'text-muted-foreground border-transparent hover:text-foreground'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            Snapshots
-          </Button>
           <Button
             variant="ghost"
             onClick={() => setActiveTab('deploy')}
@@ -866,6 +853,19 @@ export function ProjectExplorer({
           >
             <Rocket className="w-4 h-4" />
             Deploy
+          </Button>
+          {/* Feature 025: Time Machine Tab */}
+          <Button
+            variant="ghost"
+            onClick={() => setActiveTab('snapshots')}
+            className={`gap-1.5 h-auto px-4 py-2 rounded-none border-b-2 ${
+              activeTab === 'snapshots'
+                ? 'text-cyan-400 border-cyan-400'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Snapshots
           </Button>
           {/* Feature: Project AI Chats Tab */}
           <Button
