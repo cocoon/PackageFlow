@@ -23,6 +23,7 @@ import {
   Info,
   Activity,
   ShieldCheck,
+  Shield,
 } from 'lucide-react';
 import { McpIcon } from '../ui/McpIcon';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -80,6 +81,11 @@ const LockfileValidationPanel = lazy(() =>
     default: m.LockfileValidationPanel,
   }))
 );
+const SecurityAuditPanel = lazy(() =>
+  import('./panels/SecurityAuditPanel').then((m) => ({
+    default: m.SecurityAuditPanel,
+  }))
+);
 const AboutSettingsPanel = lazy(() =>
   import('./panels/AboutSettingsPanel').then((m) => ({ default: m.AboutSettingsPanel }))
 );
@@ -104,6 +110,7 @@ const SECTION_ICONS: Record<SettingsSection, React.ElementType> = {
   shortcuts: Keyboard,
   toolchain: Wrench,
   'lockfile-validation': ShieldCheck,
+  'security-audit': Shield,
   data: ArrowLeftRight,
   about: Info,
 };
@@ -124,6 +131,7 @@ const SECTION_PANELS: Record<
   shortcuts: ShortcutsSettingsPanel,
   toolchain: ToolchainPreferencesPanel,
   'lockfile-validation': LockfileValidationPanel,
+  'security-audit': SecurityAuditPanel,
   data: DataSettingsPanel,
   about: AboutSettingsPanel,
 };
@@ -138,7 +146,7 @@ const SIDEBAR_CATEGORIES: { id: SettingsCategory; label: string; sections: Setti
   {
     id: 'security',
     label: 'Security',
-    sections: ['lockfile-validation'],
+    sections: ['lockfile-validation', 'security-audit'],
   },
   {
     id: 'ai',

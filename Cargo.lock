@@ -12,11 +12,14 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
+ "constant_time_eq",
  "dirs 5.0.1",
  "dotenvy",
  "fs2",
  "futures",
  "glob",
+ "hex",
+ "hmac",
  "hostname",
  "libc",
  "log",
@@ -3423,7 +3426,7 @@ dependencies = [
 
 [[package]]
 name = "packageflow-lib"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "aes-gcm",
  "async-stream",
@@ -3471,7 +3474,7 @@ dependencies = [
 
 [[package]]
 name = "packageflow-mcp"
-version = "0.3.0"
+version = "0.3.2"
 dependencies = [
  "chrono",
  "dirs 5.0.1",

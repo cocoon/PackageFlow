@@ -12,6 +12,10 @@ fn default_port() -> u16 {
     DEFAULT_INCOMING_WEBHOOK_PORT
 }
 
+fn default_rate_limit() -> usize {
+    60 // 60 requests per minute
+}
+
 /// Incoming Webhook configuration (per workflow)
 /// Each workflow can have its own port and token
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,13 +23,22 @@ fn default_port() -> u16 {
 pub struct IncomingWebhookConfig {
     /// Whether incoming webhook is enabled
     pub enabled: bool,
-    /// API Token for authentication (UUID v4)
+    /// API Token for authentication (UUID v4) - legacy, kept for backward compatibility
     pub token: String,
     /// Token creation timestamp (ISO 8601)
     pub token_created_at: String,
     /// Server listening port (per-workflow, default: 9876)
     #[serde(default = "default_port")]
     pub port: u16,
+    /// HMAC secret for signature verification (new security feature)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    /// Whether to require HMAC signature (default: false for backward compatibility)
+    #[serde(default)]
+    pub require_signature: bool,
+    /// Rate limit: max requests per minute (default: 60)
+    #[serde(default = "default_rate_limit")]
+    pub rate_limit_per_minute: usize,
 }
 
 /// Information about a running webhook server

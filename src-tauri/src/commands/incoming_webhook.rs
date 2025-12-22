@@ -40,7 +40,22 @@ pub async fn create_incoming_webhook_config() -> Result<IncomingWebhookConfig, S
         token: Uuid::new_v4().to_string(),
         token_created_at: Utc::now().to_rfc3339(),
         port: DEFAULT_INCOMING_WEBHOOK_PORT,
+        secret: None,
+        require_signature: false,
+        rate_limit_per_minute: 60,
     })
+}
+
+/// Generate a new HMAC secret for webhook signature verification
+#[tauri::command]
+pub async fn generate_webhook_secret() -> Result<String, String> {
+    use rand::Rng;
+    let secret: String = rand::thread_rng()
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect();
+    Ok(secret)
 }
 
 /// Regenerate token for an incoming webhook config

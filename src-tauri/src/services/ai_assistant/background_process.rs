@@ -29,17 +29,23 @@ use crate::repositories::MCPRepository;
 // Constants
 // ============================================================================
 
-/// Maximum concurrent background processes
-const MAX_BACKGROUND_PROCESSES: usize = 10;
+/// Maximum concurrent background processes per session
+/// Enhanced security: limit to 5 to prevent resource exhaustion
+const MAX_BACKGROUND_PROCESSES: usize = 5;
 
-/// Maximum output buffer size per process (500KB)
-const MAX_OUTPUT_BUFFER_BYTES: usize = 500 * 1024;
+/// Maximum output buffer size per process (1MB)
+/// Enhanced security: increased from 500KB to 1MB for better tool responses
+const MAX_OUTPUT_BUFFER_BYTES: usize = 1024 * 1024;
 
 /// Maximum lines to keep in buffer
 const MAX_OUTPUT_BUFFER_LINES: usize = 5000;
 
 /// Default success pattern timeout (30 seconds)
 const DEFAULT_SUCCESS_TIMEOUT_MS: u64 = 30_000;
+
+/// Maximum allowed timeout (5 minutes)
+/// Enhanced security: prevent indefinite resource locks
+const MAX_TIMEOUT_MS: u64 = 5 * 60 * 1000;
 
 /// Process cleanup interval (check every 60 seconds)
 #[allow(dead_code)]
@@ -483,7 +489,10 @@ impl BackgroundProcessManager {
             conversation_id,
             state.clone(),
             success_pattern.is_some(),
-            success_timeout_ms.unwrap_or(DEFAULT_SUCCESS_TIMEOUT_MS),
+            // Enforce timeout limits: use default if not specified, cap at maximum
+            success_timeout_ms
+                .map(|t| t.min(MAX_TIMEOUT_MS))
+                .unwrap_or(DEFAULT_SUCCESS_TIMEOUT_MS),
         );
 
         log::info!("[BackgroundProcessManager] Started process {} (pid: {:?})", id, pid);

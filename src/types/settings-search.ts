@@ -151,6 +151,24 @@ export const SETTINGS_SEARCH_INDEX: SettingsSearchIndexItem[] = [
     ],
   },
   {
+    id: 'security-audit',
+    category: 'security',
+    title: 'Security Audit',
+    description: 'Monitor and review security events across your application',
+    keywords: [
+      'audit',
+      'security',
+      'log',
+      'event',
+      'webhook',
+      'authentication',
+      'tool',
+      'execution',
+      'timeline',
+      'monitoring',
+    ],
+  },
+  {
     id: 'data',
     category: 'data',
     title: 'Import / Export',
@@ -177,6 +195,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryInfo[] = [
       'storage',
       'deploy-accounts',
       'lockfile-validation',
+      'security-audit',
       'ai-providers',
       'prompts',
       'ai-activity',
@@ -197,7 +216,7 @@ export const SETTINGS_CATEGORIES: SettingsCategoryInfo[] = [
   {
     id: 'security',
     label: 'Security',
-    sections: ['lockfile-validation'],
+    sections: ['lockfile-validation', 'security-audit'],
   },
   {
     id: 'ai',

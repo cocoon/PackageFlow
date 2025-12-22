@@ -4,7 +4,7 @@
 use rusqlite::{Connection, params};
 
 /// Current schema version
-pub const CURRENT_VERSION: i32 = 7;
+pub const CURRENT_VERSION: i32 = 8;
 
 /// Migration struct containing version and SQL statements
 struct Migration {
@@ -894,6 +894,47 @@ const MIGRATIONS: &[Migration] = &[
             -- Initialize default validation config
             INSERT OR IGNORE INTO lockfile_validation_config (id, updated_at)
             VALUES (1, datetime('now'));
+        "#,
+    },
+    Migration {
+        version: 8,
+        description: "Security Audit Log - Structured security event logging",
+        up: r#"
+            -- Security audit log table
+            CREATE TABLE IF NOT EXISTS security_audit_log (
+                id TEXT PRIMARY KEY,
+                timestamp TEXT NOT NULL,
+                event_type TEXT NOT NULL CHECK(event_type IN (
+                    'authentication', 'authorization', 'data_access',
+                    'configuration', 'tool_execution', 'webhook_trigger', 'security_alert'
+                )),
+                actor_type TEXT NOT NULL CHECK(actor_type IN ('user', 'ai_assistant', 'webhook', 'system')),
+                actor_id TEXT,
+                action TEXT NOT NULL,
+                resource_type TEXT,
+                resource_id TEXT,
+                resource_name TEXT,
+                outcome TEXT NOT NULL CHECK(outcome IN ('success', 'failure', 'denied')),
+                outcome_reason TEXT,
+                details TEXT,
+                client_ip TEXT,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+
+            -- Indexes for common queries
+            CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON security_audit_log(timestamp DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_event_type ON security_audit_log(event_type);
+            CREATE INDEX IF NOT EXISTS idx_audit_actor ON security_audit_log(actor_type, actor_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_resource ON security_audit_log(resource_type, resource_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_outcome ON security_audit_log(outcome);
+
+            -- Auto-cleanup trigger: delete logs older than 90 days on each insert
+            CREATE TRIGGER IF NOT EXISTS cleanup_old_audit_logs
+            AFTER INSERT ON security_audit_log
+            BEGIN
+                DELETE FROM security_audit_log
+                WHERE timestamp < datetime('now', '-90 days');
+            END;
         "#,
     },
 ];

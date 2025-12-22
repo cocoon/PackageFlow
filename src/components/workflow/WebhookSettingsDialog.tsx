@@ -36,7 +36,11 @@ import type {
   IncomingWebhookServerStatus,
 } from '../../types/incoming-webhook';
 import { DEFAULT_PAYLOAD_TEMPLATE, SUPPORTED_VARIABLES } from '../../types/webhook';
-import { generateWebhookUrl, DEFAULT_INCOMING_WEBHOOK_PORT } from '../../types/incoming-webhook';
+import {
+  generateWebhookUrl,
+  generateCurlWithSignature,
+  DEFAULT_INCOMING_WEBHOOK_PORT,
+} from '../../types/incoming-webhook';
 import { webhookAPI, incomingWebhookAPI, type PortStatus } from '../../lib/tauri-api';
 
 // Payload format presets
@@ -118,6 +122,13 @@ export function WebhookSettingsDialog({
   const [copySuccess, setCopySuccess] = useState(false);
   const [portStatus, setPortStatus] = useState<PortStatus | null>(null);
   const [isCheckingPort, setIsCheckingPort] = useState(false);
+
+  // Security settings state
+  const [incomingSecret, setIncomingSecret] = useState<string | undefined>(undefined);
+  const [requireSignature, setRequireSignature] = useState(false);
+  const [rateLimitPerMinute, setRateLimitPerMinute] = useState(60);
+  const [isGeneratingSecret, setIsGeneratingSecret] = useState(false);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
 
   // Detect payload format from template
   const detectFormat = (template: string): PayloadFormat => {
@@ -251,17 +262,25 @@ export function WebhookSettingsDialog({
         setShowAdvanced(false);
       }
 
-      // Reset incoming webhook state from incomingConfig (includes port)
+      // Reset incoming webhook state from incomingConfig (includes port and security settings)
       if (incomingConfig) {
         setIncomingEnabled(incomingConfig.enabled);
         setIncomingToken(incomingConfig.token);
         setIncomingTokenCreatedAt(incomingConfig.tokenCreatedAt);
         setIncomingPort(incomingConfig.port || DEFAULT_INCOMING_WEBHOOK_PORT);
+        setIncomingSecret(incomingConfig.secret);
+        setRequireSignature(incomingConfig.requireSignature || false);
+        setRateLimitPerMinute(incomingConfig.rateLimitPerMinute || 60);
+        setShowSecuritySettings(!!incomingConfig.secret || incomingConfig.requireSignature);
       } else {
         setIncomingEnabled(false);
         setIncomingToken('');
         setIncomingTokenCreatedAt('');
         setIncomingPort(DEFAULT_INCOMING_WEBHOOK_PORT);
+        setIncomingSecret(undefined);
+        setRequireSignature(false);
+        setRateLimitPerMinute(60);
+        setShowSecuritySettings(false);
       }
 
       setTestResult(null);
@@ -420,9 +439,25 @@ export function WebhookSettingsDialog({
       setIncomingToken(newConfig.token);
       setIncomingTokenCreatedAt(newConfig.tokenCreatedAt);
       setIncomingPort(newConfig.port);
+      setIncomingSecret(newConfig.secret);
+      setRequireSignature(newConfig.requireSignature || false);
+      setRateLimitPerMinute(newConfig.rateLimitPerMinute || 60);
       setIncomingEnabled(true);
     } catch (error) {
       console.error('Failed to create incoming webhook config:', error);
+    }
+  };
+
+  // Generate HMAC secret
+  const handleGenerateSecret = async () => {
+    setIsGeneratingSecret(true);
+    try {
+      const secret = await incomingWebhookAPI.generateSecret();
+      setIncomingSecret(secret);
+    } catch (error) {
+      console.error('Failed to generate secret:', error);
+    } finally {
+      setIsGeneratingSecret(false);
     }
   };
 
@@ -437,6 +472,9 @@ export function WebhookSettingsDialog({
         token: incomingToken,
         tokenCreatedAt: incomingTokenCreatedAt,
         port: incomingPort,
+        secret: incomingSecret,
+        requireSignature,
+        rateLimitPerMinute,
       });
       setIncomingToken(updatedConfig.token);
       setIncomingTokenCreatedAt(updatedConfig.tokenCreatedAt);
@@ -447,15 +485,18 @@ export function WebhookSettingsDialog({
     }
   };
 
-  // Copy webhook URL (using simplified URL format)
+  // Copy webhook URL or curl command (dynamic based on security settings)
   const handleCopyUrl = async () => {
-    const webhookUrl = generateWebhookUrl(incomingPort, incomingToken);
+    // If HMAC secret is configured, copy the full curl command with signature
+    const textToCopy = incomingSecret
+      ? generateCurlWithSignature(incomingPort, incomingSecret)
+      : `curl -X POST "${generateWebhookUrl(incomingPort, incomingToken)}"`;
     try {
-      await navigator.clipboard.writeText(webhookUrl);
+      await navigator.clipboard.writeText(textToCopy);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (error) {
-      console.error('Failed to copy URL:', error);
+      console.error('Failed to copy:', error);
     }
   };
 
@@ -492,7 +533,7 @@ export function WebhookSettingsDialog({
       };
     }
 
-    // Build incoming config (now includes port)
+    // Build incoming config (now includes port and security settings)
     let newIncomingConfig: IncomingWebhookConfig | undefined;
     if (incomingToken) {
       newIncomingConfig = {
@@ -500,6 +541,9 @@ export function WebhookSettingsDialog({
         token: incomingToken,
         tokenCreatedAt: incomingTokenCreatedAt,
         port: incomingPort,
+        secret: incomingSecret,
+        requireSignature,
+        rateLimitPerMinute,
       };
     }
 
@@ -1158,16 +1202,23 @@ export function WebhookSettingsDialog({
 
                     {/* Webhook URL */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground">Webhook URL</label>
+                      <label className="text-sm font-medium text-foreground">
+                        Webhook {incomingSecret ? 'Endpoint' : 'URL'}
+                      </label>
                       <div className="flex gap-2">
                         <Input
-                          value={generateWebhookUrl(incomingPort, incomingToken)}
+                          value={
+                            incomingSecret
+                              ? `http://localhost:${incomingPort}/webhook`
+                              : generateWebhookUrl(incomingPort, incomingToken)
+                          }
                           readOnly
                           className="bg-muted/30 border-border text-muted-foreground font-mono text-xs flex-1"
                         />
                         <Button
                           variant="outline"
                           onClick={handleCopyUrl}
+                          title={incomingSecret ? 'Copy curl command with signature' : 'Copy curl command'}
                           className={cn(
                             'px-3 border-border',
                             'transition-all duration-150',
@@ -1184,9 +1235,123 @@ export function WebhookSettingsDialog({
                         </Button>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        POST request to this URL will trigger the workflow.
+                        {incomingSecret
+                          ? 'HMAC signature required. Copy button copies full curl command.'
+                          : 'POST request to this URL will trigger the workflow.'}
                       </p>
                     </div>
+
+                    {/* Security Settings Toggle */}
+                    <button
+                      type="button"
+                      className={cn(
+                        'text-sm font-medium',
+                        'text-purple-600 dark:text-purple-400',
+                        'hover:text-purple-700 dark:hover:text-purple-300',
+                        'flex items-center gap-2',
+                        'transition-colors duration-150',
+                        'focus:outline-none focus:underline'
+                      )}
+                      onClick={() => setShowSecuritySettings(!showSecuritySettings)}
+                    >
+                      <span
+                        className={cn(
+                          'w-4 h-4 flex items-center justify-center',
+                          'transition-transform duration-200',
+                          showSecuritySettings && 'rotate-90'
+                        )}
+                      >
+                        {'>'}
+                      </span>
+                      Security Settings
+                    </button>
+
+                    {showSecuritySettings && (
+                      <div className="space-y-5 pl-4 border-l-2 border-purple-500/20">
+                        {/* HMAC Secret */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-foreground">
+                              HMAC Secret (Optional)
+                            </label>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleGenerateSecret}
+                              disabled={isGeneratingSecret}
+                              className={cn(
+                                'text-purple-600 dark:text-purple-400',
+                                'hover:text-purple-700 dark:hover:text-purple-300',
+                                'hover:bg-purple-500/10',
+                                'text-xs'
+                              )}
+                            >
+                              {isGeneratingSecret ? (
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3 mr-1" />
+                              )}
+                              Generate
+                            </Button>
+                          </div>
+                          <Input
+                            value={incomingSecret || ''}
+                            onChange={(e) => setIncomingSecret(e.target.value || undefined)}
+                            placeholder="Leave empty to use token authentication"
+                            className="bg-background border-border text-foreground font-mono text-xs"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            When set, requests must include X-Webhook-Signature header with
+                            HMAC-SHA256 signature.
+                          </p>
+                        </div>
+
+                        {/* Require Signature Toggle */}
+                        <div
+                          className={cn(
+                            'flex items-center justify-between p-3',
+                            'bg-muted/20 rounded-lg',
+                            'border border-border/50'
+                          )}
+                        >
+                          <div>
+                            <span className="text-sm font-medium text-foreground">
+                              Require Signature
+                            </span>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Reject requests without valid signature
+                            </p>
+                          </div>
+                          <Toggle
+                            checked={requireSignature}
+                            onChange={setRequireSignature}
+                            disabled={!incomingSecret}
+                            size="lg"
+                            aria-label="Require signature"
+                          />
+                        </div>
+
+                        {/* Rate Limit */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground">
+                            Rate Limit (requests/minute)
+                          </label>
+                          <Input
+                            type="number"
+                            value={rateLimitPerMinute}
+                            onChange={(e) =>
+                              setRateLimitPerMinute(Math.max(1, parseInt(e.target.value) || 60))
+                            }
+                            min={1}
+                            max={1000}
+                            className="bg-background border-border text-foreground"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Maximum requests allowed per minute per IP address. Default: 60.
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Usage Example */}
                     <div className="space-y-2">
@@ -1198,7 +1363,9 @@ export function WebhookSettingsDialog({
                         )}
                       >
                         <code className="text-xs text-foreground font-mono whitespace-pre-wrap break-all">
-                          {`curl -X POST "${generateWebhookUrl(incomingPort, incomingToken)}"`}
+                          {incomingSecret
+                            ? generateCurlWithSignature(incomingPort, incomingSecret)
+                            : `curl -X POST "${generateWebhookUrl(incomingPort, incomingToken)}"`}
                         </code>
                       </div>
                     </div>

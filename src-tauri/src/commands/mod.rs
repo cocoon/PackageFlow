@@ -5,6 +5,7 @@ pub mod ai;
 pub mod ai_assistant;
 pub mod ai_cli;
 pub mod apk;
+pub mod audit;
 pub mod mcp;
 pub mod deploy;
 pub mod file_watcher;

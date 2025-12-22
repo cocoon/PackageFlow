@@ -15,6 +15,9 @@ CARGO_LOCK="$PROJECT_ROOT/src-tauri/Cargo.lock"
 CARGO_LOCK_ROOT="$PROJECT_ROOT/Cargo.lock"
 TAURI_CONF="$PROJECT_ROOT/src-tauri/tauri.conf.json"
 
+# Crates directory
+CRATES_DIR="$PROJECT_ROOT/crates"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -95,6 +98,20 @@ update_cargo_toml() {
     fi
 }
 
+update_crates_cargo_toml() {
+    local new_version=$1
+    # Update all Cargo.toml files in crates directory
+    for crate_toml in "$CRATES_DIR"/*/Cargo.toml; do
+        if [[ -f "$crate_toml" ]]; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s/^version = \"[^\"]*\"/version = \"$new_version\"/" "$crate_toml"
+            else
+                sed -i "s/^version = \"[^\"]*\"/version = \"$new_version\"/" "$crate_toml"
+            fi
+        fi
+    done
+}
+
 update_cargo_lock() {
     local new_version=$1
     local current_version=$2
@@ -145,6 +162,26 @@ verify_update() {
         echo -e "  ${RED}✗${NC} $(basename "$file"): expected $expected, got $actual"
         return 1
     fi
+}
+
+verify_crates_update() {
+    local expected=$1
+    local all_success=true
+
+    for crate_toml in "$CRATES_DIR"/*/Cargo.toml; do
+        if [[ -f "$crate_toml" ]]; then
+            local crate_name=$(basename "$(dirname "$crate_toml")")
+            local actual=$(grep '^version = ' "$crate_toml" | head -1 | sed 's/version = "\([^"]*\)"/\1/')
+            if [[ "$actual" == "$expected" ]]; then
+                echo -e "  ${GREEN}✓${NC} crates/$crate_name/Cargo.toml: $actual"
+            else
+                echo -e "  ${RED}✗${NC} crates/$crate_name/Cargo.toml: expected $expected, got $actual"
+                all_success=false
+            fi
+        fi
+    done
+
+    $all_success
 }
 
 interactive_mode() {
@@ -236,6 +273,13 @@ do_update() {
     echo -e "    • src-tauri/Cargo.lock"
     echo -e "    • Cargo.lock"
     echo -e "    • src-tauri/tauri.conf.json"
+    # List crates
+    for crate_toml in "$CRATES_DIR"/*/Cargo.toml; do
+        if [[ -f "$crate_toml" ]]; then
+            local crate_name=$(basename "$(dirname "$crate_toml")")
+            echo -e "    • crates/$crate_name/Cargo.toml"
+        fi
+    done
     echo ""
 
     if [[ "$current_version" == "$new_version" ]]; then
@@ -259,6 +303,7 @@ do_update() {
 
     update_package_json "$new_version"
     update_cargo_toml "$new_version"
+    update_crates_cargo_toml "$new_version"
     update_cargo_lock "$new_version" "$current_version" "$CARGO_LOCK"
     update_cargo_lock "$new_version" "$current_version" "$CARGO_LOCK_ROOT"
     update_tauri_conf "$new_version"
@@ -270,6 +315,7 @@ do_update() {
     all_success=true
     verify_update "$new_version" "$PACKAGE_JSON" || all_success=false
     verify_update "$new_version" "$CARGO_TOML" || all_success=false
+    verify_crates_update "$new_version" || all_success=false
     verify_update "$new_version" "$CARGO_LOCK" || all_success=false
     verify_update "$new_version" "$CARGO_LOCK_ROOT" || all_success=false
     verify_update "$new_version" "$TAURI_CONF" || all_success=false
@@ -328,6 +374,12 @@ case "$1" in
         echo -e "    • src-tauri/Cargo.lock"
         echo -e "    • Cargo.lock"
         echo -e "    • src-tauri/tauri.conf.json"
+        for crate_toml in "$CRATES_DIR"/*/Cargo.toml; do
+            if [[ -f "$crate_toml" ]]; then
+                crate_name=$(basename "$(dirname "$crate_toml")")
+                echo -e "    • crates/$crate_name/Cargo.toml"
+            fi
+        done
         echo ""
         exit 0
         ;;

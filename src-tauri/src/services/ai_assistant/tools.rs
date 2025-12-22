@@ -12,10 +12,12 @@
 
 use crate::models::ai_assistant::{ToolCall, ToolResult, ToolDefinition, AvailableTools, ContextDelta};
 use crate::models::ai::ChatToolDefinition;
+use crate::services::audit::{AuditService, log_tool_execution as log_audit_tool};
 use crate::utils::path_resolver;
 use crate::utils::database::Database;
 use crate::repositories::{MCPRepository, McpLogEntry};
 use std::collections::HashMap;
+use std::sync::Arc;
 use chrono::Utc;
 
 use super::security::{PathSecurityValidator, ToolPermissionChecker, OutputSanitizer};
@@ -1337,6 +1339,17 @@ impl MCPToolHandler {
         if let Err(e) = repo.insert_log(&log_entry) {
             log::warn!("[AI Tool] Failed to log tool execution: {}", e);
         }
+
+        // Security audit logging for tool executions
+        // Use tool_call.id as session identifier since we don't have conversation context here
+        let audit_service = AuditService::new(Arc::new(db.clone()));
+        log_audit_tool(
+            &audit_service,
+            &tool_call.id,
+            &tool_call.name,
+            result.success,
+            result.error.as_deref(),
+        );
     }
 
     /// Log background process start with "running" status

@@ -9,6 +9,10 @@ mod commands;
 pub mod services; // Local services with Tauri dependencies
 pub mod repositories; // Local repositories with Tauri dependencies
 
+// Local models (Tauri-specific, not shared with MCP binary)
+#[path = "models/mod.rs"]
+pub mod local_models;
+
 // Re-export from packageflow-lib
 pub use packageflow_lib::models;
 pub use packageflow_lib::utils;
@@ -22,7 +26,7 @@ use commands::script::ScriptExecutionState;
 use commands::workflow::WorkflowExecutionState;
 use commands::ai_cli::CLIExecutorState;
 use commands::{
-    ai, ai_assistant, ai_cli, apk, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, notification, project, script, security,
+    ai, ai_assistant, ai_cli, apk, audit, deploy, file_watcher, git, incoming_webhook, ipa, mcp, monorepo, notification, project, script, security,
     settings, shortcuts, snapshot, step_template, toolchain, version, webhook, workflow, worktree,
 };
 use services::{DatabaseWatcher, FileWatcherManager, IncomingWebhookManager, LockfileWatcherManager};
@@ -204,6 +208,10 @@ pub fn run() {
             security::save_security_scan,
             security::snooze_scan_reminder,
             security::dismiss_scan_reminder,
+            // Audit commands (security audit log)
+            audit::get_audit_events,
+            audit::get_audit_stats,
+            audit::export_audit_events,
             // Version management commands (006-node-package-manager)
             version::get_version_requirement,
             version::get_system_environment,
@@ -269,6 +277,7 @@ pub fn run() {
             incoming_webhook::create_incoming_webhook_config,
             incoming_webhook::regenerate_incoming_webhook_token,
             incoming_webhook::check_port_available,
+            incoming_webhook::generate_webhook_secret,
             // Keyboard shortcuts commands
             shortcuts::load_keyboard_shortcuts,
             shortcuts::save_keyboard_shortcuts,

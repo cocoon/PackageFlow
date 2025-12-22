@@ -8,25 +8,8 @@ use serde::{Deserialize, Serialize};
 /// Default port for incoming webhook server
 pub const DEFAULT_INCOMING_WEBHOOK_PORT: u16 = 9876;
 
-fn default_port() -> u16 {
-    DEFAULT_INCOMING_WEBHOOK_PORT
-}
-
-/// Incoming Webhook configuration (per workflow)
-/// Each workflow can have its own port and token
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct IncomingWebhookConfig {
-    /// Whether incoming webhook is enabled
-    pub enabled: bool,
-    /// API Token for authentication (UUID v4)
-    pub token: String,
-    /// Token creation timestamp (ISO 8601)
-    pub token_created_at: String,
-    /// Server listening port (per-workflow, default: 9876)
-    #[serde(default = "default_port")]
-    pub port: u16,
-}
+// Note: IncomingWebhookConfig is re-exported from packageflow-lib
+// This local definition is kept for reference but packageflow-lib's version takes precedence
 
 /// Information about a running webhook server
 #[derive(Debug, Clone, Serialize, Deserialize)]

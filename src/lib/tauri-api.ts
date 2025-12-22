@@ -1757,6 +1757,9 @@ export const incomingWebhookAPI = {
   /** Generate a new API token */
   generateToken: (): Promise<string> => invoke<string>('generate_incoming_webhook_token'),
 
+  /** Generate a new HMAC secret for signature verification */
+  generateSecret: (): Promise<string> => invoke<string>('generate_webhook_secret'),
+
   /** Get incoming webhook server status (multi-server) */
   getServerStatus: (): Promise<IncomingWebhookServerStatus> =>
     invoke<IncomingWebhookServerStatus>('get_incoming_webhook_status'),

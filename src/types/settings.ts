@@ -14,6 +14,7 @@ export type SettingsSection =
   | 'mcp'
   | 'toolchain'
   | 'lockfile-validation'
+  | 'security-audit'
   | 'data'
   | 'about';
 
@@ -54,6 +55,7 @@ export const SETTINGS_SECTIONS: SettingsSidebarSection[] = [
     label: 'Security',
     items: [
       { id: 'lockfile-validation', label: 'Lockfile Validation', icon: 'ShieldCheck' },
+      { id: 'security-audit', label: 'Security Audit', icon: 'Shield' },
     ],
   },
   {

@@ -274,3 +274,67 @@ Validation issues appear as security insights in:
 - Project dashboard
 
 Each insight shows severity (critical, high, medium, low, info) and recommended action.
+
+## Security Audit Log
+
+PackageFlow maintains a comprehensive audit log of security-relevant events across the application.
+
+### Accessing the Audit Log
+
+1. Go to **Settings** → **Security** → **Security Audit**
+2. View event timeline with filtering options
+3. Export logs for compliance or analysis
+
+### Event Types
+
+| Event Type | Description |
+|------------|-------------|
+| **Webhook Trigger** | External webhook requests and their outcomes |
+| **Authentication** | Login attempts, HMAC signature verification |
+| **Tool Execution** | AI assistant tool calls and results |
+| **Security Alert** | Rate limiting, suspicious activity |
+| **Data Access** | Sensitive data access events |
+| **Configuration** | Security-related setting changes |
+
+### Actor Types
+
+Events are attributed to different actor types:
+
+- **User**: Manual user actions
+- **AI Assistant**: Actions performed by the AI assistant
+- **Webhook**: External webhook requests
+- **System**: Automated system operations
+
+### Filtering Events
+
+Filter the audit log by:
+
+- **Time Range**: Last 24 hours, 7 days, or 30 days
+- **Event Type**: Filter by specific event categories
+- **Actor Type**: Filter by who performed the action
+- **Outcome**: Success, Failure, or Denied
+
+### Event Details
+
+Click on an event to see:
+
+- **Event ID**: Unique identifier for the event
+- **Resource**: Type and name of the affected resource
+- **Outcome Reason**: Why the event succeeded or failed
+- **Actor Details**: Session ID, source IP
+- **Additional Details**: JSON payload with extra context
+- **Timestamp**: Exact time of the event
+
+### Exporting Logs
+
+Export audit logs for compliance or external analysis:
+
+1. Click **Export** in the Security Audit panel
+2. Logs are exported as JSON
+3. Includes all filtered events
+
+### Retention Policy
+
+- Audit logs are automatically cleaned up after 90 days
+- Cleanup runs automatically on each new event insert
+- Export logs before retention period if needed for compliance
