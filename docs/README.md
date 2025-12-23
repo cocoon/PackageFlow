@@ -15,7 +15,9 @@ Welcome to the PackageFlow documentation! This guide will help you get the most 
 
 ## What is PackageFlow?
 
-PackageFlow is an **AI-driven `package.json` project management desktop app** — the app you open instead of your terminal. It turns your projects into a visual command center for scripts, Git, deployments, and MCP-powered automation.
+**Stop juggling terminal tabs. Start clicking.**
+
+PackageFlow is a visual DevOps hub for Node.js projects — one app to run scripts, manage Git, and deploy. The killer feature? **Your AI assistant can control it via MCP.**
 
 **Built for the modern frontend workflow:**
 
@@ -39,12 +41,12 @@ PackageFlow is an **AI-driven `package.json` project management desktop app** �
 
 ## Key Benefits
 
-| Before PackageFlow | With PackageFlow |
-|-------------------|-----------------|
-| `cd project && npm run dev` | Click "Dev" |
-| `git add . && git commit -m "..."` | AI generates your commit message |
-| `npm audit --json \| jq ...` | Visual vulnerability dashboard |
-| Switch between 5 terminal tabs | One unified workspace |
+| Before | After |
+|--------|-------|
+| `cd project-a && npm run dev` × 5 tabs | Click once. Done. |
+| Manual deploy, copy preview URL | One-click deploy → instant link |
+| "What was that command again?" | Visual workflows, zero memorization |
+| AI can only read your code | **AI runs your scripts, deploys, switches branches** |
 
 ## Features
 

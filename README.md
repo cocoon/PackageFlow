@@ -5,8 +5,8 @@
 <h1 align="center">PackageFlow</h1>
 
 <p align="center">
-  <strong>The AI-Driven <code>package.json</code> Project Manager</strong><br/>
-  <sub>Turn scripts, Git, workflows, deploys, and MCP tools into one-click actions.</sub>
+  <strong>Stop juggling terminal tabs. Start clicking.</strong><br/>
+  <sub>A visual DevOps hub for npm scripts, Git, workflows, and deploy — <b>controllable by AI via MCP</b>.</sub>
 </p>
 
 <p align="center">
@@ -57,16 +57,17 @@
 > **"Run tests and fix any failures."**
 > **"Switch to the main branch and start the dev server."**
 
-**PackageFlow is an AI-driven <code>package.json</code> project management tool — a single control center for how you build, ship, and automate.**
+**One app to run scripts, manage Git, and deploy — across all your Node.js projects.**
+**The killer feature? Your AI assistant can control it via MCP.**
 
-| Before PackageFlow | With PackageFlow |
-|-------------------|------------------|
-| Terminal juggling | One-click scripts |
-| Manual deployments | Instant preview links |
-| Command memorization | Visual workflows |
-| AI can't touch your tools | **MCP Server lets AI control everything** |
+| Before | After |
+|--------|-------|
+| `cd project-a && npm run dev` × 5 tabs | Click once. Done. |
+| Manual deploy, copy preview URL | One-click deploy → instant link |
+| "What was that command again?" | Visual workflows, zero memorization |
+| AI can only read your code | **AI runs your scripts, deploys, switches branches** |
 
-Powered by **Tauri + Rust** — lightweight, fast startup, local-first by design.
+Built with **Tauri + Rust** — fast, lightweight, 100% local.
 
 ## 🎬 Quick Start
 
