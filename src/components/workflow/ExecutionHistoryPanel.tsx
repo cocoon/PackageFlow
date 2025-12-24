@@ -30,6 +30,7 @@ import {
   Filter,
   RotateCcw,
 } from 'lucide-react';
+import stripAnsi from 'strip-ansi';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useExecutionHistoryContext } from '../../contexts/ExecutionHistoryContext';
@@ -314,7 +315,8 @@ function HistoryOutputDialog({ item, workflowName, onClose }: HistoryOutputDialo
 
   // Render function for history output lines
   const renderHistoryOutputLine = useCallback((line: WorkflowOutputLine) => {
-    return <div className={getOutputLineClassName(line.stream, line.content)}>{line.content}</div>;
+    const cleanContent = stripAnsi(line.content);
+    return <div className={getOutputLineClassName(line.stream, cleanContent)}>{cleanContent}</div>;
   }, []);
 
   // Copy all output to clipboard

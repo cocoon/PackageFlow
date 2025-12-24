@@ -20,6 +20,7 @@ import {
   List,
   Layers,
 } from 'lucide-react';
+import stripAnsi from 'strip-ansi';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import type { WorkflowExecutionState, OutputLine } from '../../hooks/useWorkflowExecution';
@@ -128,9 +129,10 @@ export function WorkflowOutputPanel({
 
   // Render function for raw output lines
   const renderRawOutputLine = useCallback((line: OutputLine) => {
+    const cleanContent = stripAnsi(line.content);
     return (
-      <div className={getOutputLineClassName(line.stream, line.content, line.nodeType)}>
-        {line.content}
+      <div className={getOutputLineClassName(line.stream, cleanContent, line.nodeType)}>
+        {cleanContent}
       </div>
     );
   }, []);
@@ -440,7 +442,7 @@ export function OutputPreview({ output, maxLines = 3, className }: OutputPreview
             line.stream === 'stderr' ? 'text-red-400' : 'text-muted-foreground'
           )}
         >
-          {line.content}
+          {stripAnsi(line.content)}
         </div>
       ))}
       {output.length > maxLines && (

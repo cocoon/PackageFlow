@@ -14,6 +14,7 @@ import {
   XCircle,
   Clock,
 } from 'lucide-react';
+import stripAnsi from 'strip-ansi';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
 import type { OutputLine } from '../../hooks/useWorkflowExecution';
@@ -229,6 +230,7 @@ interface OutputLineItemProps {
 
 function OutputLineItem({ line }: OutputLineItemProps) {
   const { content, stream } = line;
+  const cleanContent = stripAnsi(content);
 
   return (
     <div
@@ -239,7 +241,7 @@ function OutputLineItem({ line }: OutputLineItemProps) {
         stream === 'system' && 'text-blue-400'
       )}
     >
-      {content}
+      {cleanContent}
     </div>
   );
 }
