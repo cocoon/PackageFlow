@@ -16,21 +16,22 @@ import {
 import { WebglAddon } from '@xterm/addon-webgl';
 import { spawn } from 'tauri-pty';
 import {
-  ChevronUp,
   ChevronDown,
+  ChevronUp,
   GripHorizontal,
   Copy,
   Check,
   Search,
   Trash2,
   Terminal as TerminalIcon,
-  X,
 } from 'lucide-react';
 import { scriptAPI } from '../../lib/tauri-api';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Button } from '../ui/Button';
 import { usePtySessions, terminalTheme, type PtySession } from '../../hooks/usePtySessions';
 import { TerminalTab } from './TerminalTab';
+import { TerminalSearchBar } from './TerminalSearchBar';
+import { TerminalStatusBar } from './TerminalStatusBar';
 import '@xterm/xterm/css/xterm.css';
 
 interface ScriptPtyTerminalProps {
@@ -106,13 +107,6 @@ function throttle<T extends (...args: any[]) => void>(
     }
   };
 }
-
-// Status display configuration
-const statusConfig: Record<string, { label: string; color: string }> = {
-  running: { label: 'Running', color: 'text-yellow-400' },
-  completed: { label: 'Succeeded', color: 'text-green-400' },
-  failed: { label: 'Failed', color: 'text-red-400' },
-};
 
 export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTerminalProps>(
   function ScriptPtyTerminal(
@@ -695,60 +689,14 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
 
         {/* Search bar */}
         {!isCollapsed && isSearchOpen && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-secondary border-b border-border">
-            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (e.shiftKey) {
-                    handleSearchPrev();
-                  } else {
-                    handleSearchNext();
-                  }
-                } else if (e.key === 'Escape') {
-                  handleCloseSearch();
-                }
-              }}
-              placeholder="Search in terminal..."
-              className="flex-1 bg-transparent text-sm text-foreground placeholder-muted-foreground outline-none min-w-0"
-            />
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSearchPrev}
-                disabled={!searchQuery}
-                className="h-auto p-1"
-                title="Previous match (Shift+Enter)"
-              >
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSearchNext}
-                disabled={!searchQuery}
-                className="h-auto p-1"
-                title="Next match (Enter)"
-              >
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </Button>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCloseSearch}
-              className="h-auto p-1 flex-shrink-0"
-              title="Close (Esc)"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </div>
+          <TerminalSearchBar
+            searchQuery={searchQuery}
+            searchInputRef={searchInputRef}
+            onSearchChange={handleSearch}
+            onSearchPrev={handleSearchPrev}
+            onSearchNext={handleSearchNext}
+            onClose={handleCloseSearch}
+          />
         )}
 
         {/* Terminal content - always render container but hide when collapsed */}
@@ -768,22 +716,7 @@ export const ScriptPtyTerminal = forwardRef<ScriptPtyTerminalRef, ScriptPtyTermi
 
         {/* Status bar */}
         {!isCollapsed && activeSession && (
-          <div className="h-6 flex items-center px-3 text-xs border-t border-border bg-card">
-            <span className={statusConfig[activeSession.status].color}>
-              {statusConfig[activeSession.status].label}
-            </span>
-            {activeSession.exitCode !== undefined && (
-              <span className="ml-2 text-muted-foreground">
-                Exit code: {activeSession.exitCode}
-              </span>
-            )}
-            <span
-              className="ml-auto text-muted-foreground"
-              title={formatPath(activeSession.projectPath)}
-            >
-              {formatPath(activeSession.projectPath)}
-            </span>
-          </div>
+          <TerminalStatusBar session={activeSession} formatPath={formatPath} />
         )}
       </div>
     );

@@ -1,451 +1,40 @@
-// Script execution commands
-// Implements US3: Script Execution with Real-time Output
+//! Script execution commands module
+//!
+//! Implements US3: Script Execution with Real-time Output
+//!
+//! Module structure:
+//! - `types`: All struct/enum definitions and payloads
+//! - `state`: Execution state management (ScriptExecutionState)
+//! - `output`: Output batching and streaming
+//! - `process`: Process tree management and cleanup
 
+pub mod output;
+pub mod process;
+pub mod state;
+pub mod types;
+
+// Re-export commonly used types
+pub use state::{RunningExecution, ScriptExecutionState};
+pub use types::{
+    CancelScriptResponse, ExecuteScriptResponse, ExecutionStatus, GetScriptOutputResponse,
+    OutputBuffer, RunningScriptInfo, ScriptCompletedPayload, VoltaWrappedCommand,
+    WriteToScriptResponse,
+};
+
+// Internal imports
 use chrono::Utc;
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque};
+use output::{handle_process_completion, stream_output, StreamType};
+use process::{cleanup_expired_executions, kill_process_tree};
+use std::path::Path;
 use std::process::Stdio;
-use tokio::sync::RwLock;
 use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::process::{Child, ChildStdin};
+use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
 
 use crate::commands::project::parse_package_json;
 use crate::commands::version::detect_volta;
 use crate::utils::path_resolver;
-use std::path::Path;
-
-// ============================================================================
-// Feature 007: Terminal Session Reconnect - New Types
-// ============================================================================
-
-/// Execution status for tracking script state (Feature 007)
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum ExecutionStatus {
-    Running,
-    Completed,
-    Failed,
-    Cancelled,
-}
-
-impl Default for ExecutionStatus {
-    fn default() -> Self {
-        Self::Running
-    }
-}
-
-impl std::fmt::Display for ExecutionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExecutionStatus::Running => write!(f, "running"),
-            ExecutionStatus::Completed => write!(f, "completed"),
-            ExecutionStatus::Failed => write!(f, "failed"),
-            ExecutionStatus::Cancelled => write!(f, "cancelled"),
-        }
-    }
-}
-
-/// Single output line for buffering (Feature 007)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OutputLine {
-    pub content: String,
-    pub stream: String,    // "stdout" | "stderr"
-    pub timestamp: String, // ISO 8601
-}
-
-/// Output buffer with size limit for storing script output history (Feature 007)
-/// Uses a ring buffer approach - when max size is exceeded, oldest content is removed
-pub struct OutputBuffer {
-    lines: VecDeque<OutputLine>,
-    total_size: usize,
-    max_size: usize,
-    truncated: bool,
-}
-
-impl OutputBuffer {
-    /// Default max size: 1MB
-    pub const DEFAULT_MAX_SIZE: usize = 1_048_576;
-
-    pub fn new() -> Self {
-        Self::with_max_size(Self::DEFAULT_MAX_SIZE)
-    }
-
-    pub fn with_max_size(max_size: usize) -> Self {
-        Self {
-            lines: VecDeque::new(),
-            total_size: 0,
-            max_size,
-            truncated: false,
-        }
-    }
-
-    /// Push a new line, removing old content if necessary to stay within size limit
-    pub fn push(&mut self, line: OutputLine) {
-        let line_size = line.content.len();
-
-        // Remove old lines if adding new line would exceed max size
-        while self.total_size + line_size > self.max_size && !self.lines.is_empty() {
-            if let Some(removed) = self.lines.pop_front() {
-                self.total_size = self.total_size.saturating_sub(removed.content.len());
-                self.truncated = true;
-            }
-        }
-
-        // Only add if the single line doesn't exceed max size
-        if line_size <= self.max_size {
-            self.total_size += line_size;
-            self.lines.push_back(line);
-        }
-    }
-
-    /// Get all lines as a vector
-    pub fn get_lines(&self) -> Vec<OutputLine> {
-        self.lines.iter().cloned().collect()
-    }
-
-    /// Get combined output as a single string
-    pub fn get_combined_output(&self) -> String {
-        self.lines
-            .iter()
-            .map(|l| l.content.as_str())
-            .collect::<Vec<_>>()
-            .join("")
-    }
-
-    /// Check if content was truncated due to size limit
-    pub fn is_truncated(&self) -> bool {
-        self.truncated
-    }
-
-    /// Get current buffer size in bytes
-    pub fn size(&self) -> usize {
-        self.total_size
-    }
-}
-
-impl Default for OutputBuffer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-// ============================================================================
-// Performance Optimization: Output Batcher
-// Batches output events to reduce IPC overhead (8KB or 16ms threshold)
-// ============================================================================
-
-/// Performance optimization: Batch output before emitting to frontend
-/// Reduces IPC overhead by batching events (8KB or 16ms, whichever comes first)
-pub struct OutputBatcher {
-    buffer: String,
-    last_flush: Instant,
-    execution_id: String,
-    stream_type: String,
-}
-
-impl OutputBatcher {
-    /// Batch size threshold (8KB)
-    const BATCH_SIZE_THRESHOLD: usize = 8192;
-    /// Time threshold (16ms = ~60fps)
-    const TIME_THRESHOLD_MS: u64 = 16;
-
-    pub fn new(execution_id: String, stream_type: &str) -> Self {
-        Self {
-            buffer: String::new(),
-            last_flush: Instant::now(),
-            execution_id,
-            stream_type: stream_type.to_string(),
-        }
-    }
-
-    /// Add content to buffer and flush if thresholds are met
-    pub async fn add(&mut self, content: &str, app: &AppHandle, state: &ScriptExecutionState) {
-        self.buffer.push_str(content);
-
-        let should_flush = self.buffer.len() >= Self::BATCH_SIZE_THRESHOLD
-            || self.last_flush.elapsed().as_millis() as u64 >= Self::TIME_THRESHOLD_MS;
-
-        if should_flush {
-            self.flush(app, state).await;
-        }
-    }
-
-    /// Flush any remaining content (call at end of stream)
-    pub async fn flush(&mut self, app: &AppHandle, state: &ScriptExecutionState) {
-        if self.buffer.is_empty() {
-            return;
-        }
-
-        let timestamp = Utc::now().to_rfc3339();
-
-        // Buffer the output in state (using write lock for mutation)
-        {
-            let mut executions = state.executions.write().await;
-            if let Some(exec) = executions.get_mut(&self.execution_id) {
-                exec.output_buffer.push(OutputLine {
-                    content: self.buffer.clone(),
-                    stream: self.stream_type.clone(),
-                    timestamp: timestamp.clone(),
-                });
-            }
-        }
-
-        // Emit to frontend
-        let _ = app.emit(
-            "script_output",
-            ScriptOutputPayload {
-                execution_id: self.execution_id.clone(),
-                output: self.buffer.clone(),
-                stream: self.stream_type.clone(),
-                timestamp,
-            },
-        );
-
-        self.buffer.clear();
-        self.last_flush = Instant::now();
-    }
-}
-
-// ============================================================================
-// Shared Output Stream Handler
-// Eliminates code duplication between execute_script and execute_command
-// ============================================================================
-
-/// Stream type for output handling
-#[derive(Clone, Copy)]
-pub enum StreamType {
-    Stdout,
-    Stderr,
-}
-
-impl StreamType {
-    fn as_str(&self) -> &'static str {
-        match self {
-            StreamType::Stdout => "stdout",
-            StreamType::Stderr => "stderr",
-        }
-    }
-}
-
-/// Shared output stream handler - processes lines from stdout/stderr
-/// Uses OutputBatcher for performance optimization
-async fn stream_output<R: tokio::io::AsyncRead + Unpin>(
-    reader: R,
-    stream_type: StreamType,
-    execution_id: String,
-    app: AppHandle,
-) {
-    let state = app.state::<ScriptExecutionState>();
-    let mut batcher = OutputBatcher::new(execution_id.clone(), stream_type.as_str());
-    let mut line_reader = BufReader::new(reader).lines();
-
-    while let Ok(Some(line)) = line_reader.next_line().await {
-        // BufReader::lines() strips newlines, so we add it back for proper display
-        let line_with_newline = format!("{}\n", line);
-        batcher.add(&line_with_newline, &app, &state).await;
-    }
-
-    // Flush any remaining content
-    batcher.flush(&app, &state).await;
-}
-
-/// Shared process completion handler
-/// Eliminates code duplication between execute_script and execute_command
-async fn handle_process_completion(
-    execution_id: String,
-    start_time: Instant,
-    app: AppHandle,
-) {
-    // Get the child process (outside lock scope for await)
-    let child_opt = {
-        let state = app.state::<ScriptExecutionState>();
-        let mut executions = state.executions.write().await;
-        executions
-            .get_mut(&execution_id)
-            .and_then(|exec| exec.child.take())
-    };
-
-    // Wait for the child process (no lock held)
-    let status = if let Some(mut child) = child_opt {
-        child.wait().await.ok()
-    } else {
-        None
-    };
-
-    let exit_code = status.and_then(|s| s.code()).unwrap_or(-1);
-    let duration = start_time.elapsed();
-
-    let _ = app.emit(
-        "script_completed",
-        ScriptCompletedPayload {
-            execution_id: execution_id.clone(),
-            exit_code,
-            success: exit_code == 0,
-            duration_ms: duration.as_millis() as u64,
-        },
-    );
-
-    // Update status instead of removing (keep for 5 min retention)
-    let state = app.state::<ScriptExecutionState>();
-    let mut executions = state.executions.write().await;
-    if let Some(exec) = executions.get_mut(&execution_id) {
-        exec.status = if exit_code == 0 {
-            ExecutionStatus::Completed
-        } else {
-            ExecutionStatus::Failed
-        };
-        exec.exit_code = Some(exit_code);
-        exec.completed_at = Some(Utc::now().to_rfc3339());
-        exec.child = None;
-        exec.stdin = None;
-    }
-}
-
-// ============================================================================
-// Types
-// ============================================================================
-
-/// Execution state stored in app state
-pub struct ScriptExecutionState {
-    /// Map of execution_id -> child process handle
-    /// Uses RwLock for better async performance (allows concurrent reads)
-    pub executions: RwLock<HashMap<String, RunningExecution>>,
-}
-
-/// Running execution info with output buffer for reconnection support (Feature 007)
-pub struct RunningExecution {
-    // Original fields
-    pub execution_id: String,
-    pub script_name: String,
-    pub started_at: Instant,
-    pub child: Option<Child>,
-    pub stdin: Option<ChildStdin>,
-    pub pid: Option<u32>,
-    // Feature 007: New fields for reconnection support
-    pub project_path: String,
-    pub project_name: Option<String>,
-    pub output_buffer: OutputBuffer,
-    pub started_at_iso: String,
-    pub status: ExecutionStatus,
-    pub exit_code: Option<i32>,
-    pub completed_at: Option<String>,
-}
-
-impl Default for ScriptExecutionState {
-    fn default() -> Self {
-        Self {
-            executions: RwLock::new(HashMap::new()),
-        }
-    }
-}
-
-/// Get all descendant PIDs of a process (children, grandchildren, etc.)
-fn get_descendant_pids(pid: u32) -> Vec<u32> {
-    let mut descendants = Vec::new();
-
-    // Use pgrep -P to find direct children
-    let output = path_resolver::create_command("pgrep")
-        .args(["-P", &pid.to_string()])
-        .output();
-
-    if let Ok(output) = output {
-        let pids_str = String::from_utf8_lossy(&output.stdout);
-        for line in pids_str.lines() {
-            if let Ok(child_pid) = line.trim().parse::<u32>() {
-                // Add this child
-                descendants.push(child_pid);
-                // Recursively get grandchildren
-                descendants.extend(get_descendant_pids(child_pid));
-            }
-        }
-    }
-
-    descendants
-}
-
-/// Kill a process and all its descendants (children, grandchildren, etc.)
-/// This ensures that child processes spawned by npm/pnpm/yarn/vite are also terminated
-fn kill_process_tree(pid: u32) -> Result<(), String> {
-    println!("[kill_process_tree] Killing process tree for PID: {}", pid);
-
-    // First, collect all descendant PIDs (depth-first to get deepest children first)
-    let descendants = get_descendant_pids(pid);
-    println!(
-        "[kill_process_tree] Found {} descendants: {:?}",
-        descendants.len(),
-        descendants
-    );
-
-    // Kill descendants in reverse order (deepest first) to avoid orphaning
-    for child_pid in descendants.iter().rev() {
-        println!("[kill_process_tree] Killing descendant PID: {}", child_pid);
-        let _ = path_resolver::create_command("kill")
-            .args(["-9", &child_pid.to_string()])
-            .output();
-    }
-
-    // Finally kill the parent process
-    let kill_result = path_resolver::create_command("kill")
-        .args(["-9", &pid.to_string()])
-        .output();
-
-    match &kill_result {
-        Ok(output) => {
-            println!(
-                "[kill_process_tree] kill -9 {} result: status={}, stderr={}",
-                pid,
-                output.status,
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
-        Err(e) => {
-            println!("[kill_process_tree] kill -9 {} error: {}", pid, e);
-        }
-    }
-
-    Ok(())
-}
-
-/// Script output event payload (sent to frontend)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptOutputPayload {
-    pub execution_id: String,
-    pub output: String,
-    pub stream: String, // "stdout" | "stderr"
-    pub timestamp: String,
-}
-
-/// Script completed event payload (sent to frontend)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ScriptCompletedPayload {
-    pub execution_id: String,
-    pub exit_code: i32,
-    pub success: bool,
-    pub duration_ms: u64,
-}
-
-/// Response for execute_script command
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExecuteScriptResponse {
-    pub success: bool,
-    pub execution_id: Option<String>,
-    pub error: Option<String>,
-}
-
-/// Response for cancel_script command
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CancelScriptResponse {
-    pub success: bool,
-    pub error: Option<String>,
-}
 
 // ============================================================================
 // Commands
@@ -640,20 +229,6 @@ pub async fn execute_script(
 
 /// Execute a command from the allowed list
 /// Uses path_resolver to handle macOS GUI app PATH issues
-///
-/// Allowed commands include:
-/// - Package managers: npm, yarn, pnpm, bun
-/// - Node.js: node, npx, tsx
-/// - Version control: git
-/// - Build tools: make, cmake
-/// - Rust: cargo, rustc, rustup
-/// - Python: python, python3, pip, pip3, pipenv, poetry
-/// - Go: go
-/// - Mobile development: expo, eas, flutter, dart, pod, xcodebuild, fastlane
-/// - Container: docker, docker-compose
-/// - File operations: ls, cat, head, tail, find, grep, mkdir, rm, cp, mv, touch, chmod
-/// - Utilities: echo, pwd, which, env, curl, wget, tar, unzip, open
-/// - macOS: brew, xcrun
 #[tauri::command]
 pub async fn execute_command(
     app: AppHandle,
@@ -670,15 +245,10 @@ pub async fn execute_command(
         "yarn",
         "pnpm",
         "bun",
-        // Node.js tools
+        // Node.js
         "node",
         "npx",
         "tsx",
-        // Version managers
-        "volta",
-        "fnm",
-        "nvm",
-        "corepack",
         // Version control
         "git",
         // Build tools
@@ -695,20 +265,16 @@ pub async fn execute_command(
         "pip3",
         "pipenv",
         "poetry",
-        "uv",
         // Go
         "go",
-        // Mobile development (Expo / React Native)
+        // Mobile development
         "expo",
         "eas",
-        // Mobile development (Flutter)
         "flutter",
         "dart",
-        // Mobile development (iOS)
         "pod",
         "xcodebuild",
         "fastlane",
-        "xcrun",
         // Container
         "docker",
         "docker-compose",
@@ -735,44 +301,83 @@ pub async fn execute_command(
         "tar",
         "unzip",
         "open",
-        // macOS
+        // macOS specific
         "brew",
+        "xcrun",
     ];
 
-    // Extract base command name from full path (e.g., "/Users/foo/.volta/bin/volta" -> "volta")
-    let base_command = std::path::Path::new(&command)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or(&command);
-
-    if !allowed_commands.contains(&base_command) {
+    if !allowed_commands.contains(&command.as_str()) {
         return Ok(ExecuteScriptResponse {
             success: false,
             execution_id: None,
-            error: Some(format!(
-                "Command '{}' is not allowed. Run 'packageflow --help' for the list of allowed commands.",
-                base_command
-            )),
+            error: Some(format!("Command '{}' is not in the allowed list", command)),
         });
     }
 
     let execution_id = Uuid::new_v4().to_string();
 
-    println!(
-        "[execute_command] command: {}, args: {:?}, cwd: {}",
-        command, args, cwd
-    );
+    // Check if project has Volta config and Volta is available for node-related commands
+    let node_commands = ["npm", "yarn", "pnpm", "node", "npx", "tsx", "bun"];
+    let path = Path::new(&cwd);
+    let volta_config = if node_commands.contains(&command.as_str()) {
+        match parse_package_json(path) {
+            Ok(pj) => pj.volta.clone(),
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+    let volta_status = detect_volta();
+
+    // Determine final command and args (with or without Volta wrapper)
+    let (cmd, final_args): (String, Vec<String>) =
+        if volta_config.is_some() && volta_status.available {
+            let volta_cmd = volta_status.path.unwrap_or_else(|| "volta".to_string());
+            let mut volta_args = vec!["run".to_string()];
+
+            if let Some(ref config) = volta_config {
+                if let Some(ref node_version) = config.node {
+                    volta_args.push("--node".to_string());
+                    volta_args.push(node_version.clone());
+                }
+                if command == "npm" {
+                    if let Some(ref npm_version) = config.npm {
+                        volta_args.push("--npm".to_string());
+                        volta_args.push(npm_version.clone());
+                    }
+                }
+                if command == "yarn" {
+                    if let Some(ref yarn_version) = config.yarn {
+                        volta_args.push("--yarn".to_string());
+                        volta_args.push(yarn_version.clone());
+                    }
+                }
+            }
+
+            volta_args.push(command.clone());
+            volta_args.extend(args.clone());
+            println!(
+                "[execute_command] Using Volta: {} {:?} in {}",
+                volta_cmd, volta_args, cwd
+            );
+            (volta_cmd, volta_args)
+        } else {
+            println!("[execute_command] Spawning {} {:?} in {}", command, args, cwd);
+            (command.clone(), args.clone())
+        };
 
     // Use path_resolver to create command with proper PATH for macOS GUI apps
-    let mut cmd = path_resolver::create_command(&command);
-    cmd.args(&args);
-    cmd.current_dir(&cwd);
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    cmd.stdin(Stdio::piped());
+    let mut std_command = path_resolver::create_command(&cmd);
+    std_command.args(&final_args);
+    std_command.current_dir(&cwd);
+    // Set CI=true to prevent interactive prompts from pnpm/npm
+    std_command.env("CI", "true");
+    std_command.stdout(Stdio::piped());
+    std_command.stderr(Stdio::piped());
+    std_command.stdin(Stdio::piped());
 
     // Convert to tokio command and spawn
-    let mut child = tokio::process::Command::from(cmd)
+    let mut child = tokio::process::Command::from(std_command)
         .spawn()
         .map_err(|e| format!("Failed to spawn command: {}", e))?;
 
@@ -845,7 +450,7 @@ pub async fn execute_command(
     })
 }
 
-/// Cancel a running script
+/// Cancel a running script execution
 #[tauri::command]
 pub async fn cancel_script(
     app: AppHandle,
@@ -937,7 +542,7 @@ pub async fn cancel_script(
 #[tauri::command]
 pub async fn kill_all_node_processes(app: AppHandle) -> Result<CancelScriptResponse, String> {
     // Collect data to kill outside the lock
-    let to_kill: Vec<(String, Option<u32>, Option<Child>, u64)> = {
+    let to_kill: Vec<(String, Option<u32>, Option<tokio::process::Child>, u64)> = {
         let state = app.state::<ScriptExecutionState>();
         let mut executions = state.executions.write().await;
 
@@ -1037,51 +642,46 @@ pub async fn kill_all_node_processes(app: AppHandle) -> Result<CancelScriptRespo
     })
 }
 
-/// Kill processes listening on specific ports
-/// Used for cleanup on app close/refresh
+/// Kill processes using specific ports
 #[tauri::command]
 pub async fn kill_ports(ports: Vec<u16>) -> Result<CancelScriptResponse, String> {
-    println!("[kill_ports] Killing processes on ports: {:?}", ports);
-
     let mut killed_count = 0;
 
-    for port in ports {
-        // Use lsof to find process listening on the port
+    for port in &ports {
+        // Use lsof to find processes using this port
         let output = path_resolver::create_command("lsof")
             .args(["-ti", &format!(":{}", port)])
             .output();
 
         if let Ok(output) = output {
-            let pids = String::from_utf8_lossy(&output.stdout);
-            for pid_str in pids.lines() {
-                if let Ok(pid) = pid_str.trim().parse::<i32>() {
-                    println!("[kill_ports] Killing PID {} on port {}", pid, port);
-                    // Kill the process
-                    let _ = path_resolver::create_command("kill")
-                        .args(["-9", &pid.to_string()])
-                        .output();
+            let pids_str = String::from_utf8_lossy(&output.stdout);
+            for pid_str in pids_str.lines() {
+                if let Ok(pid) = pid_str.trim().parse::<u32>() {
+                    println!("[kill_ports] Killing PID {} using port {}", pid, port);
+                    let _ = kill_process_tree(pid);
                     killed_count += 1;
                 }
             }
         }
     }
 
-    println!("[kill_ports] Killed {} process(es)", killed_count);
-
     Ok(CancelScriptResponse {
         success: true,
         error: if killed_count > 0 {
-            Some(format!("Killed {} process(es)", killed_count))
+            Some(format!(
+                "Killed {} process(es) on ports {:?}",
+                killed_count, ports
+            ))
         } else {
-            Some("No processes found on specified ports".to_string())
+            Some(format!("No processes found on ports {:?}", ports))
         },
     })
 }
 
-/// Check which ports have processes listening
+/// Check if specific ports are in use
 #[tauri::command]
 pub async fn check_ports(ports: Vec<u16>) -> Result<Vec<u16>, String> {
-    let mut occupied_ports = Vec::new();
+    let mut in_use = Vec::new();
 
     for port in ports {
         let output = path_resolver::create_command("lsof")
@@ -1089,32 +689,13 @@ pub async fn check_ports(ports: Vec<u16>) -> Result<Vec<u16>, String> {
             .output();
 
         if let Ok(output) = output {
-            let pids = String::from_utf8_lossy(&output.stdout);
-            if pids.lines().any(|line| !line.trim().is_empty()) {
-                occupied_ports.push(port);
+            if !output.stdout.is_empty() {
+                in_use.push(port);
             }
         }
     }
 
-    println!("[check_ports] Occupied ports: {:?}", occupied_ports);
-    Ok(occupied_ports)
-}
-
-/// Response for get_running_scripts command (Feature 007: Extended with reconnection info)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RunningScriptInfo {
-    // Original fields
-    pub execution_id: String,
-    pub script_name: String,
-    pub started_at_ms: u64, // elapsed time for backward compatibility
-    // Feature 007: New fields for reconnection support
-    pub project_path: String,
-    pub project_name: Option<String>,
-    pub started_at: String, // ISO 8601 absolute timestamp
-    pub status: ExecutionStatus,
-    pub exit_code: Option<i32>,
-    pub completed_at: Option<String>,
+    Ok(in_use)
 }
 
 /// Get list of script executions (Feature 007: includes completed scripts within 5 min retention)
@@ -1145,23 +726,6 @@ pub async fn get_running_scripts(app: AppHandle) -> Result<Vec<RunningScriptInfo
         .collect();
 
     Ok(scripts)
-}
-
-// ============================================================================
-// Feature 007: Get Script Output Command
-// ============================================================================
-
-/// Response for get_script_output command (Feature 007)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GetScriptOutputResponse {
-    pub success: bool,
-    pub execution_id: String,
-    pub output: Option<String>,
-    pub lines: Option<Vec<OutputLine>>,
-    pub truncated: bool,
-    pub buffer_size: usize,
-    pub error: Option<String>,
 }
 
 /// Get buffered output for a script execution (Feature 007: for reconnection support)
@@ -1199,56 +763,10 @@ pub async fn get_script_output(
     }
 }
 
-// ============================================================================
-// Feature 007: Cleanup & Edge Cases
-// ============================================================================
+/// Security: Maximum input size for stdin (1MB)
+const MAX_STDIN_INPUT_SIZE: usize = 1_048_576;
 
-/// Retention period for completed scripts (5 minutes)
-const COMPLETED_SCRIPT_RETENTION_SECS: u64 = 5 * 60;
-
-/// Clean up expired completed scripts (Feature 007: T025)
-async fn cleanup_expired_executions(app: &AppHandle) {
-    let state = app.state::<ScriptExecutionState>();
-    let mut executions = state.executions.write().await;
-
-    let expired_ids: Vec<String> = executions
-        .iter()
-        .filter(|(_, exec)| {
-            // Only clean up completed scripts (not running)
-            exec.status != ExecutionStatus::Running
-        })
-        .filter(|(_, exec)| {
-            // Check if retention period has passed
-            exec.started_at.elapsed().as_secs() > COMPLETED_SCRIPT_RETENTION_SECS
-        })
-        .map(|(id, _)| id.clone())
-        .collect();
-
-    for id in expired_ids {
-        executions.remove(&id);
-    }
-}
-
-// ============================================================================
-// Feature 008: stdin Interaction Support
-// ============================================================================
-
-/// Response for write_to_script command (Feature 008)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct WriteToScriptResponse {
-    pub success: bool,
-    pub error: Option<String>,
-}
-
-/// Maximum allowed input size for stdin (4KB - reasonable for interactive prompts)
-const MAX_STDIN_INPUT_SIZE: usize = 4096;
-
-/// Write input to a running script's stdin (Feature 008)
-/// Security notes:
-/// - Only writes to already-running processes (cannot start new processes)
-/// - Input size is limited to prevent memory issues
-/// - All writes are logged for auditing
+/// Write to script stdin (Feature 008: stdin interaction support)
 #[tauri::command]
 pub async fn write_to_script(
     app: AppHandle,
@@ -1360,28 +878,11 @@ pub async fn write_to_script(
     }
 }
 
-// ============================================================================
-// Feature 008: PTY Environment Variables
-// ============================================================================
-
 /// Get environment variables for PTY sessions
 /// This ensures PTY processes have access to the same environment as other commands
 #[tauri::command]
 pub async fn get_pty_env() -> Result<std::collections::HashMap<String, String>, String> {
     Ok(path_resolver::build_env_for_child())
-}
-
-// ============================================================================
-// Volta-wrapped command for PTY execution
-// ============================================================================
-
-/// Response for get_volta_wrapped_command
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct VoltaWrappedCommand {
-    pub command: String,
-    pub args: Vec<String>,
-    pub use_volta: bool,
 }
 
 /// Get command wrapped with Volta if project has volta config

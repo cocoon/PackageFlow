@@ -8,6 +8,8 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebglAddon } from '@xterm/addon-webgl';
+import { WebLinksAddon } from '@xterm/addon-web-links';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import type { IPty } from 'tauri-pty';
 
 // PTY session info
@@ -133,8 +135,13 @@ export function usePtySessions({
 
       const fitAddon = new FitAddon();
       const searchAddon = new SearchAddon();
+      const webLinksAddon = new WebLinksAddon((_event, uri) => {
+        // Open URL in default browser using Tauri opener plugin
+        openUrl(uri).catch((err) => console.error('[PTY] Failed to open URL:', err));
+      });
       term.loadAddon(fitAddon);
       term.loadAddon(searchAddon);
+      term.loadAddon(webLinksAddon);
 
       // Create initial session
       const session: PtySession = {
